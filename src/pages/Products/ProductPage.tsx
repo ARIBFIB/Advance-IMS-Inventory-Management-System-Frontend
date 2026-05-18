@@ -580,7 +580,7 @@ const openNew = () => {
     setPanelMode('new');
   }, 300);
 };  
-  const closePanel= () => { setSelected(null); };
+  const closePanel= () => { setSelected(null); setPanelMode('view'); };
 
   const SortIcon: React.FC<{ col: SortCol }> = ({ col }) => (
     <i className={`fa-solid ${sortCol === col ? (sortDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'} sort-icon`} />
@@ -731,6 +731,8 @@ const openNew = () => {
 // ═══════════════════════════════════════════════════════════
 
 const VariantsTab: React.FC = () => {
+  const [showVariantPanel, setShowVariantPanel] = useState(false);
+  const [editingVariant, setEditingVariant] = useState<Variant | null>(null);
   const SIZE_LABELS  = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   const SIZE_COUNTS  = [45, 89, 134, 112, 67, 34];
   const COLOR_LABELS = ['Black', 'White', 'Red', 'Blue', 'Green', 'Pink'];
@@ -762,7 +764,9 @@ const VariantsTab: React.FC = () => {
             <select className="form-select" style={{ height: 28, fontSize: 11 }}><option>All Types</option><option>Size</option><option>Color</option><option>Weight</option></select>
           </div>
           <div className="table-toolbar-right">
-            <button className="header-btn primary"><i className="fa-solid fa-plus" /> Add Variant</button>
+            <button className="header-btn primary" onClick={() => { setEditingVariant(null); setShowVariantPanel(true); }}>
+              <i className="fa-solid fa-plus" /> Add Variant
+            </button>
           </div>
         </div>
         <div className="table-wrap">
@@ -792,7 +796,7 @@ const VariantsTab: React.FC = () => {
                     <td><Badge label={st} /></td>
                     <td>
                       <ThreeDot id={`var-${i}`} items={[
-                        { label: 'Edit Variant', icon: 'fa-pen',   onClick: () => {} },
+                        { label: 'Edit Variant', icon: 'fa-pen',   onClick: () => { setEditingVariant(v); setShowVariantPanel(true); } },
                         { label: 'Add Stock',    icon: 'fa-plus',  onClick: () => {} },
                         { label: '---',          icon: '',         onClick: () => {} },
                         { label: 'Delete',       icon: 'fa-trash', danger: true, onClick: () => {} },
@@ -848,15 +852,116 @@ const VariantsTab: React.FC = () => {
           </div>
         </div>
       </div>
+    {/* Backdrop */}
+      <div
+        className={`prod-backdrop ${showVariantPanel ? 'open' : ''}`}
+        onClick={() => setShowVariantPanel(false)}
+      />
+
+      {/* Variant Panel */}
+      <div className={`prod-detail-panel ${showVariantPanel ? 'open' : ''}`}>
+        <div className="detail-header">
+          <div className="detail-title">{editingVariant ? 'Edit Variant' : 'Add New Variant'}</div>
+          <button className="detail-close" onClick={() => setShowVariantPanel(false)}>
+            <i className="fa-solid fa-xmark" />
+          </button>
+        </div>
+        <div className="detail-body" style={{ overflowY: 'auto' }}>
+          <div style={{ padding: '12px 16px' }}>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Parent Product *</div>
+              <select className="form-select" style={{ width: '100%' }}>
+                <option value="">— Select Product —</option>
+                {ALL_PRODUCTS.map(p => (
+                  <option key={p.sku} selected={editingVariant?.parent === p.name}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">Variant Type *</div>
+                <select className="form-select">
+                  <option selected={editingVariant?.type === 'Size'}>Size</option>
+                  <option selected={editingVariant?.type === 'Color'}>Color</option>
+                  <option selected={editingVariant?.type === 'Weight'}>Weight</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <div className="form-label">Value *</div>
+                <input
+                  className="form-input"
+                  defaultValue={editingVariant?.value ?? ''}
+                  placeholder="e.g. XL, Red, 500g"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">Variant SKU</div>
+                <input
+                  className="form-input"
+                  defaultValue={editingVariant?.vsku ?? ''}
+                  placeholder="Auto-generated"
+                />
+              </div>
+              <div className="form-group">
+                <div className="form-label">Sale Price (₨)</div>
+                <input
+                  className="form-input"
+                  type="number"
+                  defaultValue={editingVariant?.price ?? ''}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">{editingVariant ? 'Update Stock' : 'Initial Stock'}</div>
+                <input
+                  className="form-input"
+                  type="number"
+                  defaultValue={editingVariant?.stock ?? 0}
+                />
+              </div>
+              <div className="form-group">
+                <div className="form-label">Reserved</div>
+                <input
+                  className="form-input"
+                  type="number"
+                  defaultValue={editingVariant?.reserved ?? 0}
+                />
+              </div>
+            </div>
+
+            <hr />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="header-btn primary" style={{ flex: 1, justifyContent: 'center' }}>
+                <i className={`fa-solid ${editingVariant ? 'fa-check' : 'fa-plus'}`} />
+                {editingVariant ? ' Save Changes' : ' Add Variant'}
+              </button>
+              <button className="header-btn" onClick={() => setShowVariantPanel(false)}>Cancel</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </>
   );
 };
 
 // ═══════════════════════════════════════════════════════════
 // TAB: CATEGORIES
+
+// ═══════════════════════════════════════════════════════════
+// TAB: CATEGORIES
 // ═══════════════════════════════════════════════════════════
 
 const CategoriesTab: React.FC = () => {
+  const [showCatPanel, setShowCatPanel] = useState(false);
   const [catFormLabel, setCatFormLabel] = useState('New Category');
   const [catName, setCatName] = useState('');
   const totalProducts = CATEGORIES_DATA.reduce((a, c) => a + c.products, 0);
@@ -874,7 +979,7 @@ const CategoriesTab: React.FC = () => {
           <div className="card-header">
             <div className="card-title"><i className="fa-solid fa-tags" /> All Categories</div>
             <div className="card-actions">
-              <button className="header-btn primary" onClick={() => { setCatFormLabel('New Category'); setCatName(''); }}>
+              <button className="header-btn primary" onClick={() => { setCatFormLabel('New Category'); setCatName(''); setShowCatPanel(true); }}>
                 <i className="fa-solid fa-plus" /> Add Category
               </button>
             </div>
@@ -908,8 +1013,7 @@ const CategoriesTab: React.FC = () => {
                     <td><Badge label="Active" /></td>
                     <td>
                       <ThreeDot id={`cat-${i}`} items={[
-                        { label: 'Edit',          icon: 'fa-pen',  onClick: () => { setCatFormLabel(`Edit: ${c.name}`); setCatName(c.name); } },
-                        { label: 'View Products', icon: 'fa-list', onClick: () => {} },
+                        { label: 'Edit',          icon: 'fa-pen',  onClick: () => { setCatFormLabel(`Edit: ${c.name}`); setCatName(c.name); setShowCatPanel(true); } },                         { label: 'View Products', icon: 'fa-list', onClick: () => {} },
                         { label: '---',           icon: '',        onClick: () => {} },
                         { label: 'Delete',        icon: 'fa-trash',danger: true, onClick: () => {} },
                       ]} />
@@ -965,15 +1069,91 @@ const CategoriesTab: React.FC = () => {
           </div>
         </div>
       </div>
+    {/* Backdrop */}
+      <div
+        className={`prod-backdrop ${showCatPanel ? 'open' : ''}`}
+        onClick={() => setShowCatPanel(false)}
+      />
+
+      {/* Category Panel */}
+      <div className={`prod-detail-panel ${showCatPanel ? 'open' : ''}`}>
+        <div className="detail-header">
+          <div className="detail-title">{catFormLabel}</div>
+          <button className="detail-close" onClick={() => setShowCatPanel(false)}>
+            <i className="fa-solid fa-xmark" />
+          </button>
+        </div>
+        <div className="detail-body" style={{ overflowY: 'auto' }}>
+          <div style={{ padding: '12px 16px' }}>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Category Name *</div>
+              <input
+                className="form-input"
+                value={catName}
+                onChange={e => setCatName(e.target.value)}
+                placeholder="e.g. Suits"
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Parent Category (optional)</div>
+              <select className="form-select" style={{ width: '100%' }}>
+                <option value="">— None (top-level) —</option>
+                <option>Apparel</option>
+                <option>Accessories</option>
+              </select>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Description</div>
+              <input
+                className="form-input"
+                placeholder="Short description..."
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">Status</div>
+                <select className="form-select">
+                  <option>Active</option>
+                  <option>Inactive</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <div className="form-label">Icon (FA class)</div>
+                <input className="form-input" placeholder="fa-shirt" />
+              </div>
+            </div>
+
+            <hr />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="header-btn primary" style={{ flex: 1, justifyContent: 'center' }}>
+                <i className="fa-solid fa-check" /> Save Category
+              </button>
+              <button className="header-btn" onClick={() => setShowCatPanel(false)}>Cancel</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
 // ═══════════════════════════════════════════════════════════
 // TAB: SUPPLIERS
+
+// ═══════════════════════════════════════════════════════════
+// TAB: SUPPLIERS
 // ═══════════════════════════════════════════════════════════
 
 const SuppliersTab: React.FC = () => {
+  const [showSupplierPanel, setShowSupplierPanel] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const outColor = (amt: number) => amt > 50000 ? 'var(--red)' : amt > 0 ? 'var(--yellow)' : 'var(--green)';
 
   return (
@@ -998,8 +1178,10 @@ const SuppliersTab: React.FC = () => {
           </div>
           <div className="table-toolbar-right">
             <button className="t-filter-btn"><i className="fa-solid fa-file-export" /> Export</button>
-            <button className="header-btn primary"><i className="fa-solid fa-plus" /> Add Supplier</button>
-          </div>
+            <button className="header-btn primary" onClick={() => { setEditingSupplier(null); setShowSupplierPanel(true); }}>
+              <i className="fa-solid fa-plus" /> Add Supplier
+            </button>          
+            </div>
         </div>
         <div className="table-wrap">
           <table>
@@ -1036,8 +1218,8 @@ const SuppliersTab: React.FC = () => {
                   <td><Badge label={s.status} /></td>
                   <td>
                     <ThreeDot id={`sup-${i}`} items={[
-                      { label: 'View Profile',    icon: 'fa-eye',          onClick: () => {} },
-                      { label: 'Edit',            icon: 'fa-pen',          onClick: () => {} },
+                      { label: 'View Profile',    icon: 'fa-eye',          onClick: () => { setEditingSupplier(s); setShowSupplierPanel(true); } },
+                      { label: 'Edit',            icon: 'fa-pen',          onClick: () => { setEditingSupplier(s); setShowSupplierPanel(true); } },
                       { label: 'Record Payment',  icon: 'fa-money-bill',   onClick: () => {} },
                       { label: 'Create PO',       icon: 'fa-box',          onClick: () => {} },
                       { label: '---',             icon: '',                onClick: () => {} },
@@ -1096,9 +1278,119 @@ const SuppliersTab: React.FC = () => {
           </div>
         </div>
       </div>
+    {/* Backdrop */}
+      <div
+        className={`prod-backdrop ${showSupplierPanel ? 'open' : ''}`}
+        onClick={() => setShowSupplierPanel(false)}
+      />
+
+      {/* Supplier Panel */}
+      <div className={`prod-detail-panel ${showSupplierPanel ? 'open' : ''}`}>
+        <div className="detail-header">
+          <div className="detail-title">{editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}</div>
+          <button className="detail-close" onClick={() => setShowSupplierPanel(false)}>
+            <i className="fa-solid fa-xmark" />
+          </button>
+        </div>
+        <div className="detail-body" style={{ overflowY: 'auto' }}>
+          <div style={{ padding: '12px 16px' }}>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Supplier Name *</div>
+              <input
+                className="form-input"
+                defaultValue={editingSupplier?.name ?? ''}
+                placeholder="e.g. Al-Karam Textile"
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">Contact Person *</div>
+                <input
+                  className="form-input"
+                  defaultValue={editingSupplier?.contact ?? ''}
+                  placeholder="Full name"
+                />
+              </div>
+              <div className="form-group">
+                <div className="form-label">Phone *</div>
+                <input
+                  className="form-input"
+                  defaultValue={editingSupplier?.phone ?? ''}
+                  placeholder="03XX-XXXXXXX"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">City</div>
+                <input
+                  className="form-input"
+                  defaultValue={editingSupplier?.city ?? ''}
+                  placeholder="e.g. Lahore"
+                />
+              </div>
+              <div className="form-group">
+                <div className="form-label">Status</div>
+                <select className="form-select">
+                  <option selected={editingSupplier?.status === 'Active'}>Active</option>
+                  <option selected={editingSupplier?.status === 'On Hold'}>On Hold</option>
+                  <option selected={editingSupplier?.status === 'Inactive'}>Inactive</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">Lead Time (days)</div>
+                <input
+                  className="form-input"
+                  type="number"
+                  defaultValue={editingSupplier?.lead ?? ''}
+                  placeholder="e.g. 3"
+                />
+              </div>
+              <div className="form-group">
+                <div className="form-label">Outstanding Amount (₨)</div>
+                <input
+                  className="form-input"
+                  type="number"
+                  defaultValue={editingSupplier?.outstanding ?? 0}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Rating</div>
+              <select className="form-select" style={{ width: '100%' }}>
+                {[5, 4.5, 4, 3.5, 3, 2.5, 2].map(r => (
+                  <option key={r} selected={editingSupplier?.rating === r}>{r} stars</option>
+                ))}
+              </select>
+            </div>
+
+            <hr />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="header-btn primary" style={{ flex: 1, justifyContent: 'center' }}>
+                <i className={`fa-solid ${editingSupplier ? 'fa-check' : 'fa-plus'}`} />
+                {editingSupplier ? ' Save Changes' : ' Add Supplier'}
+              </button>
+              <button className="header-btn" onClick={() => setShowSupplierPanel(false)}>Cancel</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </>
   );
 };
+
+// ═══════════════════════════════════════════════════════════
+// TAB: BULK IMPORT
 
 // ═══════════════════════════════════════════════════════════
 // TAB: BULK IMPORT

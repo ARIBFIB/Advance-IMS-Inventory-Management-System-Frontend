@@ -180,9 +180,11 @@ const Pagination: React.FC<PaginationProps> = ({ current, total, totalItems, sta
 // ═══════════════════════════════════════════════════════════
 
 const AllCustomersTab: React.FC = () => {
-  const [search, setSearch]   = useState('');
-  const [filter, setFilter]   = useState<CustomerFilter>('all');
-  const [page,   setPage]     = useState(1);
+  const [search, setSearch]               = useState('');
+  const [filter, setFilter]               = useState<CustomerFilter>('all');
+  const [page,   setPage]                 = useState(1);
+  const [showCustomerPanel, setShowCustomerPanel] = useState(false);
+  const [editingCustomer, setEditingCustomer]     = useState<Customer | null>(null);
 
   const filtered = CUSTOMERS_DATA.filter(c => {
     if (filter === 'vip'      && c.segment !== 'VIP')        return false;
@@ -287,7 +289,7 @@ const AllCustomersTab: React.FC = () => {
             <button className="t-filter-btn">
               <i className="fa-solid fa-file-export" /> Export
             </button>
-            <button className="header-btn primary">
+            <button className="header-btn primary" onClick={() => { setEditingCustomer(null); setShowCustomerPanel(true); }}>
               <i className="fa-solid fa-plus" /> Add Customer
             </button>
           </div>
@@ -339,7 +341,8 @@ const AllCustomersTab: React.FC = () => {
                     <ThreeDot
                       id={`cust-${i}`}
                       items={[
-                        { label: 'View Profile',  icon: 'fa-eye',          onClick: () => {} },
+                        { label: 'View Profile',  icon: 'fa-eye',          onClick: () => { setEditingCustomer(c); setShowCustomerPanel(true); } },
+                        { label: 'Edit Customer', icon: 'fa-pen',          onClick: () => { setEditingCustomer(c); setShowCustomerPanel(true); } },
                         { label: 'View Orders',   icon: 'fa-bag-shopping', onClick: () => {} },
                         { label: 'Mark as VIP',   icon: 'fa-crown',        onClick: () => {} },
                         { label: '---',           icon: '',                onClick: () => {} },
@@ -363,9 +366,117 @@ const AllCustomersTab: React.FC = () => {
           onChange={setPage}
         />
       </div>
+    {/* Backdrop */}
+      <div
+        className={`prod-backdrop ${showCustomerPanel ? 'open' : ''}`}
+        onClick={() => setShowCustomerPanel(false)}
+      />
+
+      {/* Customer Panel */}
+      <div className={`prod-detail-panel ${showCustomerPanel ? 'open' : ''}`}>
+        <div className="detail-header">
+          <div className="detail-title">{editingCustomer ? 'Edit Customer' : 'Add New Customer'}</div>
+          <button className="detail-close" onClick={() => setShowCustomerPanel(false)}>
+            <i className="fa-solid fa-xmark" />
+          </button>
+        </div>
+        <div className="detail-body" style={{ overflowY: 'auto' }}>
+          <div style={{ padding: '12px 16px' }}>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Full Name *</div>
+              <input
+                className="form-input"
+                defaultValue={editingCustomer?.name ?? ''}
+                placeholder="e.g. Amna Bibi"
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">Phone *</div>
+                <input
+                  className="form-input"
+                  defaultValue={editingCustomer?.phone ?? ''}
+                  placeholder="03XX-XXXXXXX"
+                />
+              </div>
+              <div className="form-group">
+                <div className="form-label">City</div>
+                <input
+                  className="form-input"
+                  defaultValue={editingCustomer?.city ?? ''}
+                  placeholder="e.g. Lahore"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">Segment</div>
+                <select className="form-select">
+                  <option selected={editingCustomer?.segment === 'Regular'}>Regular</option>
+                  <option selected={editingCustomer?.segment === 'VIP'}>VIP</option>
+                  <option selected={editingCustomer?.segment === 'Occasional'}>Occasional</option>
+                  <option selected={editingCustomer?.segment === 'New'}>New</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <div className="form-label">Total Spent (₨)</div>
+                <input
+                  className="form-input"
+                  defaultValue={editingCustomer?.spent ?? ''}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">Total Orders</div>
+                <input
+                  className="form-input"
+                  type="number"
+                  defaultValue={editingCustomer?.orders ?? 0}
+                  placeholder="0"
+                />
+              </div>
+              <div className="form-group">
+                <div className="form-label">Last Order Date</div>
+                <input
+                  className="form-input"
+                  type="date"
+                  defaultValue={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Notes (optional)</div>
+              <textarea
+                className="form-input"
+                placeholder="Any additional notes about this customer..."
+                style={{ width: '100%', height: 64, resize: 'vertical', paddingTop: 6 }}
+              />
+            </div>
+
+            <hr />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="header-btn primary" style={{ flex: 1, justifyContent: 'center' }}>
+                <i className={`fa-solid ${editingCustomer ? 'fa-check' : 'fa-plus'}`} />
+                {editingCustomer ? ' Save Changes' : ' Add Customer'}
+              </button>
+              <button className="header-btn" onClick={() => setShowCustomerPanel(false)}>Cancel</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </>
   );
 };
+
 
 // ═══════════════════════════════════════════════════════════
 // TAB: VIP CUSTOMERS

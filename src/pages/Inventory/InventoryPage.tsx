@@ -207,6 +207,8 @@ const StockLevelsTab: React.FC = () => {
   const [search, setSearch]   = useState('');
   const [filter, setFilter]   = useState<'all' | 'low'>('all');
   const [page,   setPage]     = useState(1);
+ const [showStockPanel, setShowStockPanel] = useState(false);
+  const [selectedItem, setSelectedItem]     = useState<InventoryItem | null>(null);
 
   const filtered = INVENTORY_ITEMS.filter(item => {
     if (filter === 'low' && getHealthStatus(item) === 'Good') return false;
@@ -296,7 +298,7 @@ const StockLevelsTab: React.FC = () => {
             </button>
           </div>
           <div className="table-toolbar-right">
-            <button className="header-btn primary">
+            <button className="header-btn primary" onClick={() => { setSelectedItem(null); setShowStockPanel(true); }}>
               <i className="fa-solid fa-plus" /> Stock In
             </button>
           </div>
@@ -351,8 +353,8 @@ const StockLevelsTab: React.FC = () => {
                       <ThreeDot
                         id={`inv-${i}`}
                         items={[
-                          { label: 'Add Stock',     icon: 'fa-plus',              onClick: () => {} },
-                          { label: 'Remove Stock',  icon: 'fa-minus',             onClick: () => {} },
+                          { label: 'Add Stock',     icon: 'fa-plus',              onClick: () => { setSelectedItem(item); setShowStockPanel(true); } },
+                          { label: 'Remove Stock',  icon: 'fa-minus',             onClick: () => { setSelectedItem(item); setShowStockPanel(true); } },
                           { label: 'View History',  icon: 'fa-clock-rotate-left', onClick: () => {} },
                         ]}
                       />
@@ -374,9 +376,117 @@ const StockLevelsTab: React.FC = () => {
           onChange={setPage}
         />
       </div>
+    {/* Backdrop */}
+      <div
+        className={`prod-backdrop ${showStockPanel ? 'open' : ''}`}
+        onClick={() => setShowStockPanel(false)}
+      />
+
+      {/* Stock In Panel */}
+      <div className={`prod-detail-panel ${showStockPanel ? 'open' : ''}`}>
+        <div className="detail-header">
+          <div className="detail-title">{selectedItem ? `Stock In — ${selectedItem.name}` : 'Stock In'}</div>
+          <button className="detail-close" onClick={() => setShowStockPanel(false)}>
+            <i className="fa-solid fa-xmark" />
+          </button>
+        </div>
+        <div className="detail-body" style={{ overflowY: 'auto' }}>
+          <div style={{ padding: '12px 16px' }}>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Select Product (SKU) *</div>
+              <select className="form-select" style={{ width: '100%' }}>
+                <option value="">— Select Product —</option>
+                {INVENTORY_ITEMS.map(item => (
+                  <option
+                    key={item.sku}
+                    value={item.sku}
+                    selected={selectedItem?.sku === item.sku}
+                  >
+                    {item.sku} — {item.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedItem && (
+              <div className="info-banner" style={{ marginBottom: 10 }}>
+                <i className="fa-solid fa-circle-info" />
+                <div className="info-banner-text">
+                  Current stock: <strong>{selectedItem.stock}</strong> units ·
+                  Reserved: <strong>{selectedItem.reserved}</strong> ·
+                  Available: <strong>{selectedItem.stock - selectedItem.reserved}</strong>
+                </div>
+              </div>
+            )}
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">Adjustment Type *</div>
+                <select className="form-select">
+                  <option>Add Stock</option>
+                  <option>Remove Stock</option>
+                  <option>Set Exact Value</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <div className="form-label">Quantity *</div>
+                <input
+                  className="form-input"
+                  type="number"
+                  defaultValue={0}
+                  min={0}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Reason Code *</div>
+              <select className="form-select" style={{ width: '100%' }}>
+                <option>Supplier Restock</option>
+                <option>Damage Write-off</option>
+                <option>Return Received</option>
+                <option>Manual Correction</option>
+              </select>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Reference / Notes</div>
+              <input
+                className="form-input"
+                placeholder="e.g. PO-2026-041 or supplier name..."
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Date</div>
+              <input
+                className="form-input"
+                type="date"
+                defaultValue={new Date().toISOString().split('T')[0]}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <hr />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="header-btn primary" style={{ flex: 1, justifyContent: 'center' }}>
+                <i className="fa-solid fa-check" /> Apply Stock Change
+              </button>
+              <button className="header-btn" onClick={() => setShowStockPanel(false)}>Cancel</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </>
   );
 };
+
+// ═══════════════════════════════════════════════════════════
+// TAB: MOVEMENTS
 
 // ═══════════════════════════════════════════════════════════
 // TAB: MOVEMENTS
@@ -384,6 +494,7 @@ const StockLevelsTab: React.FC = () => {
 
 const MovementsTab: React.FC = () => {
   const [page, setPage] = useState(1);
+  const [showMovementPanel, setShowMovementPanel] = useState(false);
 
   const moveBg: Record<MovementType, string> = {
     In:     'var(--green-bg)',
@@ -402,7 +513,7 @@ const MovementsTab: React.FC = () => {
         <div className="card-title">
           <i className="fa-solid fa-arrows-left-right" /> Stock Movements
         </div>
-        <button className="header-btn primary">
+        <button className="header-btn primary" onClick={() => setShowMovementPanel(true)}>
           <i className="fa-solid fa-plus" /> Log Movement
         </button>
       </div>
@@ -473,10 +584,121 @@ const MovementsTab: React.FC = () => {
           </button>
         </div>
       </div>
+    {/* Backdrop */}
+      <div
+        className={`prod-backdrop ${showMovementPanel ? 'open' : ''}`}
+        onClick={() => setShowMovementPanel(false)}
+      />
+
+      {/* Log Movement Panel */}
+      <div className={`prod-detail-panel ${showMovementPanel ? 'open' : ''}`}>
+        <div className="detail-header">
+          <div className="detail-title">Log Stock Movement</div>
+          <button className="detail-close" onClick={() => setShowMovementPanel(false)}>
+            <i className="fa-solid fa-xmark" />
+          </button>
+        </div>
+        <div className="detail-body" style={{ overflowY: 'auto' }}>
+          <div style={{ padding: '12px 16px' }}>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Select Product (SKU) *</div>
+              <select className="form-select" style={{ width: '100%' }}>
+                <option value="">— Select Product —</option>
+                {INVENTORY_ITEMS.map(item => (
+                  <option key={item.sku} value={item.sku}>
+                    {item.sku} — {item.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">Movement Type *</div>
+                <select className="form-select">
+                  <option>In</option>
+                  <option>Out</option>
+                  <option>Adjust</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <div className="form-label">Quantity *</div>
+                <input
+                  className="form-input"
+                  type="number"
+                  defaultValue={0}
+                  min={0}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Reason *</div>
+              <select className="form-select" style={{ width: '100%' }}>
+                <option>Supplier Restock</option>
+                <option>Order Fulfillment</option>
+                <option>Damage Write-off</option>
+                <option>Return Received</option>
+                <option>Manual Correction</option>
+              </select>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Reference (e.g. Order / PO number)</div>
+              <input
+                className="form-input"
+                placeholder="e.g. ORD-1046 or PO-2026-041"
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">Date *</div>
+                <input
+                  className="form-input"
+                  type="date"
+                  defaultValue={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div className="form-group">
+                <div className="form-label">Logged By</div>
+                <input
+                  className="form-input"
+                  placeholder="Your name"
+                  defaultValue="Admin Khan"
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Notes (optional)</div>
+              <textarea
+                className="form-input"
+                placeholder="Additional notes..."
+                style={{ width: '100%', height: 64, resize: 'vertical', paddingTop: 6 }}
+              />
+            </div>
+
+            <hr />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="header-btn primary" style={{ flex: 1, justifyContent: 'center' }}>
+                <i className="fa-solid fa-check" /> Log Movement
+              </button>
+              <button className="header-btn" onClick={() => setShowMovementPanel(false)}>Cancel</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
+// ═══════════════════════════════════════════════════════════
+// TAB: ALERTS
 // ═══════════════════════════════════════════════════════════
 // TAB: ALERTS
 // ═══════════════════════════════════════════════════════════
@@ -528,6 +750,7 @@ const AdjustmentsTab: React.FC = () => {
   const [quantity,       setQuantity]       = useState(0);
   const [reasonCode,     setReasonCode]     = useState<ReasonCode>('Supplier Restock');
   const [notes,          setNotes]          = useState('');
+  const [showAdjPanel,   setShowAdjPanel]   = useState(false);
 
   const skuOptions = INVENTORY_ITEMS.map(i => `${i.sku} — ${i.name}`);
 
@@ -537,7 +760,7 @@ const AdjustmentsTab: React.FC = () => {
         <div className="card-title">
           <i className="fa-solid fa-sliders" /> Stock Adjustments
         </div>
-        <button className="header-btn primary">
+        <button className="header-btn primary" onClick={() => setShowAdjPanel(true)}>
           <i className="fa-solid fa-plus" /> New Adjustment
         </button>
       </div>
@@ -618,6 +841,119 @@ const AdjustmentsTab: React.FC = () => {
           <button className="header-btn primary">
             <i className="fa-solid fa-check" /> Apply Adjustment
           </button>
+        </div>
+      </div>
+    {/* Backdrop */}
+      <div
+        className={`prod-backdrop ${showAdjPanel ? 'open' : ''}`}
+        onClick={() => setShowAdjPanel(false)}
+      />
+
+      {/* New Adjustment Panel */}
+      <div className={`prod-detail-panel ${showAdjPanel ? 'open' : ''}`}>
+        <div className="detail-header">
+          <div className="detail-title">New Stock Adjustment</div>
+          <button className="detail-close" onClick={() => setShowAdjPanel(false)}>
+            <i className="fa-solid fa-xmark" />
+          </button>
+        </div>
+        <div className="detail-body" style={{ overflowY: 'auto' }}>
+          <div style={{ padding: '12px 16px' }}>
+
+            <div className="info-banner" style={{ marginBottom: 14 }}>
+              <i className="fa-solid fa-circle-info" />
+              <div className="info-banner-text">
+                All manual adjustments are logged with reason codes for audit purposes.
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Select Product (SKU) *</div>
+              <select
+                className="form-select"
+                style={{ width: '100%' }}
+                value={selectedSku}
+                onChange={e => setSelectedSku(e.target.value)}
+              >
+                {INVENTORY_ITEMS.map(item => (
+                  <option key={item.sku} value={`${item.sku} — ${item.name}`}>
+                    {item.sku} — {item.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">Adjustment Type *</div>
+                <select
+                  className="form-select"
+                  value={adjustType}
+                  onChange={e => setAdjustType(e.target.value as AdjustmentType)}
+                >
+                  <option>Add Stock</option>
+                  <option>Remove Stock</option>
+                  <option>Set Exact Value</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <div className="form-label">Quantity *</div>
+                <input
+                  className="form-input"
+                  type="number"
+                  value={quantity}
+                  onChange={e => setQuantity(Number(e.target.value))}
+                  min={0}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Reason Code *</div>
+              <select
+                className="form-select"
+                style={{ width: '100%' }}
+                value={reasonCode}
+                onChange={e => setReasonCode(e.target.value as ReasonCode)}
+              >
+                <option>Supplier Restock</option>
+                <option>Damage Write-off</option>
+                <option>Return Received</option>
+                <option>Manual Correction</option>
+              </select>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Notes (optional)</div>
+              <input
+                className="form-input"
+                placeholder="Additional notes..."
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Date</div>
+              <input
+                className="form-input"
+                type="date"
+                defaultValue={new Date().toISOString().split('T')[0]}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <hr />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="header-btn primary" style={{ flex: 1, justifyContent: 'center' }}>
+                <i className="fa-solid fa-check" /> Apply Adjustment
+              </button>
+              <button className="header-btn" onClick={() => setShowAdjPanel(false)}>Cancel</button>
+            </div>
+
+          </div>
         </div>
       </div>
     </div>
