@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { WeekBar } from '../../types/dashboard';
-
+ 
 interface WeeklyOrdersChartProps {
   bars: WeekBar[];
 }

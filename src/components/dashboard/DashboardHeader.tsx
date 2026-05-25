@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { KpiStat } from '../../types/dashboard';
-
+ 
 interface DashboardHeaderProps {
   kpis: KpiStat[];
   onNewOrder: () => void;

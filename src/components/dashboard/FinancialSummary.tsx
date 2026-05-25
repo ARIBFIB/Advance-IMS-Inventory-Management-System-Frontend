@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { CodRing } from '../../types/dashboard';
-
+ 
 interface FinancialSummaryProps {
   onViewDetails: () => void;
   codRings: CodRing[];

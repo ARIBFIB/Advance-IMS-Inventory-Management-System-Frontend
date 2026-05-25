@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { RiderStatus } from '../../types/dashboard';
-
+ 
 interface RiderStatusListProps {
   riders: RiderStatus[];
   onManage: () => void;

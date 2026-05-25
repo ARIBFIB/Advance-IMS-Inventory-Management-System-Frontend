@@ -1,4 +1,4 @@
-// ─── components/dashboard/ActivityFeed.tsx ───────────────────
+ // ─── components/dashboard/ActivityFeed.tsx ───────────────────
 
 import React from 'react';
 import { ActivityItem } from '../../types/dashboard';

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { CodRing } from '../../types/dashboard';
-
+ 
 interface CodStatusCardProps {
   rings: CodRing[];
   onViewCouriers: () => void;

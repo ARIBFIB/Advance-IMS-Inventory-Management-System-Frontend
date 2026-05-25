@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { RecentOrder } from '../../types/dashboard';
-
+ 
 interface RecentOrdersTableProps {
   orders: RecentOrder[];
   pendingCount: number;

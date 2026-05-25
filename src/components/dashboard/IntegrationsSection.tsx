@@ -1,4 +1,4 @@
-// ─── components/dashboard/IntegrationsSection.tsx ────────────
+ // ─── components/dashboard/IntegrationsSection.tsx ────────────
 
 import React, { useMemo } from 'react';
 import { IntegrationItem } from '../../types/dashboard';

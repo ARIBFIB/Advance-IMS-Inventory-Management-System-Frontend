@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { TopProduct } from '../../types/dashboard';
-
+ 
 interface TopProductsListProps {
   products: TopProduct[];
   onViewAll: () => void;

@@ -228,19 +228,29 @@ export const stockAPI = {
 // 15. NOTIFICATIONS  (/api/notifications)
 // ─────────────────────────────────────────────────────────
 export const notificationsAPI = {
-  getAll:    (params?: object)  => api.get('/notifications', { params }),
-  markRead:  (id: string)       => api.patch(`/notifications/${id}/read`),
-  markAllRead: ()               => api.patch('/notifications/read-all'),
-  delete:    (id: string)       => api.delete(`/notifications/${id}`),
+  getAll:         (params?: object) => api.get('/notifications', { params }),
+  getUnreadCount: ()                => api.get('/notifications/unread-count'),  // ← ADD THIS
+  markRead:       (id: string)      => api.patch(`/notifications/${id}/read`),
+  markAllRead:    ()                => api.patch('/notifications/read-all'),
+  delete:         (id: string)      => api.delete(`/notifications/${id}`),
 };
 
 // ─────────────────────────────────────────────────────────
 // 16. ANALYTICS  (/api/analytics)
 // ─────────────────────────────────────────────────────────
 export const analyticsAPI = {
-  getDashboard: (params?: object) => api.get('/analytics/dashboard', { params }),
-  getSales:     (params?: object) => api.get('/analytics/sales', { params }),
-  getInventory: (params?: object) => api.get('/analytics/inventory', { params }),
+  getDashboard:            (params?: object) => api.get('/analytics/dashboard', { params }),
+  getTrends:               ()                => api.get('/analytics/trends'),
+  getSales:                (params?: object) => api.get('/analytics/sales', { params }),
+  getInventory:            (params?: object) => api.get('/analytics/inventory', { params }),
+  getFinancial:            (params?: object) => api.get('/analytics/financial', { params }),
+  getOrders:               (params?: object) => api.get('/analytics/orders', { params }),
+  getProducts:             (params?: object) => api.get('/analytics/products', { params }),
+  getCustomers:            (params?: object) => api.get('/analytics/customers', { params }),
+  getCourierPerformance:   (params?: object) => api.get('/analytics/courier-performance', { params }),
+  getStaffPerformance:     (params?: object) => api.get('/analytics/staff-performance', { params }),
+  exportReport: (report: string, params?: object) =>
+    api.get('/analytics/export', { params: { report, ...params }, responseType: 'blob' }),
 };
 
 // ─────────────────────────────────────────────────────────
