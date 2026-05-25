@@ -1,20 +1,38 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './Login.css';
+import { authAPI, tokenHelper } from '../../services/api';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail]           = useState('');
+  const [password, setPassword]     = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading]   = useState(false);
+  const [error, setError]           = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: replace with real auth service call, e.g. api.login({ email, password })
-    console.log('Login attempt:', { email, rememberMe });
-    navigate('/dashboard');
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const res = await authAPI.login({ identifier: email, password });
+      tokenHelper.save(
+        res.data.data.tokens.accessToken,
+        res.data.data.tokens.refreshToken
+      );
+      navigate('/dashboard');
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        'Invalid email or password. Please try again.';
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -30,13 +48,10 @@ const Login: React.FC = () => {
             Inventory<span>OS</span>
           </span>
         </Link>
-
         <nav className="login-header-nav">
           <Link to="/">Home</Link>
           <Link to="/about">About</Link>
-          <Link to="/signup" className="login-btn-outline">
-            Create Account
-          </Link>
+          <Link to="/signup" className="login-btn-outline">Create Account</Link>
         </nav>
       </header>
 
@@ -51,20 +66,33 @@ const Login: React.FC = () => {
                 <i className="fa-solid fa-lock-open" />
               </div>
               <h1>Welcome back</h1>
-              <p>
-                Sign in to your Zone In account to manage your inventory and
-                operations.
-              </p>
+              <p>Sign in to your Zone In account to manage your inventory and operations.</p>
             </div>
 
             {/* Info Banner */}
             <div className="login-info-banner">
               <i className="fa-solid fa-circle-info" />
-              <p>
-                This platform is restricted to authorized personnel. Contact your
-                administrator if you need access.
-              </p>
+              <p>This platform is restricted to authorized personnel. Contact your administrator if you need access.</p>
             </div>
+
+            {/* ── Error Banner ── */}
+            {error && (
+              <div style={{
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '13px',
+                color: '#dc2626',
+              }}>
+                <i className="fa-solid fa-circle-exclamation" />
+                {error}
+              </div>
+            )}
 
             {/* Form */}
             <form onSubmit={handleSubmit}>
@@ -105,11 +133,7 @@ const Login: React.FC = () => {
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label="Toggle password visibility"
                   >
-                    <i
-                      className={
-                        showPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'
-                      }
-                    />
+                    <i className={showPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'} />
                   </button>
                 </div>
               </div>
@@ -123,21 +147,23 @@ const Login: React.FC = () => {
                   />
                   Remember me
                 </label>
-                {/* Replace href with Link or a modal trigger when reset flow is built */}
-                <button type="button" className="login-link">
-                  Forgot password?
-                </button>
+                <button type="button" className="login-link">Forgot password?</button>
               </div>
 
-              <button type="submit" className="login-btn-primary">
-                <i className="fa-solid fa-arrow-right-to-bracket" />
-                Sign In
+              <button type="submit" className="login-btn-primary" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin" /> Signing in...
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-arrow-right-to-bracket" /> Sign In
+                  </>
+                )}
               </button>
             </form>
 
-            <div className="login-divider">
-              <span>or continue with</span>
-            </div>
+            <div className="login-divider"><span>or continue with</span></div>
 
             <div className="login-social-btns">
               <button type="button" className="login-social-btn">
@@ -157,9 +183,7 @@ const Login: React.FC = () => {
 
       {/* ── FOOTER ── */}
       <footer className="login-footer">
-        <div className="login-footer-left">
-          © 2026 <span>Zone In</span>. All rights reserved.
-        </div>
+        <div className="login-footer-left">© 2026 <span>Zone In</span>. All rights reserved.</div>
         <div className="login-footer-links">
           <a href="#">Privacy Policy</a>
           <a href="#">Terms of Service</a>
