@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { ordersAPI, customersAPI, productsAPI } from '../../services/api';
+import type { CreateOrderPayload } from '../../services/api';
 
 // ── Types ──────────────────────────────────────────────────
 interface OrderItem {
@@ -7,6 +9,8 @@ interface OrderItem {
   sku: string;
   qty: number;
   price: number;
+  productId: string;   // real backend ID for the API call
+  variantId?: string;
 }
 
 interface NewOrderPanelProps {
@@ -14,47 +18,27 @@ interface NewOrderPanelProps {
   onClose: () => void;
 }
 
-// ── Mock product catalog for item search ───────────────────
-const PRODUCT_CATALOG = [
-  { sku: 'SKU-0041', name: 'Classic Lawn Suit',     price: 1800, stock: 3  },
-  { sku: 'SKU-0017', name: 'Embroidered Kurta',     price: 2800, stock: 42 },
-  { sku: 'SKU-0055', name: 'Printed Lawn 3PC',      price: 3200, stock: 28 },
-  { sku: 'SKU-0063', name: 'Silk Kameez Navy',      price: 4500, stock: 15 },
-  { sku: 'SKU-0078', name: 'Linen Trouser',         price: 900,  stock: 35 },
-  { sku: 'SKU-0092', name: 'Embroidered Shawl',     price: 1400, stock: 8  },
-  { sku: 'SKU-0112', name: 'Block Print Dupatta',   price: 500,  stock: 50 },
-  { sku: 'SKU-0124', name: 'Organza Fancy Suit',    price: 5800, stock: 12 },
-  { sku: 'SKU-0135', name: 'Cotton Kurti',          price: 750,  stock: 66 },
-  { sku: 'SKU-0148', name: 'Party Wear Shirt',      price: 4200, stock: 18 },
-  { sku: 'SKU-0191', name: 'Lawn Kurti Printed',    price: 650,  stock: 44 },
-  { sku: 'SKU-0218', name: 'Net Dupatta Gold',      price: 1100, stock: 25 },
-];
-
-const MOCK_CUSTOMERS = [
-  { name: 'Amna Bibi',       phone: '0300-1234567' },
-  { name: 'Fatima Zara',     phone: '0321-9876543' },
-  { name: 'Sara Khan',       phone: '0333-5552211' },
-  { name: 'Nadia Malik',     phone: '0311-4443322' },
-  { name: 'Rabia Ahmed',     phone: '0345-6677889' },
-  { name: 'Hira Baig',       phone: '0312-1122334' },
-  { name: 'Zainab Qureshi',  phone: '0300-9988776' },
-];
-
 // ── Helpers ────────────────────────────────────────────────
 const fmt = (n: number) => '₨' + n.toLocaleString();
 
-// ── Panel Step indicator ───────────────────────────────────
+// Fallback product catalog used while API products load
+const FALLBACK_CATALOG = [
+  { sku: 'SKU-0041', name: 'Classic Lawn Suit',   price: 1800 },
+  { sku: 'SKU-0017', name: 'Embroidered Kurta',   price: 2800 },
+  { sku: 'SKU-0055', name: 'Printed Lawn 3PC',    price: 3200 },
+  { sku: 'SKU-0063', name: 'Silk Kameez Navy',    price: 4500 },
+  { sku: 'SKU-0078', name: 'Linen Trouser',       price: 900  },
+  { sku: 'SKU-0135', name: 'Cotton Kurti',        price: 750  },
+];
+
+// ── Step Indicator ─────────────────────────────────────────
 const StepIndicator: React.FC<{ step: number }> = ({ step }) => {
   const steps = ['Customer', 'Items', 'Shipping', 'Review'];
   return (
     <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      padding: '10px 16px',
-      borderBottom: '1px solid var(--border)',
-      gap: 0,
-      background: 'var(--bg)',
-      flexShrink: 0,
+      display: 'flex', alignItems: 'center',
+      padding: '10px 16px', borderBottom: '1px solid var(--border)',
+      gap: 0, background: 'var(--bg)', flexShrink: 0,
     }}>
       {steps.map((label, i) => {
         const num = i + 1;
@@ -68,8 +52,7 @@ const StepIndicator: React.FC<{ step: number }> = ({ step }) => {
                 background: isDone ? 'var(--green)' : isActive ? 'var(--accent)' : 'var(--border)',
                 color: isDone || isActive ? '#fff' : 'var(--text-muted)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 10, fontWeight: 700, flexShrink: 0,
-                transition: 'background 0.2s',
+                fontSize: 10, fontWeight: 700, flexShrink: 0, transition: 'background 0.2s',
               }}>
                 {isDone ? <i className="fa-solid fa-check" style={{ fontSize: 9 }} /> : num}
               </div>
@@ -85,8 +68,7 @@ const StepIndicator: React.FC<{ step: number }> = ({ step }) => {
               <div style={{
                 flex: 1, height: 1,
                 background: isDone ? 'var(--green)' : 'var(--border)',
-                margin: '0 6px', minWidth: 12,
-                transition: 'background 0.2s',
+                margin: '0 6px', minWidth: 12, transition: 'background 0.2s',
               }} />
             )}
           </React.Fragment>
@@ -97,51 +79,90 @@ const StepIndicator: React.FC<{ step: number }> = ({ step }) => {
 };
 
 // ── Step 1: Customer Info ──────────────────────────────────
-const StepCustomer: React.FC<{
+interface StepCustomerProps {
   customerName: string; setCustomerName: (v: string) => void;
   phone: string; setPhone: (v: string) => void;
   address: string; setAddress: (v: string) => void;
   city: string; setCity: (v: string) => void;
   channel: string; setChannel: (v: string) => void;
   payment: string; setPayment: (v: string) => void;
-}> = ({ customerName, setCustomerName, phone, setPhone, address, setAddress, city, setCity, channel, setChannel, payment, setPayment }) => {
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const suggestions = MOCK_CUSTOMERS.filter(c =>
-    customerName.length > 1 &&
-    c.name.toLowerCase().includes(customerName.toLowerCase())
-  );
+  existingCustomerId: string | null; setExistingCustomerId: (id: string | null) => void;
+}
 
-  const pickCustomer = (c: { name: string; phone: string }) => {
+const StepCustomer: React.FC<StepCustomerProps> = ({
+  customerName, setCustomerName, phone, setPhone,
+  address, setAddress, city, setCity,
+  channel, setChannel, payment, setPayment,
+  existingCustomerId, setExistingCustomerId,
+}) => {
+  const [showSuggestions,  setShowSuggestions]  = useState(false);
+  const [apiSuggestions,   setApiSuggestions]   = useState<Array<{ _id: string; name: string; phone: string }>>([]);
+  const [searchTimeout,    setSearchTimeout]    = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  // Search customers from real API
+  useEffect(() => {
+    if (customerName.length < 2) { setApiSuggestions([]); return; }
+    if (searchTimeout) clearTimeout(searchTimeout);
+    const t = setTimeout(async () => {
+      try {
+        const res  = await customersAPI.getAll({ search: customerName, limit: 6 });
+        const data = (res.data as any).data;
+        const customers = (data?.customers ?? []) as Array<{ _id: string; firstName: string; lastName: string; phone?: string }>;
+        setApiSuggestions(customers.map(c => ({
+          _id:   c._id,
+          name:  `${c.firstName} ${c.lastName}`.trim(),
+          phone: c.phone ?? '',
+        })));
+        setShowSuggestions(true);
+      } catch {
+        setApiSuggestions([]);
+      }
+    }, 350);
+    setSearchTimeout(t);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerName]);
+
+  const pickCustomer = (c: { _id: string; name: string; phone: string }) => {
     setCustomerName(c.name);
     setPhone(c.phone);
+    setExistingCustomerId(c._id);
     setShowSuggestions(false);
   };
 
   return (
     <div>
-      {/* Customer Search */}
       <div className="section-divider" style={{ marginTop: 0 }}><span>Customer Info</span></div>
+
+      {/* Customer search with live API suggestions */}
       <div className="form-group" style={{ marginBottom: 10, position: 'relative' }}>
         <div className="form-label">Customer Name *</div>
         <input
           className="form-input"
           style={{ width: '100%' }}
           value={customerName}
-          onChange={e => { setCustomerName(e.target.value); setShowSuggestions(true); }}
+          onChange={e => {
+            setCustomerName(e.target.value);
+            setExistingCustomerId(null); // clear selection when typing
+          }}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
           placeholder="Type to search existing customers..."
         />
-        {showSuggestions && suggestions.length > 0 && (
+        {existingCustomerId && (
+          <div style={{ fontSize: 10, color: 'var(--green)', marginTop: 3 }}>
+            <i className="fa-solid fa-circle-check" /> Existing customer selected
+          </div>
+        )}
+        {showSuggestions && apiSuggestions.length > 0 && (
           <div style={{
             position: 'absolute', top: '100%', left: 0, right: 0,
             background: 'var(--card)', border: '1px solid var(--border)',
             borderRadius: 'var(--radius-input)', zIndex: 20,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-            marginTop: 2, overflow: 'hidden',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginTop: 2, overflow: 'hidden',
           }}>
-            {suggestions.map(c => (
+            {apiSuggestions.map(c => (
               <div
-                key={c.name}
+                key={c._id}
                 onMouseDown={() => pickCustomer(c)}
                 style={{
                   padding: '7px 10px', cursor: 'pointer', fontSize: 12,
@@ -169,9 +190,9 @@ const StepCustomer: React.FC<{
           <select className="form-select" value={channel} onChange={e => setChannel(e.target.value)}>
             <option>WhatsApp</option>
             <option>Shopify</option>
-            <option>Walk-in</option>
+            <option value="Manual">Walk-in (Manual)</option>
             <option>Instagram</option>
-            <option>Facebook</option>
+            <option>Website</option>
           </select>
         </div>
       </div>
@@ -191,21 +212,18 @@ const StepCustomer: React.FC<{
         <div className="form-group">
           <div className="form-label">City *</div>
           <select className="form-select" value={city} onChange={e => setCity(e.target.value)}>
-            <option>Lahore</option>
-            <option>Karachi</option>
-            <option>Islamabad</option>
-            <option>Rawalpindi</option>
-            <option>Faisalabad</option>
-            <option>Multan</option>
-            <option>Peshawar</option>
-            <option>Quetta</option>
+            <option>Lahore</option><option>Karachi</option><option>Islamabad</option>
+            <option>Rawalpindi</option><option>Faisalabad</option><option>Multan</option>
+            <option>Peshawar</option><option>Quetta</option>
           </select>
         </div>
         <div className="form-group">
           <div className="form-label">Payment Type</div>
           <select className="form-select" value={payment} onChange={e => setPayment(e.target.value)}>
-            <option>COD</option>
-            <option>Prepaid</option>
+            <option value="COD">COD</option>
+            <option value="Prepaid">Prepaid</option>
+            <option value="Card">Card</option>
+            <option value="BankTransfer">Bank Transfer</option>
           </select>
         </div>
       </div>
@@ -218,40 +236,69 @@ const StepCustomer: React.FC<{
   );
 };
 
-// ── Step 2: Order Items ────────────────────────────────────
-const StepItems: React.FC<{
+// ── Step 2: Order Items (live product search from API) ─────
+interface StepItemsProps {
   items: OrderItem[];
   setItems: (items: OrderItem[]) => void;
-}> = ({ items, setItems }) => {
-  const [prodSearch, setProdSearch] = useState('');
+}
+
+const StepItems: React.FC<StepItemsProps> = ({ items, setItems }) => {
+  const [prodSearch,   setProdSearch]   = useState('');
   const [showProdList, setShowProdList] = useState(false);
+  const [apiProducts,  setApiProducts]  = useState<Array<{ _id: string; name: string; sku: string; basePrice: number; totalStock: number; variants?: Array<{ variantId: string; price: number; stock: number }> }>>([]);
+  const [searching,    setSearching]    = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
-  const results = PRODUCT_CATALOG.filter(p =>
-    prodSearch.length > 0 && (
-      p.name.toLowerCase().includes(prodSearch.toLowerCase()) ||
-      p.sku.toLowerCase().includes(prodSearch.toLowerCase())
-    )
-  );
+  // Search products from API
+  useEffect(() => {
+    if (prodSearch.length === 0) { setApiProducts([]); return; }
+    if (searchTimeout) clearTimeout(searchTimeout);
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const res  = await productsAPI.getAll({ search: prodSearch, limit: 10, inStock: true });
+        const data = (res.data as any).data;
+        setApiProducts(data?.products ?? []);
+      } catch {
+        // fallback to static catalog on error
+        const lower = prodSearch.toLowerCase();
+        setApiProducts(
+          FALLBACK_CATALOG
+            .filter(p => p.name.toLowerCase().includes(lower) || p.sku.toLowerCase().includes(lower))
+            .map(p => ({ _id: p.sku, name: p.name, sku: p.sku, basePrice: p.price, totalStock: 99 }))
+        );
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+    setSearchTimeout(t);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prodSearch]);
 
-  const addItem = (p: typeof PRODUCT_CATALOG[0]) => {
-    const existing = items.find(i => i.sku === p.sku);
+  const addItem = (p: typeof apiProducts[0]) => {
+    const existing = items.find(i => i.id === p._id);
     if (existing) {
-      setItems(items.map(i => i.sku === p.sku ? { ...i, qty: i.qty + 1 } : i));
+      setItems(items.map(i => i.id === p._id ? { ...i, qty: i.qty + 1 } : i));
     } else {
-      setItems([...items, { id: p.sku, sku: p.sku, name: p.name, qty: 1, price: p.price }]);
+      const firstVariant = p.variants?.[0];
+      setItems([...items, {
+        id:        p._id,
+        sku:       p.sku,
+        name:      p.name,
+        qty:       1,
+        price:     firstVariant?.price ?? p.basePrice,
+        productId: p._id,
+        variantId: firstVariant?.variantId,
+      }]);
     }
     setProdSearch('');
     setShowProdList(false);
   };
 
-  const removeItem = (sku: string) => setItems(items.filter(i => i.sku !== sku));
-  const updateQty = (sku: string, qty: number) => {
-    if (qty < 1) return;
-    setItems(items.map(i => i.sku === sku ? { ...i, qty } : i));
-  };
-  const updatePrice = (sku: string, price: number) => {
-    setItems(items.map(i => i.sku === sku ? { ...i, price } : i));
-  };
+  const removeItem   = (id: string) => setItems(items.filter(i => i.id !== id));
+  const updateQty    = (id: string, qty: number) => { if (qty < 1) return; setItems(items.map(i => i.id === id ? { ...i, qty } : i)); };
+  const updatePrice  = (id: string, price: number) => setItems(items.map(i => i.id === id ? { ...i, price } : i));
 
   const subtotal = items.reduce((sum, i) => sum + i.qty * i.price, 0);
 
@@ -259,21 +306,21 @@ const StepItems: React.FC<{
     <div>
       <div className="section-divider" style={{ marginTop: 0 }}><span>Add Products</span></div>
 
-      {/* Product Search */}
+      {/* Product search */}
       <div style={{ position: 'relative', marginBottom: 12 }}>
         <div className="table-search" style={{ width: '100%' }}>
-          <i className="fa-solid fa-magnifying-glass" />
+          <i className={`fa-solid ${searching ? 'fa-spinner fa-spin' : 'fa-magnifying-glass'}`} />
           <input
             type="text"
             placeholder="Search product name or SKU..."
             value={prodSearch}
             onChange={e => { setProdSearch(e.target.value); setShowProdList(true); }}
-            onFocus={() => setShowProdList(true)}
+            onFocus={() => prodSearch && setShowProdList(true)}
             onBlur={() => setTimeout(() => setShowProdList(false), 150)}
             style={{ width: '100%' }}
           />
         </div>
-        {showProdList && results.length > 0 && (
+        {showProdList && apiProducts.length > 0 && (
           <div style={{
             position: 'absolute', top: '100%', left: 0, right: 0,
             background: 'var(--card)', border: '1px solid var(--border)',
@@ -281,9 +328,9 @@ const StepItems: React.FC<{
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             marginTop: 2, maxHeight: 200, overflowY: 'auto',
           }}>
-            {results.map(p => (
+            {apiProducts.map(p => (
               <div
-                key={p.sku}
+                key={p._id}
                 onMouseDown={() => addItem(p)}
                 style={{
                   padding: '8px 10px', cursor: 'pointer', fontSize: 12,
@@ -295,16 +342,16 @@ const StepItems: React.FC<{
               >
                 <div>
                   <div style={{ fontWeight: 600 }}>{p.name}</div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>{p.sku} · Stock: {p.stock}</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>{p.sku} · Stock: {p.totalStock}</div>
                 </div>
-                <div style={{ fontWeight: 700, color: 'var(--accent)' }}>{fmt(p.price)}</div>
+                <div style={{ fontWeight: 700, color: 'var(--accent)' }}>{fmt(p.basePrice)}</div>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Items List */}
+      {/* Items list */}
       {items.length === 0 ? (
         <div style={{
           textAlign: 'center', padding: '28px 16px',
@@ -317,7 +364,7 @@ const StepItems: React.FC<{
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {items.map(item => (
-            <div key={item.sku} style={{
+            <div key={item.id} style={{
               background: 'var(--bg)', borderRadius: 'var(--radius-card)',
               border: '1px solid var(--border)', padding: '8px 10px',
             }}>
@@ -328,54 +375,26 @@ const StepItems: React.FC<{
                 </div>
                 <button
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 12, padding: 2 }}
-                  onClick={() => removeItem(item.sku)}
-                >
-                  <i className="fa-solid fa-xmark" />
-                </button>
+                  onClick={() => removeItem(item.id)}
+                ><i className="fa-solid fa-xmark" /></button>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {/* Qty */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <button
-                    style={{
-                      width: 22, height: 22, border: '1px solid var(--border)',
-                      borderRadius: 4, background: 'var(--card)', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10,
-                    }}
-                    onClick={() => updateQty(item.sku, item.qty - 1)}
-                  >−</button>
+                  <button style={{ width: 22, height: 22, border: '1px solid var(--border)', borderRadius: 4, background: 'var(--card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }} onClick={() => updateQty(item.id, item.qty - 1)}>−</button>
                   <input
-                    type="number"
-                    value={item.qty}
-                    onChange={e => updateQty(item.sku, parseInt(e.target.value) || 1)}
-                    style={{
-                      width: 36, textAlign: 'center', fontSize: 12, fontWeight: 700,
-                      border: '1px solid var(--border)', borderRadius: 4,
-                      padding: '2px 4px', background: 'var(--card)',
-                    }}
+                    type="number" value={item.qty}
+                    onChange={e => updateQty(item.id, parseInt(e.target.value) || 1)}
+                    style={{ width: 36, textAlign: 'center', fontSize: 12, fontWeight: 700, border: '1px solid var(--border)', borderRadius: 4, padding: '2px 4px', background: 'var(--card)' }}
                   />
-                  <button
-                    style={{
-                      width: 22, height: 22, border: '1px solid var(--border)',
-                      borderRadius: 4, background: 'var(--card)', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10,
-                    }}
-                    onClick={() => updateQty(item.sku, item.qty + 1)}
-                  >+</button>
+                  <button style={{ width: 22, height: 22, border: '1px solid var(--border)', borderRadius: 4, background: 'var(--card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }} onClick={() => updateQty(item.id, item.qty + 1)}>+</button>
                 </div>
-                {/* Unit price */}
                 <div style={{ flex: 1 }}>
                   <input
-                    type="number"
-                    value={item.price}
-                    onChange={e => updatePrice(item.sku, parseFloat(e.target.value) || 0)}
-                    style={{
-                      width: '100%', fontSize: 12, border: '1px solid var(--border)',
-                      borderRadius: 4, padding: '3px 6px', background: 'var(--card)',
-                    }}
+                    type="number" value={item.price}
+                    onChange={e => updatePrice(item.id, parseFloat(e.target.value) || 0)}
+                    style={{ width: '100%', fontSize: 12, border: '1px solid var(--border)', borderRadius: 4, padding: '3px 6px', background: 'var(--card)' }}
                   />
                 </div>
-                {/* Line total */}
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', minWidth: 64, textAlign: 'right' }}>
                   {fmt(item.qty * item.price)}
                 </div>
@@ -385,14 +404,9 @@ const StepItems: React.FC<{
         </div>
       )}
 
-      {/* Subtotal */}
       {items.length > 0 && (
-        <div style={{
-          marginTop: 12, padding: '10px 12px',
-          background: 'var(--bg)', borderRadius: 'var(--radius-card)',
-          border: '1px solid var(--border)',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+        <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--radius-card)', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)' }}>
             <span>{items.reduce((s, i) => s + i.qty, 0)} item(s)</span>
             <span>Subtotal: <strong style={{ color: 'var(--text-primary)' }}>{fmt(subtotal)}</strong></span>
           </div>
@@ -403,35 +417,29 @@ const StepItems: React.FC<{
 };
 
 // ── Step 3: Shipping ───────────────────────────────────────
-const StepShipping: React.FC<{
+interface StepShippingProps {
   courier: string; setCourier: (v: string) => void;
   deliveryDate: string; setDeliveryDate: (v: string) => void;
   shippingFee: number; setShippingFee: (v: number) => void;
   discount: number; setDiscount: (v: number) => void;
-}> = ({ courier, setCourier, deliveryDate, setDeliveryDate, shippingFee, setShippingFee, discount, setDiscount }) => (
+}
+
+const StepShipping: React.FC<StepShippingProps> = ({
+  courier, setCourier, deliveryDate, setDeliveryDate, shippingFee, setShippingFee, discount, setDiscount,
+}) => (
   <div>
     <div className="section-divider" style={{ marginTop: 0 }}><span>Courier & Delivery</span></div>
     <div className="form-row">
       <div className="form-group">
         <div className="form-label">Courier Service</div>
         <select className="form-select" value={courier} onChange={e => setCourier(e.target.value)}>
-          <option>TCS</option>
-          <option>Leopards</option>
-          <option>M&P</option>
-          <option>Trax</option>
-          <option>PostEx</option>
-          <option>BlueEx</option>
-          <option>Self Deliver</option>
+          <option>TCS</option><option>Leopards</option><option>M&P</option>
+          <option>Trax</option><option>PostEx</option><option>BlueEx</option><option>Self Deliver</option>
         </select>
       </div>
       <div className="form-group">
         <div className="form-label">Expected Delivery</div>
-        <input
-          className="form-input"
-          type="date"
-          value={deliveryDate}
-          onChange={e => setDeliveryDate(e.target.value)}
-        />
+        <input className="form-input" type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
       </div>
     </div>
 
@@ -441,40 +449,23 @@ const StepShipping: React.FC<{
     </div>
 
     <div className="section-divider"><span>Pricing Adjustments</span></div>
-
     <div className="form-row">
       <div className="form-group">
         <div className="form-label">Shipping Fee (₨)</div>
-        <input
-          className="form-input"
-          type="number"
-          value={shippingFee}
-          onChange={e => setShippingFee(parseFloat(e.target.value) || 0)}
-        />
+        <input className="form-input" type="number" value={shippingFee} onChange={e => setShippingFee(parseFloat(e.target.value) || 0)} />
       </div>
       <div className="form-group">
         <div className="form-label">Discount (₨)</div>
-        <input
-          className="form-input"
-          type="number"
-          value={discount}
-          onChange={e => setDiscount(parseFloat(e.target.value) || 0)}
-        />
+        <input className="form-input" type="number" value={discount} onChange={e => setDiscount(parseFloat(e.target.value) || 0)} />
       </div>
     </div>
 
-    <div style={{
-      background: 'var(--bg)', borderRadius: 'var(--radius-card)',
-      border: '1px solid var(--border)', padding: '10px 12px',
-      fontSize: 12,
-    }}>
+    <div style={{ background: 'var(--bg)', borderRadius: 'var(--radius-card)', border: '1px solid var(--border)', padding: '10px 12px', fontSize: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, color: 'var(--text-muted)' }}>
-        <span>Shipping</span>
-        <span>{fmt(shippingFee)}</span>
+        <span>Shipping</span><span>{fmt(shippingFee)}</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, color: 'var(--text-muted)' }}>
-        <span>Discount</span>
-        <span style={{ color: 'var(--red)' }}>− {fmt(discount)}</span>
+        <span>Discount</span><span style={{ color: 'var(--red)' }}>− {fmt(discount)}</span>
       </div>
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6, display: 'flex', justifyContent: 'space-between' }}>
         <span style={{ fontWeight: 700 }}>Shipping Charges</span>
@@ -497,80 +488,50 @@ const StepReview: React.FC<{
     <div>
       <div className="section-divider" style={{ marginTop: 0 }}><span>Order Summary</span></div>
 
-      {/* Customer */}
-      <div style={{
-        background: 'var(--bg)', borderRadius: 'var(--radius-card)',
-        border: '1px solid var(--border)', padding: '10px 12px', marginBottom: 10,
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Customer
-        </div>
+      <div style={{ background: 'var(--bg)', borderRadius: 'var(--radius-card)', border: '1px solid var(--border)', padding: '10px 12px', marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Customer</div>
         <div style={{ fontSize: 13, fontWeight: 800 }}>{customerName || '—'}</div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{phone}</div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{address}, {city}</div>
         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
           <span className="tag">{channel}</span>
-          <span className={`tag ${payment === 'COD' ? '' : ''}`} style={{ color: payment === 'Prepaid' ? 'var(--green)' : 'inherit' }}>
+          <span className="tag" style={{ color: payment === 'Prepaid' ? 'var(--green)' : 'inherit' }}>
             <i className={`fa-solid ${payment === 'COD' ? 'fa-money-bill' : 'fa-credit-card'}`} style={{ fontSize: 9 }} /> {payment}
           </span>
         </div>
       </div>
 
-      {/* Items */}
-      <div style={{
-        background: 'var(--bg)', borderRadius: 'var(--radius-card)',
-        border: '1px solid var(--border)', padding: '10px 12px', marginBottom: 10,
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Items ({items.length})
-        </div>
+      <div style={{ background: 'var(--bg)', borderRadius: 'var(--radius-card)', border: '1px solid var(--border)', padding: '10px 12px', marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Items ({items.length})</div>
         {items.map(item => (
-          <div key={item.sku} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
+          <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
             <span>{item.name} <span style={{ color: 'var(--text-muted)' }}>×{item.qty}</span></span>
             <strong>{fmt(item.qty * item.price)}</strong>
           </div>
         ))}
       </div>
 
-      {/* Totals */}
-      <div style={{
-        background: 'var(--bg)', borderRadius: 'var(--radius-card)',
-        border: '1px solid var(--border)', padding: '10px 12px', marginBottom: 10,
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Pricing
+      <div style={{ background: 'var(--bg)', borderRadius: 'var(--radius-card)', border: '1px solid var(--border)', padding: '10px 12px', marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pricing</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+          <span style={{ color: 'var(--text-muted)' }}>Subtotal</span><span>{fmt(subtotal)}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-          <span style={{ color: 'var(--text-muted)' }}>Subtotal</span>
-          <span>{fmt(subtotal)}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-          <span style={{ color: 'var(--text-muted)' }}>Shipping ({courier})</span>
-          <span>+{fmt(shippingFee)}</span>
+          <span style={{ color: 'var(--text-muted)' }}>Shipping ({courier})</span><span>+{fmt(shippingFee)}</span>
         </div>
         {discount > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-            <span style={{ color: 'var(--text-muted)' }}>Discount</span>
-            <span style={{ color: 'var(--red)' }}>− {fmt(discount)}</span>
+            <span style={{ color: 'var(--text-muted)' }}>Discount</span><span style={{ color: 'var(--red)' }}>− {fmt(discount)}</span>
           </div>
         )}
-        <div style={{
-          borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 4,
-          display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 800,
-        }}>
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 800 }}>
           <span>Grand Total</span>
           <span style={{ color: 'var(--accent)' }}>{fmt(grandTotal)}</span>
         </div>
       </div>
 
-      {/* Delivery */}
-      <div style={{
-        background: 'var(--bg)', borderRadius: 'var(--radius-card)',
-        border: '1px solid var(--border)', padding: '10px 12px',
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Delivery
-        </div>
+      <div style={{ background: 'var(--bg)', borderRadius: 'var(--radius-card)', border: '1px solid var(--border)', padding: '10px 12px' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Delivery</div>
         <div style={{ fontSize: 12 }}>
           <span className="tag"><i className="fa-solid fa-truck" style={{ fontSize: 9 }} /> {courier}</span>
           {deliveryDate && (
@@ -589,12 +550,13 @@ const NewOrderPanel: React.FC<NewOrderPanelProps> = ({ isOpen, onClose }) => {
   const [step, setStep] = useState(1);
 
   // Step 1 state
-  const [customerName, setCustomerName] = useState('');
-  const [phone,        setPhone]        = useState('');
-  const [address,      setAddress]      = useState('');
-  const [city,         setCity]         = useState('Lahore');
-  const [channel,      setChannel]      = useState('WhatsApp');
-  const [payment,      setPayment]      = useState('COD');
+  const [customerName,        setCustomerName]        = useState('');
+  const [phone,               setPhone]               = useState('');
+  const [address,             setAddress]             = useState('');
+  const [city,                setCity]                = useState('Lahore');
+  const [channel,             setChannel]             = useState('WhatsApp');
+  const [payment,             setPayment]             = useState('COD');
+  const [existingCustomerId,  setExistingCustomerId]  = useState<string | null>(null);
 
   // Step 2 state
   const [items, setItems] = useState<OrderItem[]>([]);
@@ -605,14 +567,18 @@ const NewOrderPanel: React.FC<NewOrderPanelProps> = ({ isOpen, onClose }) => {
   const [shippingFee,  setShippingFee]  = useState(200);
   const [discount,     setDiscount]     = useState(0);
 
-  // Reset on open
+  // Submission state
+  const [submitting, setSubmitting]   = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   useEffect(() => {
     if (isOpen) {
       setStep(1);
       setCustomerName(''); setPhone(''); setAddress(''); setCity('Lahore');
-      setChannel('WhatsApp'); setPayment('COD');
+      setChannel('WhatsApp'); setPayment('COD'); setExistingCustomerId(null);
       setItems([]);
       setCourier('TCS'); setDeliveryDate(''); setShippingFee(200); setDiscount(0);
+      setSubmitError(null);
     }
   }, [isOpen]);
 
@@ -625,24 +591,76 @@ const NewOrderPanel: React.FC<NewOrderPanelProps> = ({ isOpen, onClose }) => {
   const handleNext = () => { if (canNext()) setStep(s => Math.min(4, s + 1)); };
   const handleBack = () => setStep(s => Math.max(1, s - 1));
 
-  const handleSubmit = () => {
-    // In a real app, POST to API here
-    console.log('New Order Submitted', { customerName, phone, address, city, channel, payment, items, courier, deliveryDate, shippingFee, discount });
-    onClose();
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      // Step 1: Resolve customer ID
+      // If user picked an existing customer — use their _id.
+      // If they typed a new name — create the customer first.
+      let customerId = existingCustomerId;
+
+      if (!customerId) {
+        // Parse name into firstName / lastName
+        const nameParts = customerName.trim().split(/\s+/);
+        const firstName = nameParts[0] ?? customerName;
+        const lastName  = nameParts.slice(1).join(' ') || '';
+
+        const custRes = await customersAPI.create({
+          firstName,
+          lastName,
+          phone,
+          source: channel,
+          address: { street: address, city },
+        });
+        const custBody = (custRes.data as any);
+        customerId = custBody?.data?._id ?? custBody?._id ?? null;
+      }
+
+      if (!customerId) throw new Error('Could not resolve customer');
+
+      // Step 2: Build order payload
+      const payload: CreateOrderPayload = {
+        customer: customerId,
+        source:   channel as CreateOrderPayload['source'],
+        items: items.map(item => ({
+          productId: item.productId,
+          ...(item.variantId ? { variantId: item.variantId } : {}),
+          quantity:  item.qty,
+          unitPrice: item.price,
+        })),
+        shippingAddress: {
+          name:    customerName,
+          phone,
+          street:  address,
+          city,
+          country: 'Pakistan',
+        },
+        paymentMethod: payment as CreateOrderPayload['paymentMethod'],
+        shippingCost:  shippingFee,
+        discount:      discount,
+      };
+
+      await ordersAPI.create(payload);
+      onClose(); // triggers refresh in parent (AllOrdersTab)
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ??
+        err?.response?.data?.errors?.[0]?.message ??
+        err?.message ??
+        'Failed to place order. Please try again.';
+      setSubmitError(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className={`prod-backdrop ${isOpen ? 'open' : ''}`}
-        onClick={onClose}
-      />
+      <div className={`prod-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose} />
 
-      {/* Panel */}
       <div className={`prod-detail-panel ${isOpen ? 'open' : ''}`} style={{ width: 440 }}>
-
-        {/* Header */}
         <div className="detail-header">
           <div className="detail-title">
             <i className="fa-solid fa-plus" style={{ fontSize: 12, marginRight: 6 }} />
@@ -653,24 +671,33 @@ const NewOrderPanel: React.FC<NewOrderPanelProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Step Indicator */}
         <StepIndicator step={step} />
 
-        {/* Body */}
         <div className="detail-body" style={{ overflowY: 'auto', flex: 1, padding: '12px 16px' }}>
+          {/* Error banner */}
+          {submitError && (
+            <div style={{
+              background: '#FEF2F2', border: '1px solid var(--red)', borderRadius: 'var(--radius-card)',
+              padding: '10px 12px', marginBottom: 12, fontSize: 12, color: 'var(--red)',
+              display: 'flex', gap: 8, alignItems: 'flex-start',
+            }}>
+              <i className="fa-solid fa-triangle-exclamation" style={{ marginTop: 1 }} />
+              <span>{submitError}</span>
+            </div>
+          )}
+
           {step === 1 && (
             <StepCustomer
               customerName={customerName} setCustomerName={setCustomerName}
-              phone={phone}       setPhone={setPhone}
-              address={address}   setAddress={setAddress}
-              city={city}         setCity={setCity}
-              channel={channel}   setChannel={setChannel}
-              payment={payment}   setPayment={setPayment}
+              phone={phone}               setPhone={setPhone}
+              address={address}           setAddress={setAddress}
+              city={city}                 setCity={setCity}
+              channel={channel}           setChannel={setChannel}
+              payment={payment}           setPayment={setPayment}
+              existingCustomerId={existingCustomerId} setExistingCustomerId={setExistingCustomerId}
             />
           )}
-          {step === 2 && (
-            <StepItems items={items} setItems={setItems} />
-          )}
+          {step === 2 && <StepItems items={items} setItems={setItems} />}
           {step === 3 && (
             <StepShipping
               courier={courier}           setCourier={setCourier}
@@ -684,23 +711,23 @@ const NewOrderPanel: React.FC<NewOrderPanelProps> = ({ isOpen, onClose }) => {
               customerName={customerName} phone={phone} address={address} city={city}
               channel={channel} payment={payment} courier={courier}
               deliveryDate={deliveryDate} items={items}
-              shippingFee={shippingFee} discount={discount}
+              shippingFee={shippingFee}   discount={discount}
             />
           )}
         </div>
 
-        {/* Footer Navigation */}
+        {/* Footer */}
         <div style={{
           borderTop: '1px solid var(--border)', padding: '10px 16px',
           display: 'flex', gap: 8, flexShrink: 0, background: 'var(--card)',
         }}>
           {step > 1 && (
-            <button className="header-btn" onClick={handleBack}>
+            <button className="header-btn" onClick={handleBack} disabled={submitting}>
               <i className="fa-solid fa-chevron-left" style={{ fontSize: 10 }} /> Back
             </button>
           )}
           <div style={{ flex: 1 }} />
-          <button className="header-btn" onClick={onClose}>Cancel</button>
+          <button className="header-btn" onClick={onClose} disabled={submitting}>Cancel</button>
           {step < 4 ? (
             <button
               className="header-btn primary"
@@ -710,8 +737,15 @@ const NewOrderPanel: React.FC<NewOrderPanelProps> = ({ isOpen, onClose }) => {
               Next <i className="fa-solid fa-chevron-right" style={{ fontSize: 10 }} />
             </button>
           ) : (
-            <button className="header-btn primary" onClick={handleSubmit}>
-              <i className="fa-solid fa-check" /> Place Order
+            <button
+              className="header-btn primary"
+              onClick={handleSubmit}
+              disabled={submitting}
+              style={{ opacity: submitting ? 0.7 : 1 }}
+            >
+              {submitting
+                ? <><i className="fa-solid fa-spinner fa-spin" /> Placing...</>
+                : <><i className="fa-solid fa-check" /> Place Order</>}
             </button>
           )}
         </div>

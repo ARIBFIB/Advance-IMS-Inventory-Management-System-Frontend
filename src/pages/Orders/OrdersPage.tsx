@@ -1,47 +1,22 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import NewOrderPanel from './NewOrderPanel';
 import TopLoadingBar from '../../components/ui/TopLoadingBar';
 import { usePageLoading } from '../../hooks/usePageLoading';
+import { useOrders } from '../../hooks/useOrders';
+import { useOrderDetail } from '../../hooks/useOrderDetail';
+import { mapApiOrderToRow, mapApiOrdersToRows, computeOrderStats } from '../../utils/orderMappers';
+import type { OrderRow } from '../../utils/orderMappers';
 
 // ── Types ──────────────────────────────────────────────────
 type OrderTab = 'all' | 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'returns' | 'settings';
-
-interface OrderRow {
-  id: string;
-  customer: string;
-  phone: string;
-  items: number;
-  value: string;
-  status: string;
-  payment: string;
-  channel: string;
-  date: string;
-}
-
-// ── Static mock rows ───────────────────────────────────────
-const ordersData: OrderRow[] = [
-  { id: 'ORD-1048', customer: 'Amna Bibi',      phone: '0300-1234567', items: 3, value: '₨4,200', status: 'Pending',   payment: 'COD',     channel: 'WhatsApp', date: '07 May 2026' },
-  { id: 'ORD-1047', customer: 'Fatima Zara',     phone: '0321-9876543', items: 1, value: '₨1,800', status: 'Confirmed', payment: 'Prepaid', channel: 'Shopify',  date: '07 May 2026' },
-  { id: 'ORD-1046', customer: 'Sara Khan',        phone: '0333-5552211', items: 2, value: '₨3,600', status: 'Packed',    payment: 'COD',     channel: 'WhatsApp', date: '07 May 2026' },
-  { id: 'ORD-1045', customer: 'Nadia Malik',      phone: '0311-4443322', items: 4, value: '₨7,100', status: 'Shipped',   payment: 'COD',     channel: 'WhatsApp', date: '06 May 2026' },
-  { id: 'ORD-1044', customer: 'Rabia Ahmed',      phone: '0345-6677889', items: 1, value: '₨2,200', status: 'Delivered', payment: 'Prepaid', channel: 'Shopify',  date: '06 May 2026' },
-  { id: 'ORD-1043', customer: 'Hira Baig',        phone: '0312-1122334', items: 2, value: '₨3,900', status: 'Delivered', payment: 'COD',     channel: 'WhatsApp', date: '05 May 2026' },
-  { id: 'ORD-1042', customer: 'Zainab Qureshi',  phone: '0300-9988776', items: 3, value: '₨5,400', status: 'Pending',   payment: 'COD',     channel: 'WhatsApp', date: '05 May 2026' },
-  { id: 'ORD-1041', customer: 'Mehwish Ali',      phone: '0321-5544332', items: 1, value: '₨1,400', status: 'Confirmed', payment: 'COD',     channel: 'WhatsApp', date: '05 May 2026' },
-  { id: 'ORD-1040', customer: 'Sadia Hussain',    phone: '0333-7766554', items: 5, value: '₨9,200', status: 'Shipped',   payment: 'Prepaid', channel: 'Shopify',  date: '04 May 2026' },
-  { id: 'ORD-1039', customer: 'Bushra Nawaz',     phone: '0311-8899001', items: 2, value: '₨3,100', status: 'Delivered', payment: 'COD',     channel: 'WhatsApp', date: '04 May 2026' },
-  { id: 'ORD-1038', customer: 'Asma Iqbal',       phone: '0345-0011223', items: 1, value: '₨2,800', status: 'Cancelled', payment: 'COD',     channel: 'WhatsApp', date: '03 May 2026' },
-  { id: 'ORD-1037', customer: 'Maira Usman',      phone: '0312-3344556', items: 3, value: '₨5,700', status: 'Delivered', payment: 'COD',     channel: 'WhatsApp', date: '03 May 2026' },
-  { id: 'ORD-1036', customer: 'Iram Sheikh',      phone: '0300-6677889', items: 2, value: '₨4,100', status: 'Pending',   payment: 'Prepaid', channel: 'Shopify',  date: '02 May 2026' },
-  { id: 'ORD-1035', customer: 'Lubna Tanvir',     phone: '0321-2233445', items: 1, value: '₨1,600', status: 'Confirmed', payment: 'COD',     channel: 'WhatsApp', date: '02 May 2026' },
-  { id: 'ORD-1034', customer: 'Tania Siddiqui',  phone: '0333-9900112', items: 4, value: '₨6,800', status: 'Shipped',   payment: 'COD',     channel: 'WhatsApp', date: '01 May 2026' },
-];
+type PanelMode = 'view' | 'edit' | 'courier' | 'cancel';
 
 // ── Helpers ────────────────────────────────────────────────
 function getStatusBadgeClass(status: string): string {
   const map: Record<string, string> = {
-    Pending: 'yellow', Confirmed: 'blue', Packed: 'blue',
-    Shipped: 'orange', Delivered: 'green', Cancelled: 'red', Returned: 'red',
+    Pending:   'yellow', Confirmed: 'blue',  Processing: 'blue',
+    Packed:    'blue',   Shipped:   'orange', Delivered:  'green',
+    Cancelled: 'red',    Returned:  'red',
   };
   return map[status] || 'gray';
 }
@@ -55,72 +30,111 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => (
   <span className={`badge ${getStatusBadgeClass(status)}`}>{status}</span>
 );
 
-// ═══════════════════════════════════════════════════════════
-// ORDER DETAIL / EDIT PANEL
-// ═══════════════════════════════════════════════════════════
+// ── Stat Cards ─────────────────────────────────────────────
+interface OrderStatsProps {
+  total: number;
+  confirmedRate: string;
+  codCount: number;
+  codPct: string;
+  avgValue: string;
+  loading: boolean;
+}
 
-type PanelMode = 'view' | 'edit' | 'courier' | 'cancel';
+const OrderStats: React.FC<OrderStatsProps> = ({ total, confirmedRate, codCount, codPct, avgValue, loading }) => (
+  <div className="stats-row" style={{ marginBottom: '14px' }}>
+    <div className="stat-card">
+      <div className="stat-card-top">
+        <div className="stat-label">Total Orders</div>
+        <div className="stat-icon" style={{ background: '#FFF5EE' }}><i className="fa-solid fa-bag-shopping ic-orange" /></div>
+      </div>
+      <div className="stat-value">{loading ? '—' : total.toLocaleString()}</div>
+      <div className="stat-trend up"><i className="fa-solid fa-arrow-trend-up" /> Live from API</div>
+    </div>
+    <div className="stat-card">
+      <div className="stat-card-top">
+        <div className="stat-label">Confirmed Rate</div>
+        <div className="stat-icon" style={{ background: 'var(--green-bg)' }}><i className="fa-solid fa-circle-check ic-green" /></div>
+      </div>
+      <div className="stat-value">{loading ? '—' : confirmedRate}</div>
+      <div className="stat-trend up"><i className="fa-solid fa-arrow-trend-up" /> From current page</div>
+    </div>
+    <div className="stat-card">
+      <div className="stat-card-top">
+        <div className="stat-label">COD Orders</div>
+        <div className="stat-icon" style={{ background: 'var(--blue-bg)' }}><i className="fa-solid fa-money-bills" style={{ color: 'var(--blue)' }} /></div>
+      </div>
+      <div className="stat-value">{loading ? '—' : codCount}</div>
+      <div className="stat-trend neutral"><i className="fa-solid fa-minus" /> {loading ? '—' : codPct} of page</div>
+    </div>
+    <div className="stat-card">
+      <div className="stat-card-top">
+        <div className="stat-label">Avg. Order Value</div>
+        <div className="stat-icon" style={{ background: 'var(--yellow-bg)' }}><i className="fa-solid fa-coins ic-yellow" /></div>
+      </div>
+      <div className="stat-value">{loading ? '—' : avgValue}</div>
+      <div className="stat-trend up"><i className="fa-solid fa-arrow-trend-up" /> Current page avg</div>
+    </div>
+  </div>
+);
+
+// ── Order Detail / Edit Panel ──────────────────────────────
+const ORDER_STATUSES = ['Pending', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'Delivered', 'Cancelled'];
+const MOCK_COURIERS  = ['TCS', 'Leopards', 'M&P', 'Trax', 'PostEx', 'BlueEx'];
 
 interface OrderPanelProps {
   order: OrderRow | null;
   mode: PanelMode;
   onClose: () => void;
   onModeChange: (m: PanelMode) => void;
-  onStatusChange: (id: string, status: string) => void;
+  onStatusChange: (id: string, status: string, notes?: string) => Promise<void>;
+  onCancel: (id: string, reason: string) => Promise<void>;
 }
 
-const ORDER_STATUSES = ['Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled'];
+const OrderPanel: React.FC<OrderPanelProps> = ({
+  order, mode, onClose, onModeChange, onStatusChange, onCancel,
+}) => {
+  const { order: detail, loading: detailLoading, fetchOrder } = useOrderDetail();
 
-const MOCK_COURIERS = ['TCS', 'Leopards', 'M&P', 'Trax', 'PostEx', 'BlueEx'];
+  const [editStatus,    setEditStatus]    = useState('');
+  const [editPayment,   setEditPayment]   = useState('');
+  const [editAddress,   setEditAddress]   = useState('');
+  const [editNotes,     setEditNotes]     = useState('');
+  const [courier,       setCourier]       = useState('TCS');
+  const [tracking,      setTracking]      = useState('');
+  const [expectedDate,  setExpectedDate]  = useState('');
+  const [cancelReason,  setCancelReason]  = useState('');
+  const [saving,        setSaving]        = useState(false);
 
-// Mock items per order
-const getMockItems = (order: OrderRow) => {
-  const pool = [
-    { name: 'Classic Lawn Suit',   sku: 'SKU-0041', qty: 1, price: 1800 },
-    { name: 'Embroidered Kurta',   sku: 'SKU-0017', qty: 1, price: 2800 },
-    { name: 'Printed Lawn 3PC',    sku: 'SKU-0055', qty: 2, price: 3200 },
-    { name: 'Cotton Kurti',        sku: 'SKU-0135', qty: 1, price: 750  },
-    { name: 'Net Dupatta Gold',    sku: 'SKU-0218', qty: 1, price: 1100 },
-    { name: 'Linen Trouser',       sku: 'SKU-0078', qty: 2, price: 900  },
-  ];
-  // deterministic slice based on order id
-  const seed = parseInt(order.id.replace('ORD-', '')) % pool.length;
-  return pool.slice(seed, seed + order.items).concat(
-    order.items > pool.length - seed ? pool.slice(0, order.items - (pool.length - seed)) : []
-  ).slice(0, order.items);
-};
+  // Fetch full detail when panel opens in view mode
+  useEffect(() => {
+    if (order && mode === 'view') {
+      fetchOrder(order._id);
+    }
+  }, [order, mode, fetchOrder]);
 
-const OrderPanel: React.FC<OrderPanelProps> = ({ order, mode, onClose, onModeChange, onStatusChange }) => {
-  const [editStatus, setEditStatus]   = useState('');
-  const [editPayment, setEditPayment] = useState('');
-  const [editAddress, setEditAddress] = useState('');
-  const [editNotes, setEditNotes]     = useState('');
-  const [courier, setCourier]         = useState('TCS');
-  const [tracking, setTracking]       = useState('');
-  const [expectedDate, setExpectedDate] = useState('');
-  const [cancelReason, setCancelReason] = useState('');
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (order) {
       setEditStatus(order.status);
       setEditPayment(order.payment);
-      setEditAddress('House 12, Street 4, DHA Phase 5');
-      setEditNotes('');
-      setTracking('');
+      setEditAddress(order.address ?? 'House 12, Street 4, DHA Phase 5');
+      setEditNotes(order.notes ?? '');
+      setTracking(order.trackingNumber ?? '');
+      setCourier(order.courierName ?? 'TCS');
       setExpectedDate('');
       setCancelReason('');
+      setSaving(false);
     }
   }, [order, mode]);
 
   if (!order) return null;
-
   const isOpen = !!order;
-  const items  = getMockItems(order);
+
+  // Use full detail items if available, else show minimal info
+  const detailItems = detail?.items ?? [];
 
   /* ── VIEW mode ── */
   const renderView = () => (
     <>
-      {/* Header info */}
       <div style={{
         background: 'var(--bg)', borderRadius: 'var(--radius-card)',
         border: '1px solid var(--border)', padding: '12px 14px', marginBottom: 12,
@@ -138,43 +152,59 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ order, mode, onClose, onModeCha
       <div className="section-divider" style={{ marginTop: 0 }}><span>Customer</span></div>
       <div className="detail-row"><div className="detail-key">Name</div><div className="detail-val"><strong>{order.customer}</strong></div></div>
       <div className="detail-row"><div className="detail-key">Phone</div><div className="detail-val">{order.phone}</div></div>
-      <div className="detail-row"><div className="detail-key">Address</div><div className="detail-val">House 12, Street 4, DHA Phase 5, Lahore</div></div>
+      <div className="detail-row">
+        <div className="detail-key">Address</div>
+        <div className="detail-val">
+          {detailLoading ? '...' : (
+            detail?.shippingAddress
+              ? [detail.shippingAddress.street, detail.shippingAddress.city, detail.shippingAddress.country].filter(Boolean).join(', ')
+              : order.address ?? '—'
+          )}
+        </div>
+      </div>
       <div className="detail-row"><div className="detail-key">Channel</div><div className="detail-val"><span className="tag">{order.channel}</span></div></div>
 
       {/* Items */}
-      <div className="section-divider"><span>Order Items</span></div>
-      {items.map((item, i) => (
-        <div key={i} className="list-item" style={{ padding: '6px 0' }}>
+      <div className="section-divider"><span>Order Items {detailLoading ? '' : `(${detailItems.length})`}</span></div>
+      {detailLoading ? (
+        <div style={{ padding: '12px 0', color: 'var(--text-muted)', fontSize: 12 }}>Loading items...</div>
+      ) : detailItems.length > 0 ? detailItems.map((item, i) => (
+        <div key={item._id ?? i} className="list-item" style={{ padding: '6px 0' }}>
           <div className="list-icon" style={{ background: '#FFF5EE' }}>
             <i className="fa-solid fa-bag-shopping ic-orange" style={{ fontSize: 11 }} />
           </div>
           <div className="list-content">
             <div className="list-title">{item.name}</div>
-            <div className="list-meta">{item.sku} · Qty: {item.qty}</div>
+            <div className="list-meta">{item.sku} · Qty: {item.quantity}</div>
           </div>
           <div className="list-right">
-            <strong>₨{(item.qty * item.price).toLocaleString()}</strong>
+            <strong>₨{(item.quantity * item.unitPrice).toLocaleString()}</strong>
           </div>
         </div>
-      ))}
+      )) : (
+        <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: '8px 0' }}>
+          {order.items} item(s) — open detail to load
+        </div>
+      )}
 
       {/* Payment */}
       <div className="section-divider"><span>Payment & Delivery</span></div>
       <div className="detail-row">
         <div className="detail-key">Payment</div>
         <div className="detail-val">
-          <span className={`tag`} style={{ color: order.payment === 'Prepaid' ? 'var(--green)' : 'inherit' }}>
+          <span className="tag" style={{ color: order.payment === 'Prepaid' ? 'var(--green)' : 'inherit' }}>
             <i className={`fa-solid ${order.payment === 'COD' ? 'fa-money-bill' : 'fa-credit-card'}`} style={{ fontSize: 9 }} /> {order.payment}
           </span>
         </div>
       </div>
       <div className="detail-row"><div className="detail-key">Total Value</div><div className="detail-val"><strong style={{ color: 'var(--accent)', fontSize: 14 }}>{order.value}</strong></div></div>
-      <div className="detail-row"><div className="detail-key">Shipping Fee</div><div className="detail-val">₨200</div></div>
-      <div className="detail-row"><div className="detail-key">Courier</div><div className="detail-val">TCS</div></div>
-      <div className="detail-row"><div className="detail-key">Tracking No.</div><div className="detail-val" style={{ color: 'var(--text-muted)' }}>Not assigned yet</div></div>
+      {detail && <div className="detail-row"><div className="detail-key">Shipping Fee</div><div className="detail-val">₨{(detail.shippingCost ?? 0).toLocaleString()}</div></div>}
+      {detail && <div className="detail-row"><div className="detail-key">Discount</div><div className="detail-val">₨{(detail.discount ?? 0).toLocaleString()}</div></div>}
+      <div className="detail-row"><div className="detail-key">Courier</div><div className="detail-val">{order.courierName ?? (detailLoading ? '...' : detail?.courier?.name ?? 'Not assigned')}</div></div>
+      <div className="detail-row"><div className="detail-key">Tracking No.</div><div className="detail-val" style={{ color: order.trackingNumber ? 'inherit' : 'var(--text-muted)' }}>{order.trackingNumber ?? (detailLoading ? '...' : detail?.trackingNumber ?? 'Not assigned yet')}</div></div>
+      {detail?.notes && <div className="detail-row"><div className="detail-key">Notes</div><div className="detail-val">{detail.notes}</div></div>}
 
       <hr />
-      {/* Action Buttons */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button className="header-btn primary" onClick={() => onModeChange('edit')}>
           <i className="fa-solid fa-pen" /> Edit Order
@@ -186,12 +216,15 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ order, mode, onClose, onModeCha
           <button
             className="header-btn"
             style={{ color: 'var(--green)', borderColor: 'var(--green)' }}
-            onClick={() => { onStatusChange(order.id, 'Delivered'); onClose(); }}
+            onClick={async () => {
+              await onStatusChange(order._id, 'Delivered');
+              onClose();
+            }}
           >
             <i className="fa-solid fa-circle-check" /> Mark Delivered
           </button>
         )}
-        {order.status !== 'Cancelled' && (
+        {order.status !== 'Cancelled' && order.status !== 'Delivered' && (
           <button
             className="header-btn"
             style={{ color: 'var(--red)', borderColor: 'var(--red)' }}
@@ -211,17 +244,17 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ order, mode, onClose, onModeCha
 
       <div className="form-group" style={{ marginBottom: 10 }}>
         <div className="form-label">Customer Name</div>
-        <input className="form-input" style={{ width: '100%' }} defaultValue={order.customer} />
+        <input className="form-input" style={{ width: '100%' }} defaultValue={order.customer} disabled />
       </div>
       <div className="form-row">
         <div className="form-group">
           <div className="form-label">Phone</div>
-          <input className="form-input" defaultValue={order.phone} />
+          <input className="form-input" defaultValue={order.phone} disabled />
         </div>
         <div className="form-group">
           <div className="form-label">Channel</div>
-          <select className="form-select" defaultValue={order.channel}>
-            <option>WhatsApp</option><option>Shopify</option><option>Walk-in</option><option>Instagram</option>
+          <select className="form-select" defaultValue={order.channel} disabled>
+            <option>WhatsApp</option><option>Shopify</option><option>Manual</option><option>Instagram</option><option>Website</option>
           </select>
         </div>
       </div>
@@ -246,7 +279,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ order, mode, onClose, onModeCha
         <div className="form-group">
           <div className="form-label">Payment Type</div>
           <select className="form-select" value={editPayment} onChange={e => setEditPayment(e.target.value)}>
-            <option>COD</option><option>Prepaid</option>
+            <option>COD</option><option>Prepaid</option><option>Card</option><option>BankTransfer</option><option>Wallet</option>
           </select>
         </div>
       </div>
@@ -266,17 +299,18 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ order, mode, onClose, onModeCha
       <div style={{ display: 'flex', gap: 8 }}>
         <button
           className="header-btn primary"
-          style={{ flex: 1, justifyContent: 'center' }}
-          onClick={() => {
-            onStatusChange(order.id, editStatus);
+          style={{ flex: 1, justifyContent: 'center', opacity: saving ? 0.6 : 1 }}
+          disabled={saving}
+          onClick={async () => {
+            setSaving(true);
+            await onStatusChange(order._id, editStatus, editNotes || undefined);
+            setSaving(false);
             onClose();
           }}
         >
-          <i className="fa-solid fa-check" /> Save Changes
+          {saving ? <><i className="fa-solid fa-spinner fa-spin" /> Saving...</> : <><i className="fa-solid fa-check" /> Save Changes</>}
         </button>
-        <button className="header-btn" onClick={() => onModeChange('view')}>
-          Back
-        </button>
+        <button className="header-btn" onClick={() => onModeChange('view')}>Back</button>
       </div>
     </>
   );
@@ -337,13 +371,19 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ order, mode, onClose, onModeCha
       <div style={{ display: 'flex', gap: 8 }}>
         <button
           className="header-btn primary"
-          style={{ flex: 1, justifyContent: 'center' }}
-          onClick={() => {
-            onStatusChange(order.id, 'Shipped');
+          style={{ flex: 1, justifyContent: 'center', opacity: saving ? 0.6 : 1 }}
+          disabled={saving}
+          onClick={async () => {
+            setSaving(true);
+            // Mark as Shipped via status update (fulfill endpoint needs real courier ID)
+            await onStatusChange(order._id, 'Shipped', `Courier: ${courier}${tracking ? `, Tracking: ${tracking}` : ''}`);
+            setSaving(false);
             onClose();
           }}
         >
-          <i className="fa-solid fa-truck" /> Assign & Mark Shipped
+          {saving
+            ? <><i className="fa-solid fa-spinner fa-spin" /> Saving...</>
+            : <><i className="fa-solid fa-truck" /> Assign & Mark Shipped</>}
         </button>
         <button className="header-btn" onClick={() => onModeChange('view')}>Back</button>
       </div>
@@ -362,7 +402,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ order, mode, onClose, onModeCha
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--red)' }}>Cancel Order {order.id}?</div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-            This action cannot be undone. The order status will be set to Cancelled.
+            This action cannot be undone. The backend will restore stock automatically.
           </div>
         </div>
       </div>
@@ -408,18 +448,23 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ order, mode, onClose, onModeCha
           className="header-btn"
           style={{
             flex: 1, justifyContent: 'center',
-            background: cancelReason ? 'var(--red)' : 'var(--border)',
-            color: cancelReason ? '#fff' : 'var(--text-muted)',
-            borderColor: cancelReason ? 'var(--red)' : 'var(--border)',
-            cursor: cancelReason ? 'pointer' : 'not-allowed',
+            background:   cancelReason && !saving ? 'var(--red)' : 'var(--border)',
+            color:        cancelReason && !saving ? '#fff'       : 'var(--text-muted)',
+            borderColor:  cancelReason && !saving ? 'var(--red)' : 'var(--border)',
+            cursor:       cancelReason && !saving ? 'pointer'    : 'not-allowed',
           }}
-          disabled={!cancelReason}
-          onClick={() => {
-            onStatusChange(order.id, 'Cancelled');
+          disabled={!cancelReason || saving}
+          onClick={async () => {
+            if (!cancelReason) return;
+            setSaving(true);
+            await onCancel(order._id, cancelReason);
+            setSaving(false);
             onClose();
           }}
         >
-          <i className="fa-solid fa-xmark" /> Confirm Cancellation
+          {saving
+            ? <><i className="fa-solid fa-spinner fa-spin" /> Cancelling...</>
+            : <><i className="fa-solid fa-xmark" /> Confirm Cancellation</>}
         </button>
         <button className="header-btn" onClick={() => onModeChange('view')}>Back</button>
       </div>
@@ -427,27 +472,22 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ order, mode, onClose, onModeCha
   );
 
   const titles: Record<PanelMode, string> = {
-    view:    `Order Details`,
-    edit:    `Edit Order`,
-    courier: `Assign Courier`,
-    cancel:  `Cancel Order`,
+    view:    'Order Details',
+    edit:    'Edit Order',
+    courier: 'Assign Courier',
+    cancel:  'Cancel Order',
   };
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className={`prod-backdrop ${isOpen ? 'open' : ''}`}
-        onClick={onClose}
-      />
-      {/* Panel */}
+      <div className={`prod-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose} />
       <div className={`prod-detail-panel ${isOpen ? 'open' : ''}`}>
         <div className="detail-header">
           <div className="detail-title">
-            {mode === 'cancel' && <i className="fa-solid fa-xmark" style={{ color: 'var(--red)', marginRight: 6, fontSize: 12 }} />}
-            {mode === 'courier' && <i className="fa-solid fa-truck" style={{ marginRight: 6, fontSize: 12 }} />}
-            {mode === 'edit' && <i className="fa-solid fa-pen" style={{ marginRight: 6, fontSize: 12 }} />}
-            {mode === 'view' && <i className="fa-solid fa-eye" style={{ marginRight: 6, fontSize: 12 }} />}
+            {mode === 'cancel'  && <i className="fa-solid fa-xmark"  style={{ color: 'var(--red)', marginRight: 6, fontSize: 12 }} />}
+            {mode === 'courier' && <i className="fa-solid fa-truck"   style={{ marginRight: 6, fontSize: 12 }} />}
+            {mode === 'edit'    && <i className="fa-solid fa-pen"     style={{ marginRight: 6, fontSize: 12 }} />}
+            {mode === 'view'    && <i className="fa-solid fa-eye"     style={{ marginRight: 6, fontSize: 12 }} />}
             {titles[mode]}
           </div>
           <button className="detail-close" onClick={onClose}>
@@ -465,10 +505,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ order, mode, onClose, onModeCha
   );
 };
 
-// ═══════════════════════════════════════════════════════════
-// THREE DOT MENU
-// ═══════════════════════════════════════════════════════════
-
+// ── Three Dot Menu ─────────────────────────────────────────
 interface ThreeDotMenuProps {
   orderId: string;
   onAction: (action: string) => void;
@@ -477,7 +514,7 @@ interface ThreeDotMenuProps {
 const ThreeDotMenu: React.FC<ThreeDotMenuProps> = ({ orderId, onAction }) => {
   const [open, setOpen] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handler = (e: MouseEvent) => {
       const el = document.getElementById(`menu-${orderId}`);
       if (el && !el.contains(e.target as Node)) setOpen(false);
@@ -488,82 +525,28 @@ const ThreeDotMenu: React.FC<ThreeDotMenuProps> = ({ orderId, onAction }) => {
 
   return (
     <div id={`menu-${orderId}`} className="three-dot" style={{ position: 'relative', display: 'inline-block' }}>
-      <button
-        className="three-dot-btn"
-        onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }}
-      >
+      <button className="three-dot-btn" onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }}>
         <i className="fa-solid fa-ellipsis" />
       </button>
       {open && (
         <div className="three-dot-menu" style={{ display: 'block' }}>
-          <div className="three-dot-menu-item" onClick={() => { onAction('view');    setOpen(false); }}>
-            <i className="fa-solid fa-eye" /> View Details
-          </div>
-          <div className="three-dot-menu-item" onClick={() => { onAction('edit');    setOpen(false); }}>
-            <i className="fa-solid fa-pen" /> Edit Order
-          </div>
-          <div className="three-dot-menu-item" onClick={() => { onAction('courier'); setOpen(false); }}>
-            <i className="fa-solid fa-truck" /> Assign Courier
-          </div>
-          <div className="three-dot-menu-item" onClick={() => { onAction('deliver'); setOpen(false); }}>
-            <i className="fa-solid fa-circle-check" /> Mark Delivered
-          </div>
+          <div className="three-dot-menu-item" onClick={() => { onAction('view');    setOpen(false); }}><i className="fa-solid fa-eye" /> View Details</div>
+          <div className="three-dot-menu-item" onClick={() => { onAction('edit');    setOpen(false); }}><i className="fa-solid fa-pen" /> Edit Order</div>
+          <div className="three-dot-menu-item" onClick={() => { onAction('courier'); setOpen(false); }}><i className="fa-solid fa-truck" /> Assign Courier</div>
+          <div className="three-dot-menu-item" onClick={() => { onAction('deliver'); setOpen(false); }}><i className="fa-solid fa-circle-check" /> Mark Delivered</div>
           <div className="three-dot-menu-divider" />
-          <div className="three-dot-menu-item danger" onClick={() => { onAction('cancel'); setOpen(false); }}>
-            <i className="fa-solid fa-xmark" /> Cancel Order
-          </div>
+          <div className="three-dot-menu-item danger" onClick={() => { onAction('cancel'); setOpen(false); }}><i className="fa-solid fa-xmark" /> Cancel Order</div>
         </div>
       )}
     </div>
   );
 };
 
-// ── Stat Cards ─────────────────────────────────────────────
-const OrderStats: React.FC = () => (
-  <div className="stats-row" style={{ marginBottom: '14px' }}>
-    <div className="stat-card">
-      <div className="stat-card-top">
-        <div className="stat-label">Total Orders</div>
-        <div className="stat-icon" style={{ background: '#FFF5EE' }}><i className="fa-solid fa-bag-shopping ic-orange" /></div>
-      </div>
-      <div className="stat-value">1,284</div>
-      <div className="stat-trend up"><i className="fa-solid fa-arrow-trend-up" /> +5.2% this month</div>
-    </div>
-    <div className="stat-card">
-      <div className="stat-card-top">
-        <div className="stat-label">Confirmed Rate</div>
-        <div className="stat-icon" style={{ background: 'var(--green-bg)' }}><i className="fa-solid fa-circle-check ic-green" /></div>
-      </div>
-      <div className="stat-value">87%</div>
-      <div className="stat-trend up"><i className="fa-solid fa-arrow-trend-up" /> +2% vs last month</div>
-    </div>
-    <div className="stat-card">
-      <div className="stat-card-top">
-        <div className="stat-label">COD Orders</div>
-        <div className="stat-icon" style={{ background: 'var(--blue-bg)' }}><i className="fa-solid fa-money-bills" style={{ color: 'var(--blue)' }} /></div>
-      </div>
-      <div className="stat-value">912</div>
-      <div className="stat-trend neutral"><i className="fa-solid fa-minus" /> 71% of total</div>
-    </div>
-    <div className="stat-card">
-      <div className="stat-card-top">
-        <div className="stat-label">Avg. Order Value</div>
-        <div className="stat-icon" style={{ background: 'var(--yellow-bg)' }}><i className="fa-solid fa-coins ic-yellow" /></div>
-      </div>
-      <div className="stat-value">₨1,740</div>
-      <div className="stat-trend up"><i className="fa-solid fa-arrow-trend-up" /> +₨120 this week</div>
-    </div>
-  </div>
-);
-
-// ── Shimmer placeholder while tab loads ────────────────────
+// ── Tab Shimmer ─────────────────────────────────────────────
 const TabShimmer: React.FC = () => (
   <div className="page-shimmer">
     <div className="shimmer-stats">
-      <div className="shimmer-stat" />
-      <div className="shimmer-stat" />
-      <div className="shimmer-stat" />
-      <div className="shimmer-stat" />
+      <div className="shimmer-stat" /><div className="shimmer-stat" /><div className="shimmer-stat" /><div className="shimmer-stat" />
     </div>
     <div className="shimmer-card">
       {[1,2,3,4,5,6,7].map(i => (
@@ -573,55 +556,111 @@ const TabShimmer: React.FC = () => (
   </div>
 );
 
-// ── All Orders Tab ─────────────────────────────────────────
+// ── Error Banner ───────────────────────────────────────────
+const ErrorBanner: React.FC<{ message: string; onRetry: () => void }> = ({ message, onRetry }) => (
+  <div style={{
+    background: '#FEF2F2', border: '1px solid var(--red)', borderRadius: 'var(--radius-card)',
+    padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10,
+  }}>
+    <i className="fa-solid fa-triangle-exclamation" style={{ color: 'var(--red)' }} />
+    <span style={{ flex: 1, fontSize: 12, color: 'var(--red)' }}>{message}</span>
+    <button className="header-btn" onClick={onRetry} style={{ fontSize: 11 }}>
+      <i className="fa-solid fa-rotate-right" /> Retry
+    </button>
+  </div>
+);
+
+// ═══════════════════════════════════════════════════════════
+// ALL ORDERS TAB — wired to real API
+// ═══════════════════════════════════════════════════════════
 const AllOrdersTab: React.FC = () => {
   const [search,       setSearch]       = useState('');
   const [newOrderOpen, setNewOrderOpen] = useState(false);
-  const [orders,       setOrders]       = useState<OrderRow[]>(ordersData);
+  const [currentPage,  setCurrentPage]  = useState(1);
 
   // Panel state
   const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
   const [panelMode,     setPanelMode]     = useState<PanelMode>('view');
 
-  // Loading for panel open
+  // Loading bar for panel open
   const { isLoading, loadingProgress, startLoading } = usePageLoading();
 
-  const filtered = orders.filter(o =>
-    o.id.toLowerCase().includes(search.toLowerCase()) ||
-    o.customer.toLowerCase().includes(search.toLowerCase())
-  );
+  // ── Real API ──────────────────────────────────────────────
+  const {
+    orders: apiOrders, pagination, loading, error, refresh, updateStatus, cancelOrder,
+  } = useOrders({ page: currentPage, limit: 15 });
 
-  // Open panel with loading shimmer
-  const openPanel = (order: OrderRow, mode: PanelMode) => {
+  // Map API orders → UI rows
+  const allRows = mapApiOrdersToRows(apiOrders);
+
+  // Client-side search filter
+  const filtered = search.trim()
+    ? allRows.filter(o =>
+        o.id.toLowerCase().includes(search.toLowerCase()) ||
+        o.customer.toLowerCase().includes(search.toLowerCase()) ||
+        o.phone.includes(search)
+      )
+    : allRows;
+
+  // Compute stats from current page
+  const stats = computeOrderStats(apiOrders);
+
+  // ── Open panel ────────────────────────────────────────────
+  const openPanel = useCallback((order: OrderRow, mode: PanelMode) => {
     startLoading(() => {
       setSelectedOrder(order);
       setPanelMode(mode);
     }, 300);
-  };
+  }, [startLoading]);
 
-  const handleAction = (action: string, orderId: string) => {
-    const order = orders.find(o => o.id === orderId);
+  const handleAction = useCallback((action: string, orderId: string) => {
+    const order = filtered.find(o => o._id === orderId || o.id === orderId);
     if (!order) return;
     if (action === 'view')    openPanel(order, 'view');
     if (action === 'edit')    openPanel(order, 'edit');
     if (action === 'courier') openPanel(order, 'courier');
     if (action === 'cancel')  openPanel(order, 'cancel');
     if (action === 'deliver') {
-      startLoading(() => {
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'Delivered' } : o));
+      startLoading(async () => {
+        await updateStatus(order._id, 'Delivered');
       }, 300);
     }
-  };
+  }, [filtered, openPanel, startLoading, updateStatus]);
 
-  const handleStatusChange = (id: string, status: string) => {
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
-  };
+  // ── Panel callbacks ───────────────────────────────────────
+  const handleStatusChange = useCallback(async (id: string, status: string, notes?: string) => {
+    await updateStatus(id, status, notes);
+    // Optimistic update already done in hook; also sync selected order badge
+    setSelectedOrder(prev => prev && prev._id === id ? { ...prev, status } : prev);
+  }, [updateStatus]);
+
+  const handleCancel = useCallback(async (id: string, reason: string) => {
+    await cancelOrder(id, reason);
+    setSelectedOrder(null);
+  }, [cancelOrder]);
+
+  // ── New order created ─────────────────────────────────────
+  const handleNewOrderClose = useCallback(() => {
+    setNewOrderOpen(false);
+    refresh(); // re-fetch to include the new order
+  }, [refresh]);
 
   return (
     <>
       <TopLoadingBar progress={loadingProgress} isLoading={isLoading} />
 
-      <OrderStats />
+      {/* Stats — live from API */}
+      <OrderStats
+        total={pagination?.totalItems ?? stats.total}
+        confirmedRate={stats.confirmedRate}
+        codCount={stats.codCount}
+        codPct={stats.codPct}
+        avgValue={stats.avgValue}
+        loading={loading}
+      />
+
+      {error && <ErrorBanner message={error} onRetry={refresh} />}
+
       <div className="card">
         {/* Toolbar */}
         <div className="table-toolbar">
@@ -630,7 +669,7 @@ const AllOrdersTab: React.FC = () => {
               <i className="fa-solid fa-magnifying-glass" />
               <input
                 type="text"
-                placeholder="Search order ID, customer..."
+                placeholder="Search order ID, customer, phone..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
@@ -640,7 +679,10 @@ const AllOrdersTab: React.FC = () => {
             <button className="t-filter-btn"><i className="fa-solid fa-money-bill" /> Payment</button>
           </div>
           <div className="table-toolbar-right">
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{filtered.length} records</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              {loading ? 'Loading...' : `${filtered.length} records`}
+            </span>
+            <button className="t-filter-btn" onClick={refresh}><i className="fa-solid fa-rotate-right" /> Refresh</button>
             <button className="t-filter-btn"><i className="fa-solid fa-file-export" /> Export</button>
             <button className="header-btn primary" onClick={() => setNewOrderOpen(true)}>
               <i className="fa-solid fa-plus" /> New Order
@@ -650,86 +692,118 @@ const AllOrdersTab: React.FC = () => {
 
         {/* Table */}
         <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th><input type="checkbox" style={{ cursor: 'pointer' }} /></th>
-                <th className="sortable sorted">Order ID <i className="fa-solid fa-sort-down sort-icon" /></th>
-                <th className="sortable">Customer</th>
-                <th className="sortable">Items</th>
-                <th className="sortable">Value <i className="fa-solid fa-sort sort-icon" /></th>
-                <th>Status</th>
-                <th>Payment</th>
-                <th className="sortable">Channel</th>
-                <th className="sortable">Date <i className="fa-solid fa-sort sort-icon" /></th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((o) => (
-                <tr
-                  key={o.id}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => openPanel(o, 'view')}
-                >
-                  <td onClick={e => e.stopPropagation()}>
-                    <input type="checkbox" />
-                  </td>
-                  <td><strong>{o.id}</strong></td>
-                  <td>
-                    <div className="td-flex">
-                      <div className="row-avatar">{getInitials(o.customer)}</div>
-                      <div>
-                        <div>{o.customer}</div>
-                        <div className="td-sub">{o.phone}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{o.items} items</td>
-                  <td><strong>{o.value}</strong></td>
-                  <td><StatusBadge status={o.status} /></td>
-                  <td>
-                    {o.payment === 'COD'
-                      ? <span className="tag"><i className="fa-solid fa-money-bill" style={{ fontSize: '9px' }} /> COD</span>
-                      : <span className="tag" style={{ color: 'var(--green)' }}><i className="fa-solid fa-credit-card" style={{ fontSize: '9px' }} /> Prepaid</span>
-                    }
-                  </td>
-                  <td><span className="tag">{o.channel}</span></td>
-                  <td>{o.date}</td>
-                  <td onClick={e => e.stopPropagation()}>
-                    <ThreeDotMenu
-                      orderId={o.id}
-                      onAction={(action) => handleAction(action, o.id)}
-                    />
-                  </td>
+          {loading ? (
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+              <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: 8 }} />
+              Loading orders...
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+              <i className="fa-solid fa-bag-shopping" style={{ fontSize: 28, display: 'block', marginBottom: 10, opacity: 0.3 }} />
+              {search ? `No orders matching "${search}"` : 'No orders found'}
+            </div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th><input type="checkbox" style={{ cursor: 'pointer' }} /></th>
+                  <th className="sortable sorted">Order ID <i className="fa-solid fa-sort-down sort-icon" /></th>
+                  <th className="sortable">Customer</th>
+                  <th className="sortable">Items</th>
+                  <th className="sortable">Value <i className="fa-solid fa-sort sort-icon" /></th>
+                  <th>Status</th>
+                  <th>Payment</th>
+                  <th className="sortable">Channel</th>
+                  <th className="sortable">Date <i className="fa-solid fa-sort sort-icon" /></th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map((o) => (
+                  <tr key={o._id} style={{ cursor: 'pointer' }} onClick={() => openPanel(o, 'view')}>
+                    <td onClick={e => e.stopPropagation()}><input type="checkbox" /></td>
+                    <td><strong>{o.id}</strong></td>
+                    <td>
+                      <div className="td-flex">
+                        <div className="row-avatar">{getInitials(o.customer)}</div>
+                        <div>
+                          <div>{o.customer}</div>
+                          <div className="td-sub">{o.phone}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{o.items} items</td>
+                    <td><strong>{o.value}</strong></td>
+                    <td><StatusBadge status={o.status} /></td>
+                    <td>
+                      {o.payment === 'COD'
+                        ? <span className="tag"><i className="fa-solid fa-money-bill" style={{ fontSize: '9px' }} /> COD</span>
+                        : <span className="tag" style={{ color: 'var(--green)' }}><i className="fa-solid fa-credit-card" style={{ fontSize: '9px' }} /> Prepaid</span>
+                      }
+                    </td>
+                    <td><span className="tag">{o.channel}</span></td>
+                    <td>{o.date}</td>
+                    <td onClick={e => e.stopPropagation()}>
+                      <ThreeDotMenu
+                        orderId={o._id}
+                        onAction={(action) => handleAction(action, o._id)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Pagination */}
-        <div className="pagination">
-          <div className="pagination-info">
-            Showing <strong>1–{Math.min(15, filtered.length)}</strong> of <strong>{filtered.length}</strong> orders
+        {pagination && (
+          <div className="pagination">
+            <div className="pagination-info">
+              Showing <strong>{((currentPage - 1) * 15) + 1}–{Math.min(currentPage * 15, pagination.totalItems)}</strong> of <strong>{pagination.totalItems}</strong> orders
+            </div>
+            <div className="pagination-controls">
+              <button
+                className="page-btn"
+                disabled={!pagination.hasPrev}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              >
+                <i className="fa-solid fa-chevron-left" style={{ fontSize: '9px' }} />
+              </button>
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                const page = i + 1;
+                return (
+                  <button
+                    key={page}
+                    className={`page-btn ${page === currentPage ? 'active' : ''}`}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+              {pagination.totalPages > 5 && (
+                <>
+                  <button className="page-btn dots">…</button>
+                  <button className="page-btn" onClick={() => setCurrentPage(pagination.totalPages)}>
+                    {pagination.totalPages}
+                  </button>
+                </>
+              )}
+              <button
+                className="page-btn"
+                disabled={!pagination.hasNext}
+                onClick={() => setCurrentPage(p => p + 1)}
+              >
+                <i className="fa-solid fa-chevron-right" style={{ fontSize: '9px' }} />
+              </button>
+            </div>
           </div>
-          <div className="pagination-controls">
-            <button className="page-btn" disabled><i className="fa-solid fa-chevron-left" style={{ fontSize: '9px' }} /></button>
-            {[1, 2, 3, 4, 5].map(p => (
-              <button key={p} className={`page-btn ${p === 1 ? 'active' : ''}`}>{p}</button>
-            ))}
-            <button className="page-btn dots">…</button>
-            <button className="page-btn">86</button>
-            <button className="page-btn"><i className="fa-solid fa-chevron-right" style={{ fontSize: '9px' }} /></button>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* New Order Panel */}
-      <NewOrderPanel
-        isOpen={newOrderOpen}
-        onClose={() => setNewOrderOpen(false)}
-      />
+      <NewOrderPanel isOpen={newOrderOpen} onClose={handleNewOrderClose} />
 
       {/* Order Detail / Edit Panel */}
       <OrderPanel
@@ -738,12 +812,13 @@ const AllOrdersTab: React.FC = () => {
         onClose={() => setSelectedOrder(null)}
         onModeChange={setPanelMode}
         onStatusChange={handleStatusChange}
+        onCancel={handleCancel}
       />
     </>
   );
 };
 
-// ── Simple placeholder tab ─────────────────────────────────
+// ── Placeholder tab ────────────────────────────────────────
 const PlaceholderTab: React.FC<{ icon: string; title: string; desc: string }> = ({ icon, title, desc }) => (
   <div className="card">
     <div className="card-body">
@@ -808,8 +883,8 @@ const SettingsTab: React.FC = () => (
 
 // ── Main Component ─────────────────────────────────────────
 const OrdersPage: React.FC = () => {
-  const [activeTab,    setActiveTab]    = useState<OrderTab>('all');
-  const [showShimmer,  setShowShimmer]  = useState(false);
+  const [activeTab,   setActiveTab]   = useState<OrderTab>('all');
+  const [showShimmer, setShowShimmer] = useState(false);
 
   const { isLoading, loadingProgress, startLoading } = usePageLoading();
 
@@ -824,7 +899,7 @@ const OrdersPage: React.FC = () => {
 
   const tabs: { id: OrderTab; icon: string; label: string; badge?: number }[] = [
     { id: 'all',       icon: 'fa-list-check',   label: 'All Orders' },
-    { id: 'pending',   icon: 'fa-clock',        label: 'Pending',   badge: 12 },
+    { id: 'pending',   icon: 'fa-clock',        label: 'Pending' },
     { id: 'confirmed', icon: 'fa-check',        label: 'Confirmed' },
     { id: 'packed',    icon: 'fa-box',          label: 'Packed' },
     { id: 'shipped',   icon: 'fa-truck',        label: 'Shipped' },
@@ -835,13 +910,11 @@ const OrdersPage: React.FC = () => {
 
   return (
     <div id="page-orders">
-      {/* Top loading bar — fixed at top of viewport */}
       <TopLoadingBar progress={loadingProgress} isLoading={isLoading} />
 
       <div className="section-heading">Order Management</div>
       <div className="section-subheading">Manage, track, and update all customer orders across channels.</div>
 
-      {/* Tabs */}
       <div className="h-tabs">
         {tabs.map(tab => (
           <div
@@ -850,21 +923,18 @@ const OrdersPage: React.FC = () => {
             onClick={() => handleTabSwitch(tab.id)}
           >
             <i className={`fa-solid ${tab.icon}`} /> {tab.label}
-            {tab.badge && (
-              <span className="badge orange" style={{ marginLeft: '4px' }}>{tab.badge}</span>
-            )}
+            {tab.badge && <span className="badge orange" style={{ marginLeft: '4px' }}>{tab.badge}</span>}
           </div>
         ))}
       </div>
 
-      {/* Tab Panels — shimmer while switching */}
       {showShimmer ? (
         <TabShimmer />
       ) : (
         <>
           {activeTab === 'all'       && <AllOrdersTab />}
-          {activeTab === 'pending'   && <PlaceholderTab icon="fa-clock"        title="Pending Orders"   desc="12 orders awaiting confirmation." />}
-          {activeTab === 'confirmed' && <PlaceholderTab icon="fa-circle-check" title="Confirmed Orders"  desc="Filter active in All Orders tab with status = Confirmed." />}
+          {activeTab === 'pending'   && <PlaceholderTab icon="fa-clock"        title="Pending Orders"   desc="Filter by status=Pending coming soon." />}
+          {activeTab === 'confirmed' && <PlaceholderTab icon="fa-circle-check" title="Confirmed Orders"  desc="Filter by status=Confirmed coming soon." />}
           {activeTab === 'packed'    && <PlaceholderTab icon="fa-box"          title="Packed Orders"     desc="Orders marked as packed and ready for dispatch." />}
           {activeTab === 'shipped'   && <PlaceholderTab icon="fa-truck"        title="Shipped Orders"    desc="Tracking updates appear here for dispatched orders." />}
           {activeTab === 'delivered' && <PlaceholderTab icon="fa-circle-check" title="Delivered Orders"  desc="Completed deliveries with COD confirmation status." />}
