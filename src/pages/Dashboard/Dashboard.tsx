@@ -14,11 +14,12 @@ import RecentOrdersTable   from '../../components/dashboard/RecentOrdersTable';
 import CodStatusCard       from '../../components/dashboard/CodStatusCard';
 import IntegrationsSection from '../../components/dashboard/IntegrationsSection';
 
-import { useDashboard } from '../../hooks/useDashboard';
+import { useDashboard }    from '../../hooks/useDashboard';
 import {
   mapHeaderKpis,
   mapStatCards,
   mapWeekBars,
+  mapWeekSummary,   // ← new
   mapTopProducts,
   mapRiders,
   mapRecentOrders,
@@ -45,7 +46,6 @@ const Dashboard: React.FC = () => {
     riders,
     recentOrders,
     loadingKpis,
-    loadingTrends,
     loadingRiders,
     loadingOrders,
     errorKpis,
@@ -53,18 +53,19 @@ const Dashboard: React.FC = () => {
     lastRefreshed,
   } = useDashboard(dateRange);
 
-  // ── Map to UI types ───────────────────────────────────────
+  // ── Map API → UI ──────────────────────────────────────────
   const headerKpis         = mapHeaderKpis(kpis);
   const statCards          = mapStatCards(kpis);
   const weekBars           = mapWeekBars(trends);
+  const weekSummary        = mapWeekSummary(kpis);   // ← drives the 4 numbers
   const topProducts        = mapTopProducts(kpis);
   const riderList          = mapRiders(riders);
   const recentOrdersMapped = mapRecentOrders(recentOrders);
   const codRings           = mapCodRings(kpis);
   const activityItems      = mapActivityItems(kpis);
 
-  const pendingCount  = kpis?.orders.pending ?? 0;
-  const lowStockCount = kpis?.inventory.lowStockAlerts ?? 0;
+  const pendingCount  = kpis?.orders.pending            ?? 0;
+  const lowStockCount = kpis?.inventory.lowStockAlerts  ?? 0;
 
   const sparkHeights = trends?.dailyRevenue?.length
     ? (() => {
@@ -78,19 +79,17 @@ const Dashboard: React.FC = () => {
   return (
     <div className="page-dashboard">
 
-      {/* ── Header ── */}
       <DashboardHeader
         kpis={headerKpis}
         onNewOrder={() => navigate('/orders?new=true')}
         onExport={() => navigate('/reports')}
       />
 
-      {/* ── Alert notice ── */}
       {(pendingCount > 0 || lowStockCount > 0) && (
         <div className="d-mini-notice">
           <i className="fa-solid fa-triangle-exclamation" />
           <div className="d-mini-notice-text">
-            {pendingCount > 0 && <><strong>{pendingCount} orders</strong> pending confirmation · </>}
+            {pendingCount > 0  && <><strong>{pendingCount} orders</strong> pending confirmation · </>}
             {lowStockCount > 0 && <><strong>{lowStockCount} products</strong> below low-stock threshold</>}
           </div>
           <button className="d-btn sm" onClick={() => navigate('/orders')}>
@@ -99,34 +98,26 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ── Error banner ── */}
       {errorKpis && (
         <div className="d-mini-notice" style={{ borderColor: 'var(--red)', background: '#FFF1F2' }}>
           <i className="fa-solid fa-circle-xmark" style={{ color: 'var(--red)' }} />
-          <div className="d-mini-notice-text" style={{ color: 'var(--red)' }}>
-            {errorKpis} — some data may be stale.
-          </div>
+          <div className="d-mini-notice-text" style={{ color: 'var(--red)' }}>{errorKpis}</div>
           <button className="d-btn sm" onClick={refresh}>
             <i className="fa-solid fa-rotate-right" /> Retry
           </button>
         </div>
       )}
 
-      {/* ── Last updated + Refresh ── */}
       {lastRefreshed && (
         <div style={{ fontSize: '10px', color: 'var(--text-faint)', textAlign: 'right', marginBottom: '6px', paddingRight: '4px' }}>
           <i className="fa-solid fa-rotate-right" style={{ marginRight: '4px' }} />
           Last updated {lastRefreshed.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' })}
-          <button
-            onClick={refresh}
-            style={{ marginLeft: '8px', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '10px' }}
-          >
+          <button onClick={refresh} style={{ marginLeft: '8px', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '10px' }}>
             Refresh
           </button>
         </div>
       )}
 
-      {/* ── Stat cards ── */}
       {loadingKpis ? (
         <div className="d-stats-grid">
           {[...Array(6)].map((_, i) => (
@@ -140,24 +131,24 @@ const Dashboard: React.FC = () => {
         <StatCardsRow cards={statCards} />
       )}
 
-      {/* ── Row 1: chart + activity ── */}
       <div className="d-grid-2" style={{ marginBottom: '14px' }}>
-        <WeeklyOrdersChart bars={weekBars} />
+        {/* Pass both bars (from trends) AND summary numbers (from kpis) */}
+        <WeeklyOrdersChart
+          bars={weekBars}
+          summary={weekSummary}
+        />
         <ActivityFeed
-          items={
-            activityItems.length ? activityItems : [{
-              iconClass: loadingKpis ? 'fa-spinner fa-spin' : 'fa-circle-check',
-              iconBg: 'var(--bg)',
-              iconColor: 'var(--text-faint)',
-              title: loadingKpis ? 'Loading activity...' : 'All clear — no alerts',
-              meta: '',
-            }]
-          }
+          items={activityItems.length ? activityItems : [{
+            iconClass: loadingKpis ? 'fa-spinner fa-spin' : 'fa-circle-check',
+            iconBg: 'var(--bg)',
+            iconColor: 'var(--text-faint)',
+            title: loadingKpis ? 'Loading activity...' : 'All clear — no alerts',
+            meta: '',
+          }]}
           onViewAll={() => navigate('/audit')}
         />
       </div>
 
-      {/* ── Row 2: products + riders + financials ── */}
       <div className="d-grid-3" style={{ marginBottom: '14px' }}>
         <TopProductsList
           products={topProducts}
@@ -174,7 +165,6 @@ const Dashboard: React.FC = () => {
         />
       </div>
 
-      {/* ── Row 3: orders table + COD ── */}
       <div className="d-grid-31" style={{ marginBottom: '14px' }}>
         <RecentOrdersTable
           orders={loadingOrders ? [] : recentOrdersMapped}
@@ -192,7 +182,6 @@ const Dashboard: React.FC = () => {
         />
       </div>
 
-      {/* ── Integrations ── */}
       <IntegrationsSection
         ecommerce={ECOMMERCE_INTEGRATIONS}
         couriers={COURIER_INTEGRATIONS}
