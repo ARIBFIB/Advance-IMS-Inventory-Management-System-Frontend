@@ -17,7 +17,7 @@ const BASE_URL =
   'https://advance-ims-inventory-management-system.onrender.com';
 
 // ── Axios Instance ─────────────────────────────────────────
-const api: AxiosInstance = axios.create({
+const api: AxiosInstance = axios.create({ 
   baseURL: `${BASE_URL}/api`,
   headers: { 'Content-Type': 'application/json' },
   timeout: 15000,
