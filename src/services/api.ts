@@ -95,9 +95,9 @@ export const productsAPI = {
   getById:     (id: string)               => api.get(`/products/${id}`),
   create:      (data: object)             => api.post('/products', data),
   update:      (id: string, data: object) => api.put(`/products/${id}`, data),
-  delete:      (id: string)              => api.delete(`/products/${id}`),
+  delete:      (id: string)               => api.delete(`/products/${id}`),
   updateStock: (id: string, data: object) => api.patch(`/products/${id}/stock`, data),
-  toggleStatus:(id: string)              => api.patch(`/products/${id}/productStatus`),
+  toggleStatus:(id: string)               => api.patch(`/products/${id}/productStatus`),
   // Variants
   addVariant:    (id: string, data: object)                    => api.post(`/products/${id}/variants`, data),
   updateVariant: (id: string, variantId: string, data: object) => api.put(`/products/${id}/variants/${variantId}`, data),
@@ -124,15 +124,14 @@ export const categoriesAPI = {
 // 5. ORDERS  (/api/orders)
 // ─────────────────────────────────────────────────────────
 
-// ── Request/Response types for orders ─────────────────────
 export interface CreateOrderPayload {
-  customer: string;          // customer _id
+  customer: string;
   source: 'WhatsApp' | 'Shopify' | 'Manual' | 'Instagram' | 'Website';
   items: Array<{
     productId: string;
     variantId?: string;
     quantity: number;
-    unitPrice?: number;      // optional — uses variant price if omitted
+    unitPrice?: number;
   }>;
   shippingAddress: {
     name: string;
@@ -156,8 +155,8 @@ export interface UpdateOrderPayload {
 }
 
 export interface FulfillOrderPayload {
-  courier: string;     // courier _id
-  rider?: string;      // user _id (optional)
+  courier: string;
+  rider?: string;
   notes?: string;
 }
 
@@ -169,39 +168,22 @@ export interface AddOrderItemPayload {
 }
 
 export const ordersAPI = {
-  // ── Core CRUD ─────────────────────────────────────────
-  getAll:  (params?: object)                    => api.get('/orders', { params }),
-  getById: (id: string)                         => api.get(`/orders/${id}`),
-  create:  (data: CreateOrderPayload)           => api.post('/orders', data),
-  update:  (id: string, data: UpdateOrderPayload) => api.put(`/orders/${id}`, data),
-  delete:  (id: string, reason?: string)        => api.delete(`/orders/${id}`, { data: reason ? { reason } : undefined }),
-
-  // ── Status / Payment / Delivery ───────────────────────
-  // PATCH /api/orders/:id/status
-  // Valid transitions: Pending→Confirmed→Processing→Packed→Shipped→Delivered | Pending|Confirmed→Cancelled | Shipped→Returned
+  getAll:        (params?: object)                    => api.get('/orders', { params }),
+  getById:       (id: string)                         => api.get(`/orders/${id}`),
+  create:        (data: CreateOrderPayload)           => api.post('/orders', data),
+  update:        (id: string, data: UpdateOrderPayload) => api.put(`/orders/${id}`, data),
+  delete:        (id: string, reason?: string)        => api.delete(`/orders/${id}`, { data: reason ? { reason } : undefined }),
   updateStatus:  (id: string, status: string, notes?: string) =>
     api.patch(`/orders/${id}/status`, { status, ...(notes ? { notes } : {}) }),
-
-  // PATCH /api/orders/:id/payment
-  // paymentStatus: Pending | Paid | Refunded | Partially Paid | Failed
   updatePayment: (id: string, paymentStatus: string, notes?: string) =>
     api.patch(`/orders/${id}/payment`, { paymentStatus, ...(notes ? { notes } : {}) }),
-
-  // PATCH /api/orders/:id/delivery
   updateDelivery: (id: string, deliveryStatus: string, trackingNumber?: string) =>
     api.patch(`/orders/${id}/delivery`, { deliveryStatus, ...(trackingNumber ? { trackingNumber } : {}) }),
-
-  // POST /api/orders/:id/fulfill — assigns courier/rider + marks Shipped
-  fulfill: (id: string, data: FulfillOrderPayload) => api.post(`/orders/${id}/fulfill`, data),
-
-  // ── Line Items ────────────────────────────────────────
-  // POST /api/orders/:id/items
-  addItem:    (id: string, data: AddOrderItemPayload)                => api.post(`/orders/${id}/items`, data),
-  // PUT  /api/orders/:id/items/:itemId
+  fulfill:    (id: string, data: FulfillOrderPayload)          => api.post(`/orders/${id}/fulfill`, data),
+  addItem:    (id: string, data: AddOrderItemPayload)          => api.post(`/orders/${id}/items`, data),
   updateItem: (id: string, itemId: string, data: { quantity?: number; unitPrice?: number }) =>
     api.put(`/orders/${id}/items/${itemId}`, data),
-  // DELETE /api/orders/:id/items/:itemId
-  removeItem: (id: string, itemId: string) => api.delete(`/orders/${id}/items/${itemId}`),
+  removeItem: (id: string, itemId: string)                     => api.delete(`/orders/${id}/items/${itemId}`),
 };
 
 // ─────────────────────────────────────────────────────────
@@ -212,11 +194,11 @@ export const customersAPI = {
   getById:      (id: string)               => api.get(`/customers/${id}`),
   create:       (data: object)             => api.post('/customers', data),
   update:       (id: string, data: object) => api.put(`/customers/${id}`, data),
-  delete:       (id: string)              => api.delete(`/customers/${id}`),
+  delete:       (id: string)               => api.delete(`/customers/${id}`),
   updateSegment:(id: string, segment: string, reason?: string) =>
     api.patch(`/customers/${id}/segment`, { segment, ...(reason ? { reason } : {}) }),
   getOrders:    (id: string, params?: object) => api.get(`/customers/${id}/orders`, { params }),
-  getSegmentAnalytics: ()                 => api.get('/customers/analytics/segments'),
+  getSegmentAnalytics: ()                  => api.get('/customers/analytics/segments'),
 };
 
 // ─────────────────────────────────────────────────────────
@@ -239,7 +221,7 @@ export const couriersAPI = {
   getById: (id: string)               => api.get(`/couriers/${id}`),
   create:  (data: object)             => api.post('/couriers', data),
   update:  (id: string, data: object) => api.put(`/couriers/${id}`, data),
-  delete:  (id: string)              => api.delete(`/couriers/${id}`),
+  delete:  (id: string)               => api.delete(`/couriers/${id}`),
 };
 
 // ─────────────────────────────────────────────────────────
@@ -258,27 +240,48 @@ export const shipmentsAPI = {
 // 10. SUPPLIERS  (/api/suppliers)
 // ─────────────────────────────────────────────────────────
 export const suppliersAPI = {
-  getAll:      (params?: object)          => api.get('/suppliers', { params }),
-  getById:     (id: string)               => api.get(`/suppliers/${id}`),
-  getProducts: (id: string, params?: object) => api.get(`/suppliers/${id}/products`, { params }),
-  create:      (data: object)             => api.post('/suppliers', data),
-  update:      (id: string, data: object) => api.put(`/suppliers/${id}`, data),
-  delete:      (id: string)              => api.delete(`/suppliers/${id}`),
+  getAll:         (params?: object)          => api.get('/suppliers', { params }),
+  getById:        (id: string)               => api.get(`/suppliers/${id}`),
+  getProducts:    (id: string, params?: object) => api.get(`/suppliers/${id}/products`, { params }),
+  create:         (data: object)             => api.post('/suppliers', data),
+  update:         (id: string, data: object) => api.put(`/suppliers/${id}`, data),
+  delete:         (id: string)              => api.delete(`/suppliers/${id}`),
+  // ── NEW: balance adjustment (PATCH /api/suppliers/:id/balance) ──
+  adjustBalance:  (id: string, data: {
+    adjustment: number;
+    adjustmentType: 'credit' | 'debit';
+    reason: string;
+    reference?: string;
+  }) => api.patch(`/suppliers/${id}/balance`, data),
+  // ── NEW: payments sub-resource (/api/suppliers/:id/payments) ──
+  getPayments:    (id: string, params?: object) => api.get(`/suppliers/${id}/payments`, { params }),
+  getPaymentById: (id: string, paymentId: string) => api.get(`/suppliers/${id}/payments/${paymentId}`),
+  recordPayment:  (id: string, data: object)   => api.post(`/suppliers/${id}/payments`, data),
+  voidPayment:    (id: string, paymentId: string, reason: string) =>
+    api.patch(`/suppliers/${id}/payments/${paymentId}/void`, { reason }),
+  // ── NEW: outstanding summary (/api/suppliers/payments/summary) ──
+  getPaymentsSummary: (params?: object) => api.get('/suppliers/payments/summary', { params }),
 };
 
 // ─────────────────────────────────────────────────────────
 // 11. EXPENSES  (/api/expenses)
 // ─────────────────────────────────────────────────────────
 export const expensesAPI = {
-  getAll:  (params?: object)          => api.get('/expenses', { params }),
-  getById: (id: string)               => api.get(`/expenses/${id}`),
-  create:  (data: object)             => api.post('/expenses', data),
-  update:  (id: string, data: object) => api.put(`/expenses/${id}`, data),
-  delete:  (id: string)              => api.delete(`/expenses/${id}`),
+  getAll:     (params?: object)          => api.get('/expenses', { params }),
+  getById:    (id: string)               => api.get(`/expenses/${id}`),
+  create:     (data: object)             => api.post('/expenses', data),
+  update:     (id: string, data: object) => api.put(`/expenses/${id}`, data),
+  delete:     (id: string, reason?: string) =>
+    api.delete(`/expenses/${id}`, { data: reason ? { reason } : undefined }),
+  // ── NEW: categories & analytics ──
+  getCategories: ()                      => api.get('/expenses/categories'),
+  getAnalytics:  (params?: object)       => api.get('/expenses/analytics/summary', { params }),
 };
 
 // ─────────────────────────────────────────────────────────
 // 12. SUPPLIER PAYMENTS  (/api/supplier-payments)
+// NOTE: These are the old flat endpoints. Prefer suppliersAPI.recordPayment
+//       for the nested route. Keep for backward compat if used elsewhere.
 // ─────────────────────────────────────────────────────────
 export const supplierPaymentsAPI = {
   getAll:  (params?: object)          => api.get('/supplier-payments', { params }),
@@ -296,8 +299,13 @@ export const tasksAPI = {
   getById:      (id: string)                  => api.get(`/tasks/${id}`),
   create:       (data: object)                => api.post('/tasks', data),
   update:       (id: string, data: object)    => api.put(`/tasks/${id}`, data),
-  updateStatus: (id: string, status: string)  => api.patch(`/tasks/${id}/status`, { status }),
-  delete:       (id: string)                 => api.delete(`/tasks/${id}`),
+  updateStatus: (id: string, status: string, completionNote?: string) =>
+    api.patch(`/tasks/${id}/status`, { status, ...(completionNote ? { completionNote } : {}) }),
+  delete:       (id: string, reason?: string) =>
+    api.delete(`/tasks/${id}`, { data: reason ? { reason } : undefined }),
+  // ── NEW: my tasks & stats ──
+  getMy:   (params?: object) => api.get('/tasks/my', { params }),
+  getStats:(params?: object) => api.get('/tasks/stats', { params }),
 };
 
 // ─────────────────────────────────────────────────────────
@@ -308,6 +316,9 @@ export const stockAPI = {
   getLowStock: (params?: object) => api.get('/stock/low', { params }),
   getLogs:     (params?: object) => api.get('/stock/logs', { params }),
   adjust:      (data: object)    => api.post('/stock/adjust', data),
+  // ── NEW: full history & analytics ──
+  getHistory:  (params?: object) => api.get('/stock/history', { params }),
+  getAnalytics:(params?: object) => api.get('/stock/analytics', { params }),
 };
 
 // ─────────────────────────────────────────────────────────
@@ -349,6 +360,10 @@ export const integrationsAPI = {
   syncShopifyOrders:    ()             => api.post('/integrations/shopify/sync-orders'),
   getShopifyConfig:     ()             => api.get('/integrations/shopify/config'),
   updateShopifyConfig:  (data: object) => api.put('/integrations/shopify/config', data),
+  // ── NEW: Shopify inventory sync & products ──
+  syncShopifyInventory: (productId?: string) =>
+    api.post('/integrations/shopify/sync-inventory', productId ? { productId } : {}),
+  getShopifyProducts:   ()             => api.get('/integrations/shopify/products'),
   // AfterShip
   testAfterShip:        ()             => api.post('/integrations/aftership/test'),
   getAfterShipStatus:   ()             => api.get('/integrations/aftership/status'),
