@@ -217,11 +217,24 @@ export const ridersAPI = {
 // 8. COURIERS  (/api/couriers)
 // ─────────────────────────────────────────────────────────
 export const couriersAPI = {
-  getAll:  (params?: object)          => api.get('/couriers', { params }),
-  getById: (id: string)               => api.get(`/couriers/${id}`),
-  create:  (data: object)             => api.post('/couriers', data),
-  update:  (id: string, data: object) => api.put(`/couriers/${id}`, data),
-  delete:  (id: string)               => api.delete(`/couriers/${id}`),
+  getAll:         (params?: object)          => api.get('/couriers', { params }),
+  getById:        (id: string)               => api.get(`/couriers/${id}`),
+  create:         (data: object)             => api.post('/couriers', data),
+  update:         (id: string, data: object) => api.put(`/couriers/${id}`, data),
+  delete:         (id: string, reason?: string) =>
+    api.delete(`/couriers/${id}`, { data: reason ? { reason } : undefined }),
+  // ── Test courier API connection ──
+  testConnection: (id: string)               => api.post(`/couriers/${id}/test-connection`),
+  // ── Manually sync shipment statuses ──
+  sync:           (id: string)               => api.post(`/couriers/${id}/sync`),
+  // ── Assign courier to an order (creates shipment) ──
+  assignToOrder:  (id: string, data: {
+    orderId: string;
+    serviceType?: 'Standard' | 'Express' | 'Same Day';
+    specialInstructions?: string;
+  }) => api.post(`/couriers/${id}/assign`, data),
+  // ── Courier performance analytics ──
+  getPerformance: (params?: object)          => api.get('/couriers/analytics/performance', { params }),
 };
 
 // ─────────────────────────────────────────────────────────
@@ -232,8 +245,17 @@ export const shipmentsAPI = {
   getById:      (id: string)               => api.get(`/shipments/${id}`),
   create:       (data: object)             => api.post('/shipments', data),
   update:       (id: string, data: object) => api.put(`/shipments/${id}`, data),
-  updateStatus: (id: string, data: object) => api.patch(`/shipments/${id}/status`, data),
-  delete:       (id: string)              => api.delete(`/shipments/${id}`),
+  // ── Manual status update (fallback when courier API unavailable) ──
+  updateStatus: (id: string, data: {
+    status: 'assigned' | 'picked_up' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'failed' | 'returned';
+    description?: string;
+    location?: string;
+  }) => api.patch(`/shipments/${id}/status`, data),
+  delete:        (id: string)              => api.delete(`/shipments/${id}`),
+  // ── Real-time tracking for a shipment ──
+  getTracking:  (id: string)               => api.get(`/shipments/${id}/tracking`),
+  // ── WebSocket stream info ──
+  getStreamInfo: ()                        => api.get('/shipments/stream/info'),
 };
 
 // ─────────────────────────────────────────────────────────

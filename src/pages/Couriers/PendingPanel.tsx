@@ -1,343 +1,118 @@
-// PendingPanel.tsx
-import React, { useState } from 'react';
-import { PENDING_ORDERS, COURIERS } from './shared';
-
-/* ─── Drawer Styles ──────────────────────────────────────────────────── */
-const drawerStyles = `
-  .bulk-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.35);
-    backdrop-filter: blur(2px);
-    z-index: 400;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-  }
-  .bulk-overlay.open {
-    opacity: 1;
-    pointer-events: all;
-  }
-
-  .bulk-drawer {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100%;
-    width: 400px;
-    max-width: 95vw;
-    background: var(--card-bg, #fff);
-    box-shadow: -8px 0 40px rgba(0,0,0,0.18);
-    z-index: 401;
-    display: flex;
-    flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-  }
-  .bulk-drawer.open {
-    transform: translateX(0);
-  }
-
-  .bulk-drawer-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border-color, #e5e7eb);
-    flex-shrink: 0;
-  }
-  .bulk-drawer-title {
-    font-size: 13.5px;
-    font-weight: 600;
-    color: var(--text-main, #111);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .bulk-drawer-close {
-    border: none;
-    background: none;
-    cursor: pointer;
-    color: var(--text-muted, #888);
-    font-size: 14px;
-    padding: 4px 6px;
-    border-radius: 4px;
-    transition: background 0.15s;
-  }
-  .bulk-drawer-close:hover {
-    background: var(--hover-bg, #f3f4f6);
-    color: var(--text-main, #111);
-  }
-
-  .bulk-drawer-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 18px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .bulk-drawer-footer {
-    padding: 14px 20px;
-    border-top: 1px solid var(--border-color, #e5e7eb);
-    display: flex;
-    gap: 8px;
-    flex-shrink: 0;
-    background: var(--card-bg, #fff);
-  }
-
-  .bulk-section-title {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-muted, #888);
-  }
-
-  .bulk-order-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 220px;
-    overflow-y: auto;
-  }
-  .bulk-order-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 7px 10px;
-    border-radius: 6px;
-    background: var(--hover-bg, #f9fafb);
-    border: 1px solid var(--border-color, #e5e7eb);
-    font-size: 11px;
-  }
-  .bulk-order-item .order-id {
-    font-weight: 700;
-    color: var(--text-main, #111);
-  }
-  .bulk-order-item .order-meta {
-    color: var(--text-muted, #888);
-    font-size: 10px;
-  }
-  .bulk-order-item .overdue-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--red, #ef4444);
-    flex-shrink: 0;
-  }
-  .bulk-order-item .ok-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--green, #22c55e);
-    flex-shrink: 0;
-  }
-
-  .bulk-courier-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .bulk-courier-card {
-    border: 2px solid var(--border-color, #e5e7eb);
-    border-radius: 8px;
-    padding: 10px 12px;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-  .bulk-courier-card:hover {
-    border-color: var(--primary, #6366f1);
-    background: var(--hover-bg, #f5f5ff);
-  }
-  .bulk-courier-card.selected {
-    border-color: var(--primary, #6366f1);
-    background: var(--hover-bg, #f5f5ff);
-  }
-  .bulk-courier-card .courier-name {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-main, #111);
-  }
-  .bulk-courier-card .courier-eta {
-    font-size: 10px;
-    color: var(--text-muted, #888);
-  }
-
-  .bulk-note-area {
-    width: 100%;
-    padding: 8px 10px;
-    border: 1px solid var(--border-color, #e5e7eb);
-    border-radius: 6px;
-    font-size: 11.5px;
-    font-family: inherit;
-    background: var(--card-bg, #fff);
-    color: var(--text-main, #111);
-    resize: vertical;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .bulk-note-area:focus {
-    border-color: var(--primary, #6366f1);
-  }
-
-  .bulk-summary-box {
-    background: var(--hover-bg, #f9fafb);
-    border: 1px solid var(--border-color, #e5e7eb);
-    border-radius: 8px;
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .bulk-summary-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: var(--text-secondary, #555);
-  }
-  .bulk-summary-row strong {
-    color: var(--text-main, #111);
-    font-weight: 600;
-  }
-`;
+// PendingPanel.tsx — dynamic
+import React, { useState, useEffect, useCallback } from 'react';
+import { ApiShipment, ApiCourier, Badge, EmptyState, TableSkeleton, CPagination, ApiPagination } from './shared';
+import { shipmentsAPI, couriersAPI, ordersAPI } from '../../services/api';
 
 /* ─── Bulk Assign Drawer ─────────────────────────────────────────────── */
-const BulkAssignDrawer: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
-  const [selectedCourier, setSelectedCourier] = useState<string | null>(null);
+const drawerStyles = `
+  .bulk-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(2px);z-index:400;opacity:0;pointer-events:none;transition:opacity .3s ease}
+  .bulk-overlay.open{opacity:1;pointer-events:all}
+  .bulk-drawer{position:fixed;top:0;right:0;height:100%;width:400px;max-width:95vw;background:var(--card-bg,#fff);box-shadow:-8px 0 40px rgba(0,0,0,.18);z-index:401;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);overflow:hidden}
+  .bulk-drawer.open{transform:translateX(0)}
+  .bulk-drawer-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-color,#e5e7eb);flex-shrink:0}
+  .bulk-drawer-title{font-size:13.5px;font-weight:600;color:var(--text-main,#111);display:flex;align-items:center;gap:8px}
+  .bulk-drawer-close{border:none;background:none;cursor:pointer;color:var(--text-muted,#888);font-size:14px;padding:4px 6px;border-radius:4px}
+  .bulk-drawer-body{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:16px}
+  .bulk-drawer-footer{padding:14px 20px;border-top:1px solid var(--border-color,#e5e7eb);display:flex;gap:8px;flex-shrink:0;background:var(--card-bg,#fff)}
+  .bulk-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted,#888)}
+  .bulk-order-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto}
+  .bulk-order-item{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:6px;background:var(--hover-bg,#f9fafb);border:1px solid var(--border-color,#e5e7eb);font-size:11px}
+  .bulk-courier-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .bulk-courier-card{border:2px solid var(--border-color,#e5e7eb);border-radius:8px;padding:10px 12px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;flex-direction:column;gap:3px}
+  .bulk-courier-card:hover,.bulk-courier-card.selected{border-color:var(--accent);background:#FFF5EE}
+  .bulk-summary-box{background:var(--hover-bg,#f9fafb);border:1px solid var(--border-color,#e5e7eb);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+  .bulk-summary-row{display:flex;justify-content:space-between;font-size:11px;color:var(--text-secondary,#555)}
+`;
 
-  const activeCouriers = (COURIERS ?? [
-    { id: 1, name: 'TCS',      status: 'Active', city: 'Nationwide' },
-    { id: 2, name: 'Leopards', status: 'Active', city: 'Nationwide' },
-    { id: 3, name: 'PostEx',   status: 'Active', city: 'Nationwide' },
-    { id: 4, name: 'Trax',     status: 'Active', city: 'Nationwide' },
-  ]).filter((c: any) => c.status === 'Active');
+interface BulkDrawerProps { open: boolean; onClose: () => void; selected: ApiShipment[]; couriers: ApiCourier[]; onDispatched: () => void; }
 
-  const orders = PENDING_ORDERS ?? [];
-  const overdue = orders.filter((p: any) => parseInt(p.waiting) > 24);
+const BulkAssignDrawer: React.FC<BulkDrawerProps> = ({ open, onClose, selected, couriers, onDispatched }) => {
+  const [selectedCourierId, setSelectedCourierId] = useState('');
+  const [notes,             setNotes]             = useState('');
+  const [dispatching,       setDispatching]        = useState(false);
+  const [err,               setErr]               = useState('');
+
+  const handleDispatch = async () => {
+    if (!selectedCourierId) { setErr('Select a courier.'); return; }
+    setDispatching(true); setErr('');
+    try {
+      await Promise.all(selected.map(s =>
+        couriersAPI.assignToOrder(selectedCourierId, {
+          orderId: s.orderId ?? s.orderReference ?? s._id,
+          serviceType: 'Standard',
+          specialInstructions: notes || undefined,
+        }).catch(() => {})
+      ));
+      onDispatched(); onClose();
+    } catch (e: any) { setErr(e?.response?.data?.message ?? 'Dispatch failed.'); }
+    finally { setDispatching(false); }
+  };
 
   return (
     <>
       <style>{drawerStyles}</style>
-
       <div className={`bulk-overlay ${open ? 'open' : ''}`} onClick={onClose} />
-
       <div className={`bulk-drawer ${open ? 'open' : ''}`}>
-        {/* Header */}
         <div className="bulk-drawer-header">
-          <div className="bulk-drawer-title">
-            <i className="fa-solid fa-truck" style={{ color: 'var(--primary, #6366f1)' }} />
-            Bulk Assign Courier
-          </div>
-          <button className="bulk-drawer-close" onClick={onClose}>
-            <i className="fa-solid fa-xmark" />
-          </button>
+          <div className="bulk-drawer-title"><i className="fa-solid fa-truck" style={{ color: 'var(--accent)' }} /> Bulk Assign Courier</div>
+          <button className="bulk-drawer-close" onClick={onClose}><i className="fa-solid fa-xmark" /></button>
         </div>
-
-        {/* Body */}
         <div className="bulk-drawer-body">
+          {err && <div className="alert-strip danger" style={{ margin: 0 }}><i className="fa-solid fa-circle-exclamation" /> {err}</div>}
 
-          {/* Overdue alert */}
-          {overdue.length > 0 && (
-            <div className="alert-strip warn" style={{ margin: 0 }}>
-              <i className="fa-solid fa-triangle-exclamation" />
-              <strong>{overdue.length} overdue</strong> orders selected — assign immediately.
-            </div>
-          )}
-
-          {/* Orders to dispatch */}
           <div>
             <div className="bulk-section-title" style={{ marginBottom: 8 }}>
-              Orders to Dispatch ({orders.length})
+              Orders to Dispatch ({selected.length})
             </div>
             <div className="bulk-order-list">
-              {orders.map((p: any) => (
-                <div className="bulk-order-item" key={p.order}>
+              {selected.map(s => (
+                <div className="bulk-order-item" key={s._id}>
                   <div>
-                    <div className="order-id">{p.order}</div>
-                    <div className="order-meta">{p.customer} · {p.city}</div>
+                    <div style={{ fontWeight: 700 }}>{s.orderReference ?? s.orderId ?? '—'}</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 10 }}>
+                      {s.customer?.name ?? s.customer?.fullName ?? '—'} · {s.shippingAddress?.city ?? '—'}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{p.waiting}</span>
-                    <div className={parseInt(p.waiting) > 24 ? 'overdue-dot' : 'ok-dot'} />
-                  </div>
+                  <Badge label={s.currentStatus} />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Select courier */}
           <div>
-            <div className="bulk-section-title" style={{ marginBottom: 8 }}>
-              Select Courier
-            </div>
+            <div className="bulk-section-title" style={{ marginBottom: 8 }}>Select Courier</div>
             <div className="bulk-courier-grid">
-              {activeCouriers.map((c: any) => (
-                <div
-                  key={c.id}
-                  className={`bulk-courier-card ${selectedCourier === c.name ? 'selected' : ''}`}
-                  onClick={() => setSelectedCourier(c.name)}
-                >
-                  <div className="courier-name">
-                    {selectedCourier === c.name && (
-                      <i className="fa-solid fa-circle-check" style={{ color: 'var(--primary, #6366f1)', marginRight: 5 }} />
-                    )}
+              {couriers.filter(c => c.status !== 'Inactive').map(c => (
+                <div key={c._id} className={`bulk-courier-card ${selectedCourierId === c._id ? 'selected' : ''}`}
+                  onClick={() => setSelectedCourierId(c._id)}>
+                  <div style={{ fontSize: 12, fontWeight: 600 }}>
+                    {selectedCourierId === c._id && <i className="fa-solid fa-circle-check" style={{ color: 'var(--accent)', marginRight: 5 }} />}
                     {c.name}
                   </div>
-                  <div className="courier-eta">SLA: 3 days</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                    {c.serviceRegions?.slice(0, 2).join(', ') ?? 'Nationwide'}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Dispatch date */}
-          <div>
-            <div className="bulk-section-title" style={{ marginBottom: 8 }}>Dispatch Date</div>
-            <input className="c-form-input" type="date" style={{ width: '100%' }} />
-          </div>
-
-          {/* Notes */}
           <div>
             <div className="bulk-section-title" style={{ marginBottom: 8 }}>Notes (optional)</div>
-            <textarea
-              className="bulk-note-area"
-              rows={3}
-              placeholder="Special handling instructions for all selected orders..."
-            />
+            <textarea className="c-form-textarea" rows={3}
+              placeholder="Special handling instructions…"
+              value={notes} onChange={e => setNotes(e.target.value)} />
           </div>
 
-          {/* Summary */}
           <div className="bulk-summary-box">
             <div className="bulk-section-title" style={{ marginBottom: 4 }}>Summary</div>
-            <div className="bulk-summary-row">
-              <span>Total orders</span>
-              <strong>{orders.length}</strong>
-            </div>
-            <div className="bulk-summary-row">
-              <span>Overdue orders</span>
-              <strong style={{ color: 'var(--red, #ef4444)' }}>{overdue.length}</strong>
-            </div>
-            <div className="bulk-summary-row">
-              <span>Assigned courier</span>
-              <strong>{selectedCourier ?? '—'}</strong>
-            </div>
+            <div className="bulk-summary-row"><span>Total orders</span><strong>{selected.length}</strong></div>
+            <div className="bulk-summary-row"><span>Assigned courier</span><strong>{couriers.find(c => c._id === selectedCourierId)?.name ?? '—'}</strong></div>
           </div>
-
         </div>
-
-        {/* Footer */}
         <div className="bulk-drawer-footer">
-          <button
-            className="c-btn primary"
-            style={{ flex: 1 }}
-            disabled={!selectedCourier}
-          >
-            <i className="fa-solid fa-truck" /> Dispatch All
+          <button className="c-btn primary" style={{ flex: 1 }} disabled={!selectedCourierId || dispatching} onClick={handleDispatch}>
+            <i className={`fa-solid ${dispatching ? 'fa-spinner fa-spin' : 'fa-truck'}`} /> {dispatching ? 'Dispatching…' : 'Dispatch All'}
           </button>
           <button className="c-btn" onClick={onClose}>Cancel</button>
         </div>
@@ -348,36 +123,100 @@ const BulkAssignDrawer: React.FC<{ open: boolean; onClose: () => void }> = ({ op
 
 /* ─── Main Panel ─────────────────────────────────────────────────────── */
 const PendingPanel: React.FC = () => {
+  const [shipments,  setShipments]  = useState<ApiShipment[]>([]);
+  const [couriers,   setCouriers]   = useState<ApiCourier[]>([]);
+  const [pagination, setPagination] = useState<ApiPagination>({ currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 10 });
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState('');
+  const [search,     setSearch]     = useState('');
+  const [page,       setPage]       = useState(1);
+  const [selected,   setSelected]   = useState<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [dispatching,setDispatching]= useState<string | null>(null);
+  const PER_PAGE = 10;
+
+  const fetchData = useCallback(async () => {
+    setLoading(true); setError('');
+    try {
+      const params: Record<string, any> = { page, limit: PER_PAGE, status: 'assigned' };
+      if (search) params.search = search;
+      const [sRes, cRes] = await Promise.allSettled([
+        shipmentsAPI.getAll(params),
+        couriersAPI.getAll({ limit: 50 }),
+      ]);
+      if (sRes.status === 'fulfilled') {
+        const d = sRes.value.data?.data;
+        setShipments(d?.shipments ?? []);
+        setPagination(d?.pagination ?? { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: PER_PAGE });
+      }
+      if (cRes.status === 'fulfilled') setCouriers(cRes.value.data?.data?.couriers ?? []);
+    } catch (e: any) { setError(e?.response?.data?.message ?? 'Failed to load pending orders.'); }
+    finally { setLoading(false); }
+  }, [page, search]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const toggleSelect = (id: string) => setSelected(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+  const toggleAll = () => setSelected(prev => prev.size === shipments.length ? new Set() : new Set(shipments.map(s => s._id)));
+
+  const handleDispatchOne = async (s: ApiShipment, courierId: string) => {
+    if (!courierId) return;
+    setDispatching(s._id);
+    try {
+      await couriersAPI.assignToOrder(courierId, {
+        orderId: s.orderId ?? s.orderReference ?? s._id,
+        serviceType: 'Standard',
+      });
+      fetchData();
+    } catch (e: any) { alert(e?.response?.data?.message ?? 'Dispatch failed.'); }
+    finally { setDispatching(null); }
+  };
+
+  const selectedShipments = shipments.filter(s => selected.has(s._id));
+  const { currentPage, totalPages, totalItems } = pagination;
+  const start = (currentPage - 1) * PER_PAGE + 1;
+  const end   = Math.min(currentPage * PER_PAGE, totalItems);
 
   return (
     <>
-      <BulkAssignDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <BulkAssignDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        selected={selectedShipments}
+        couriers={couriers}
+        onDispatched={() => { setSelected(new Set()); fetchData(); }}
+      />
 
       <div className="panel-heading">Pending Dispatch</div>
       <div className="panel-desc">
-        Orders confirmed but not yet dispatched. Assign a courier and dispatch — overdue orders
-        (&gt;24h) are highlighted in red.
+        Shipments assigned but not yet picked up. Assign a courier and dispatch — overdue orders
+        are highlighted.
       </div>
 
-      <div className="alert-strip warn">
-        <i className="fa-solid fa-triangle-exclamation" />
-        <strong>4 orders</strong> pending dispatch for more than 24 hours. Assign a courier immediately.
-      </div>
+      {totalItems > 0 && (
+        <div className="alert-strip warn">
+          <i className="fa-solid fa-triangle-exclamation" />
+          <strong>{totalItems} shipments</strong> pending courier pickup.
+        </div>
+      )}
 
       <div className="card">
         <div className="c-toolbar">
           <div className="c-toolbar-left">
             <div className="c-search">
               <i className="fa-solid fa-magnifying-glass" />
-              <input placeholder="Search order or customer..." />
+              <input placeholder="Search order or customer…" value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
-            <button className="c-btn active">All Pending</button>
-            <button className="c-btn" style={{ color: 'var(--red)' }}>Overdue (&gt;24h)</button>
           </div>
           <div className="c-toolbar-right">
-            <button className="c-btn primary" onClick={() => setDrawerOpen(true)}>
-              <i className="fa-solid fa-truck" /> Bulk Assign
+            <button className="c-btn" onClick={fetchData}><i className="fa-solid fa-rotate" /> Refresh</button>
+            <button className="c-btn primary" disabled={selected.size === 0} onClick={() => setDrawerOpen(true)}>
+              <i className="fa-solid fa-truck" /> Bulk Assign ({selected.size})
             </button>
           </div>
         </div>
@@ -386,49 +225,61 @@ const PendingPanel: React.FC = () => {
           <table>
             <thead>
               <tr>
-                <th><input type="checkbox" /></th>
-                <th>Order ID</th><th>Customer</th><th>City</th><th>Items</th>
-                <th>Weight</th><th>COD Amount</th><th>Order Date</th>
-                <th>Waiting</th><th>Assign Courier</th><th>Actions</th>
+                <th><input type="checkbox" checked={selected.size === shipments.length && shipments.length > 0} onChange={toggleAll} /></th>
+                <th>Order</th><th>Tracking No.</th><th>Customer</th><th>City</th>
+                <th>COD Amount</th><th>Created</th><th>Status</th><th>Assign Courier</th><th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {PENDING_ORDERS.map(p => (
-                <tr key={p.order}>
-                  <td><input type="checkbox" /></td>
-                  <td><strong>{p.order}</strong></td>
-                  <td>{p.customer}</td>
-                  <td>{p.city}</td>
-                  <td>{p.items}</td>
-                  <td>{p.weight}</td>
-                  <td><strong>{p.cod}</strong></td>
-                  <td>{p.date}</td>
+              {loading ? (
+                <TableSkeleton rows={5} cols={10} />
+              ) : error ? (
+                <tr><td colSpan={10} style={{ textAlign: 'center', padding: 24, color: 'var(--red)' }}>
+                  <i className="fa-solid fa-circle-exclamation" /> {error}
+                  <button className="c-btn" style={{ marginLeft: 8 }} onClick={fetchData}>Retry</button>
+                </td></tr>
+              ) : shipments.length === 0 ? (
+                <tr><td colSpan={10}><EmptyState icon="fa-clock" title="No pending shipments" desc="All shipments have been dispatched." /></td></tr>
+              ) : shipments.map(s => (
+                <tr key={s._id}>
+                  <td><input type="checkbox" checked={selected.has(s._id)} onChange={() => toggleSelect(s._id)} /></td>
+                  <td><strong>{s.orderReference ?? s.orderId ?? '—'}</strong></td>
+                  <td><code className="sku">{s.trackingNumber ?? '—'}</code></td>
+                  <td>{s.customer?.name ?? s.customer?.fullName ?? '—'}</td>
+                  <td>{s.shippingAddress?.city ?? '—'}</td>
+                  <td><strong>{s.codAmount != null ? `₨${Number(s.codAmount).toLocaleString()}` : '—'}</strong></td>
+                  <td style={{ fontSize: 10 }}>{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '—'}</td>
+                  <td><Badge label={s.currentStatus} /></td>
                   <td>
-                    <span style={{
-                      fontWeight: 700,
-                      color: parseInt(p.waiting) > 24 ? 'var(--red)' : 'var(--text-secondary)',
-                    }}>
-                      {p.waiting}
-                    </span>
-                  </td>
-                  <td>
-                    <select className="c-form-select" style={{ height: 24, fontSize: 10, minWidth: 110 }}>
-                      <option>— Assign —</option>
-                      {COURIERS.filter(c => c.status === 'Active').map(c => (
-                        <option key={c.id}>{c.name}</option>
+                    <select className="c-form-select" style={{ height: 24, fontSize: 10, minWidth: 130 }}
+                      defaultValue=""
+                      onChange={e => e.target.value && handleDispatchOne(s, e.target.value)}>
+                      <option value="">— Assign —</option>
+                      {couriers.filter(c => c.status !== 'Inactive').map(c => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
                       ))}
                     </select>
                   </td>
                   <td>
-                    <button className="c-btn primary" style={{ height: 24, fontSize: 9.5 }}>
-                      <i className="fa-solid fa-truck" /> Dispatch
-                    </button>
+                    {dispatching === s._id ? (
+                      <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--accent)' }} />
+                    ) : (
+                      <button className="c-btn primary" style={{ height: 24, fontSize: 9.5 }}
+                        onClick={() => {
+                          const sel = document.querySelector<HTMLSelectElement>(`select[data-id="${s._id}"]`);
+                          if (sel?.value) handleDispatchOne(s, sel.value);
+                        }}>
+                        <i className="fa-solid fa-truck" /> Dispatch
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        <CPagination current={currentPage} total={totalPages} totalItems={totalItems} start={start} end={end} onChange={setPage} />
       </div>
     </>
   );

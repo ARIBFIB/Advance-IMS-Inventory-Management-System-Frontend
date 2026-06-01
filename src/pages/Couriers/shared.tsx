@@ -1,13 +1,12 @@
 // ═══════════════════════════════════════════════════════════
-// shared.tsx  —  Types · Static Data · Helpers · Micro-components
+// shared.tsx  —  API Types · Helpers · Micro-components · Static fallback data
 // ═══════════════════════════════════════════════════════════
 
 import React, { useState } from 'react';
 
 // ───────────────────────────────────────────────────────────
-// TYPES
+// NAV TYPE
 // ───────────────────────────────────────────────────────────
-
 export type NavPanel =
   | 'overview' | 'companies' | 'contacts' | 'contracts'
   | 'shipments' | 'pending' | 'intransit' | 'delivered' | 'returns' | 'failed'
@@ -15,88 +14,122 @@ export type NavPanel =
   | 'performance' | 'cod' | 'reports'
   | 'settings' | 'rules' | 'zones';
 
+// ───────────────────────────────────────────────────────────
+// BACKEND API TYPES
+// ───────────────────────────────────────────────────────────
+export interface ApiCourier {
+  _id: string;
+  name: string;
+  contactPerson?: string;
+  email?: string;
+  phone?: string;
+  apiIntegrationEnabled?: boolean;
+  apiStatus?: 'live' | 'test' | 'disabled';
+  serviceRegions?: string[];
+  activeShipments?: number;
+  inTransit?: number;
+  deliveredToday?: number;
+  completionRate?: string;
+  performanceMetrics?: {
+    totalDeliveries: number;
+    onTimeDeliveries: number;
+    cancellationRate: number;
+  };
+  // UI-extended fields
+  code?: string;
+  city?: string;
+  coverage?: string;
+  baseRate?: number;
+  codPct?: number;
+  codDays?: number;
+  outstanding?: number;
+  avgDays?: number;
+  successRate?: number;
+  rating?: number;
+  status?: 'Active' | 'Paused' | 'Inactive';
+}
+
+export interface ApiShipment {
+  _id: string;
+  orderReference?: string;
+  orderId?: string;
+  trackingNumber?: string;
+  currentStatus: string;
+  courierName?: string;
+  courier?: { _id: string; name: string } | string;
+  customer?: { name?: string; phone?: string; fullName?: string };
+  shippingAddress?: { city?: string; street?: string; country?: string };
+  estimatedDelivery?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  weight?: number;
+  codAmount?: number;
+  codStatus?: string;
+  proofOfDelivery?: boolean;
+  dispatchedAt?: string;
+  deliveredAt?: string;
+}
+
+export interface ApiShipmentTracking {
+  _id: string;
+  trackingNumber: string;
+  currentStatus: string;
+  trackingHistory: {
+    status: string;
+    description: string;
+    location?: string;
+    timestamp: string;
+    apiSource?: string;
+  }[];
+  estimatedDelivery?: string;
+}
+
+export interface ApiCourierPerformance {
+  id: string;
+  name: string;
+  totalDeliveries: number;
+  successfulDeliveries: number;
+  successRate: string;
+  avgDeliveryTime: number;
+  cancellationRate: number;
+}
+
+export interface ApiPagination {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+}
+
+// ───────────────────────────────────────────────────────────
+// STATIC LEGACY TYPES (for panels not yet fully dynamic)
+// ───────────────────────────────────────────────────────────
 export interface CourierCompany {
   id: number; name: string; code: string; contact: string; phone: string;
   city: string; coverage: string; baseRate: number; codPct: number; codDays: number;
   outstanding: number; avgDays: number; successRate: number; api: boolean;
   rating: number; status: 'Active' | 'Paused' | 'Inactive';
 }
-export interface Shipment {
-  track: string; order: string; customer: string; courier: string; city: string;
-  weight: string; cod: number; status: string; dispatched: string; est: string; codStatus: string;
-}
-export interface PendingOrder {
-  order: string; customer: string; city: string; items: number;
-  weight: string; cod: string; date: string; waiting: string;
-}
-export interface TransitItem {
-  track: string; order: string; customer: string; courier: string; location: string;
-  status: string; dispatched: string; est: string; daysLeft: number; cod: string;
-}
-export interface DeliveredItem {
-  track: string; order: string; customer: string; courier: string;
-  deliveredOn: string; days: number; cod: number; codStatus: string; proof: string;
-}
-export interface RTOItem {
-  track: string; order: string; customer: string; courier: string;
-  reason: string; dispatched: string; rtoDate: string; cod: string; restock: string;
-}
-export interface FailedItem {
-  track: string; order: string; customer: string; phone: string; courier: string;
-  attempts: number; last: string; reason: string; action: string;
-}
-export interface PerfItem {
-  name: string; assigned: number; delivered: number; rto: number; failed: number;
-  rate: number; rtoRate: number; avgDays: number; codCollPct: number; slaPct: number; rating: number;
-}
-export interface CODPending {
-  order: string; courier: string; customer: string; delivered: string;
-  amount: number; days: number; due: string;
-}
-export interface CODSummary {
-  courier: string; delivered: number; codAmt: string; collected: string;
-  pending: string; overdue: string; freq: string; last: string; next: string;
-}
-export interface Contract {
-  courier: string; ref: string; start: string; end: string; sla: number;
-  penalty: number; codDays: number; autoRenew: string; status: string;
-}
-export interface Contact {
-  courier: string; name: string; role: string; phone: string;
-  email: string; city: string; last: string;
-}
-export interface Rule {
-  priority: number; name: string; condition: string; assign: string;
-  fallback: string; status: string; applied: number;
-}
-export interface Zone {
-  name: string; cities: string; primary: string; backup: string; days: string; mult: string;
-}
-export interface CityMap {
-  city: string; province: string; zone: string; primary: string; backup: string; days: number;
-}
-export interface RateCard {
-  courier: string; zone: string; weight: string; base: string;
-  extra: string; codPct: string; fuel: string; days: string;
-}
-export interface APILog {
-  ts: string; courier: string; type: string; track: string;
-  code: number; ms: number; result: string;
-}
-export interface APICredential {
-  courier: string; endpoint: string; key: string; connected: boolean; lastPing: string;
-}
-export interface BulkSync {
-  courier: string; lastSync: string; shipments: number; updated: number; errors: number; status: string;
-}
-export interface RecentReport {
-  name: string; type: string; generated: string; format: string; size: string;
-}
+export interface CODPending   { order: string; courier: string; customer: string; delivered: string; amount: number; days: number; due: string; }
+export interface CODSummary   { courier: string; delivered: number; codAmt: string; collected: string; pending: string; overdue: string; freq: string; last: string; next: string; }
+export interface PerfItem     { name: string; assigned: number; delivered: number; rto: number; failed: number; rate: number; rtoRate: number; avgDays: number; codCollPct: number; slaPct: number; rating: number; }
+export interface TransitItem  { track: string; order: string; customer: string; courier: string; location: string; status: string; dispatched: string; est: string; daysLeft: number; cod: string; }
+export interface DeliveredItem{ track: string; order: string; customer: string; courier: string; deliveredOn: string; days: number; cod: number; codStatus: string; proof: string; }
+export interface RTOItem       { track: string; order: string; customer: string; courier: string; reason: string; dispatched: string; rtoDate: string; cod: string; restock: string; }
+export interface FailedItem   { track: string; order: string; customer: string; phone: string; courier: string; attempts: number; last: string; reason: string; action: string; }
+export interface APILog        { ts: string; courier: string; type: string; track: string; code: number; ms: number; result: string; }
+export interface BulkSync      { courier: string; lastSync: string; shipments: number; updated: number; errors: number; status: string; }
+export interface Contract      { courier: string; ref: string; start: string; end: string; sla: number; penalty: number; codDays: number; autoRenew: string; status: string; }
+export interface Contact       { courier: string; name: string; role: string; phone: string; email: string; city: string; last: string; }
+export interface Rule          { priority: number; name: string; condition: string; assign: string; fallback: string; status: string; applied: number; }
+export interface Zone          { name: string; cities: string; primary: string; backup: string; days: string; mult: string; }
+export interface CityMap       { city: string; province: string; zone: string; primary: string; backup: string; days: number; }
+export interface RecentReport  { name: string; type: string; generated: string; format: string; size: string; }
+export interface PendingOrder  { order: string; customer: string; city: string; items: number; weight: string; cod: string; date: string; waiting: string; }
 
 // ───────────────────────────────────────────────────────────
-// STATIC DATA
+// STATIC DATA (used by non-dynamic panels)
 // ───────────────────────────────────────────────────────────
-
 export const COURIERS: CourierCompany[] = [
   { id:1, name:'TCS Express',      code:'TCS',    contact:'Naseer Rana',   phone:'0321-1112233', city:'Lahore',    coverage:'Nationwide', baseRate:200, codPct:1.5, codDays:7,  outstanding:38000, avgDays:2.1, successRate:91, api:true,  rating:4.5, status:'Active' },
   { id:2, name:'Leopards Courier', code:'LCS',    contact:'Bilal Shah',    phone:'0300-4445566', city:'Karachi',   coverage:'Nationwide', baseRate:180, codPct:1.2, codDays:5,  outstanding:29000, avgDays:1.9, successRate:94, api:true,  rating:4.7, status:'Active' },
@@ -104,21 +137,6 @@ export const COURIERS: CourierCompany[] = [
   { id:4, name:'Trax',             code:'TRAX',   contact:'Sadia Naz',     phone:'0311-0001112', city:'Karachi',   coverage:'Nationwide', baseRate:160, codPct:1.5, codDays:10, outstanding:7000,  avgDays:2.4, successRate:82, api:false, rating:3.8, status:'Active' },
   { id:5, name:'PostEx',           code:'POSTEX', contact:'Imran Saeed',   phone:'0345-3334445', city:'Multan',    coverage:'Regional',   baseRate:190, codPct:1.3, codDays:7,  outstanding:0,     avgDays:2.8, successRate:79, api:false, rating:3.6, status:'Paused' },
   { id:6, name:'BlueEX',           code:'BLUEEX', contact:'Ali Rana',      phone:'0300-8889990', city:'Islamabad', coverage:'Nationwide', baseRate:210, codPct:1.1, codDays:5,  outstanding:0,     avgDays:2.0, successRate:90, api:false, rating:4.0, status:'Active' },
-];
-
-export const SHIPMENTS: Shipment[] = [
-  { track:'TCS-2026-04821',   order:'ORD-1046', customer:'Sara Khan',      courier:'TCS',    city:'Islamabad',  weight:'0.8', cod:3600, status:'In Transit', dispatched:'07 May', est:'12 May', codStatus:'Pending'  },
-  { track:'LCS-2026-01234',   order:'ORD-1044', customer:'Rabia Ahmed',    courier:'LCS',    city:'Karachi',    weight:'0.5', cod:2200, status:'Delivered',  dispatched:'06 May', est:'09 May', codStatus:'Collected' },
-  { track:'MNP-2026-08812',   order:'ORD-1045', customer:'Nadia Malik',    courier:'MNP',    city:'Rawalpindi', weight:'1.2', cod:7100, status:'In Transit', dispatched:'06 May', est:'10 May', codStatus:'Pending'  },
-  { track:'TCS-2026-04800',   order:'ORD-1043', customer:'Hira Baig',      courier:'TCS',    city:'Multan',     weight:'0.6', cod:3900, status:'Delivered',  dispatched:'05 May', est:'08 May', codStatus:'Collected' },
-  { track:'TRAX-2026-0312',   order:'ORD-1040', customer:'Sadia Hussain',  courier:'TRAX',   city:'Peshawar',   weight:'2.1', cod:9200, status:'In Transit', dispatched:'04 May', est:'11 May', codStatus:'Pending'  },
-  { track:'LCS-2026-01200',   order:'ORD-1039', customer:'Bushra Nawaz',   courier:'LCS',    city:'Quetta',     weight:'0.4', cod:3100, status:'Delivered',  dispatched:'04 May', est:'07 May', codStatus:'Collected' },
-  { track:'TCS-2026-04780',   order:'ORD-1037', customer:'Maira Usman',    courier:'TCS',    city:'Lahore',     weight:'0.9', cod:5700, status:'RTO',        dispatched:'03 May', est:'06 May', codStatus:'N/A'      },
-  { track:'MNP-2026-08780',   order:'ORD-1036', customer:'Iram Sheikh',    courier:'MNP',    city:'Karachi',    weight:'0.7', cod:4100, status:'Pending',    dispatched:'—',      est:'—',      codStatus:'Pending'  },
-  { track:'TRAX-2026-0298',   order:'ORD-1042', customer:'Zainab Qureshi', courier:'TRAX',   city:'Faisalabad', weight:'1.4', cod:5400, status:'Failed',     dispatched:'05 May', est:'09 May', codStatus:'N/A'      },
-  { track:'LCS-2026-01190',   order:'ORD-1035', customer:'Lubna Tanvir',   courier:'LCS',    city:'Lahore',     weight:'0.5', cod:1600, status:'Delivered',  dispatched:'02 May', est:'05 May', codStatus:'Collected' },
-  { track:'TCS-2026-04770',   order:'ORD-1034', customer:'Amna Bibi',      courier:'TCS',    city:'Faisalabad', weight:'1.0', cod:4500, status:'Delivered',  dispatched:'01 May', est:'04 May', codStatus:'Collected' },
-  { track:'POSTEX-2026-0021', order:'ORD-1033', customer:'Fatima Zara',    courier:'POSTEX', city:'Multan',     weight:'0.8', cod:2800, status:'In Transit', dispatched:'08 May', est:'13 May', codStatus:'Pending'  },
 ];
 
 export const PENDING_ORDERS: PendingOrder[] = [
@@ -137,11 +155,11 @@ export const TRANSIT_ITEMS: TransitItem[] = [
 ];
 
 export const DELIVERED_ITEMS: DeliveredItem[] = [
-  { track:'LCS-2026-01234', order:'ORD-1044', customer:'Rabia Ahmed',  courier:'LCS', deliveredOn:'09 May 2026', days:3, cod:2200, codStatus:'Collected', proof:'Yes' },
-  { track:'TCS-2026-04800', order:'ORD-1043', customer:'Hira Baig',    courier:'TCS', deliveredOn:'08 May 2026', days:3, cod:3900, codStatus:'Collected', proof:'Yes' },
-  { track:'LCS-2026-01200', order:'ORD-1039', customer:'Bushra Nawaz', courier:'LCS', deliveredOn:'07 May 2026', days:3, cod:3100, codStatus:'Collected', proof:'No'  },
-  { track:'LCS-2026-01190', order:'ORD-1035', customer:'Lubna Tanvir', courier:'LCS', deliveredOn:'05 May 2026', days:3, cod:1600, codStatus:'Collected', proof:'Yes' },
-  { track:'TCS-2026-04770', order:'ORD-1034', customer:'Amna Bibi',    courier:'TCS', deliveredOn:'04 May 2026', days:3, cod:4500, codStatus:'Pending',   proof:'Yes' },
+  { track:'LCS-2026-01234',  order:'ORD-1044', customer:'Rabia Ahmed',  courier:'LCS', deliveredOn:'09 May 2026', days:3, cod:2200, codStatus:'Collected', proof:'Yes' },
+  { track:'TCS-2026-04800',  order:'ORD-1043', customer:'Hira Baig',    courier:'TCS', deliveredOn:'08 May 2026', days:3, cod:3900, codStatus:'Collected', proof:'Yes' },
+  { track:'LCS-2026-01200',  order:'ORD-1039', customer:'Bushra Nawaz', courier:'LCS', deliveredOn:'07 May 2026', days:3, cod:3100, codStatus:'Collected', proof:'No'  },
+  { track:'LCS-2026-01190',  order:'ORD-1035', customer:'Lubna Tanvir', courier:'LCS', deliveredOn:'05 May 2026', days:3, cod:1600, codStatus:'Collected', proof:'Yes' },
+  { track:'TCS-2026-04770',  order:'ORD-1034', customer:'Amna Bibi',    courier:'TCS', deliveredOn:'04 May 2026', days:3, cod:4500, codStatus:'Pending',   proof:'Yes' },
 ];
 
 export const RTO_ITEMS: RTOItem[] = [
@@ -151,10 +169,10 @@ export const RTO_ITEMS: RTOItem[] = [
 ];
 
 export const FAILED_ITEMS: FailedItem[] = [
-  { track:'TRAX-2026-0298', order:'ORD-1042', customer:'Zainab Qureshi', phone:'0300-9988776', courier:'TRAX', attempts:3, last:'09 May 2026', reason:'Not Home',              action:'Pending'       },
-  { track:'TCS-2026-04760', order:'ORD-1019', customer:'Ayesha Tariq',   phone:'0321-1234567', courier:'TCS',  attempts:3, last:'07 May 2026', reason:'Wrong Pin',             action:'Pending'       },
-  { track:'MNP-2026-08700', order:'ORD-1015', customer:'Sobia Ali',      phone:'0333-7766554', courier:'MNP',  attempts:3, last:'06 May 2026', reason:'Address Unclear',       action:'Pending'       },
-  { track:'LCS-2026-01100', order:'ORD-1011', customer:'Mariam Khan',    phone:'0311-8899001', courier:'LCS',  attempts:3, last:'05 May 2026', reason:'Customer Not Available', action:'Re-dispatched' },
+  { track:'TRAX-2026-0298',  order:'ORD-1042', customer:'Zainab Qureshi', phone:'0300-9988776', courier:'TRAX', attempts:3, last:'09 May 2026', reason:'Not Home',              action:'Pending'       },
+  { track:'TCS-2026-04760',  order:'ORD-1019', customer:'Ayesha Tariq',   phone:'0321-1234567', courier:'TCS',  attempts:3, last:'07 May 2026', reason:'Wrong Pin',             action:'Pending'       },
+  { track:'MNP-2026-08700',  order:'ORD-1015', customer:'Sobia Ali',      phone:'0333-7766554', courier:'MNP',  attempts:3, last:'06 May 2026', reason:'Address Unclear',       action:'Pending'       },
+  { track:'LCS-2026-01100',  order:'ORD-1011', customer:'Mariam Khan',    phone:'0311-8899001', courier:'LCS',  attempts:3, last:'05 May 2026', reason:'Customer Not Available', action:'Re-dispatched' },
 ];
 
 export const PERF_DATA: PerfItem[] = [
@@ -203,12 +221,12 @@ export const RULES: Rule[] = [
 ];
 
 export const ZONES: Zone[] = [
-  { name:'Lahore Metro',     cities:'Lahore, Sheikhupura, Kasur',     primary:'Leopards', backup:'TCS',  days:'1-2', mult:'1.0' },
-  { name:'Karachi Metro',    cities:'Karachi, Hyderabad',             primary:'M&P',      backup:'LCS',  days:'1-2', mult:'1.0' },
-  { name:'Islamabad/RWP',    cities:'Islamabad, Rawalpindi',          primary:'TCS',      backup:'LCS',  days:'1-2', mult:'1.0' },
-  { name:'Punjab Outskirts', cities:'Faisalabad, Multan, Gujranwala', primary:'TCS',      backup:'TRAX', days:'2-3', mult:'1.1' },
-  { name:'KPK & FATA',       cities:'Peshawar, Abbottabad, Mardan',   primary:'TCS',      backup:'—',    days:'3-5', mult:'1.3' },
-  { name:'Balochistan',      cities:'Quetta, Gwadar',                 primary:'TCS',      backup:'—',    days:'4-6', mult:'1.5' },
+  { name:'Lahore Metro',     cities:'Lahore, Sheikhupura, Kasur',      primary:'Leopards', backup:'TCS',  days:'1-2', mult:'1.0' },
+  { name:'Karachi Metro',    cities:'Karachi, Hyderabad',              primary:'M&P',      backup:'LCS',  days:'1-2', mult:'1.0' },
+  { name:'Islamabad/RWP',    cities:'Islamabad, Rawalpindi',           primary:'TCS',      backup:'LCS',  days:'1-2', mult:'1.0' },
+  { name:'Punjab Outskirts', cities:'Faisalabad, Multan, Gujranwala',  primary:'TCS',      backup:'TRAX', days:'2-3', mult:'1.1' },
+  { name:'KPK & FATA',       cities:'Peshawar, Abbottabad, Mardan',    primary:'TCS',      backup:'—',    days:'3-5', mult:'1.3' },
+  { name:'Balochistan',      cities:'Quetta, Gwadar',                  primary:'TCS',      backup:'—',    days:'4-6', mult:'1.5' },
 ];
 
 export const CITY_MAP: CityMap[] = [
@@ -222,14 +240,6 @@ export const CITY_MAP: CityMap[] = [
   { city:'Quetta',     province:'Balochistan', zone:'Balochistan',      primary:'TCS',      backup:'—',    days:4 },
 ];
 
-export const RATES: RateCard[] = [
-  { courier:'TCS Express', zone:'Nationwide', weight:'0-1 kg', base:'₨200', extra:'₨80/kg',  codPct:'1.5%', fuel:'5%', days:'1-3' },
-  { courier:'TCS Express', zone:'Remote',     weight:'0-1 kg', base:'₨280', extra:'₨100/kg', codPct:'1.5%', fuel:'5%', days:'3-5' },
-  { courier:'Leopards',    zone:'Nationwide', weight:'0-1 kg', base:'₨180', extra:'₨70/kg',  codPct:'1.2%', fuel:'4%', days:'1-2' },
-  { courier:'M&P Express', zone:'Nationwide', weight:'0-1 kg', base:'₨170', extra:'₨65/kg',  codPct:'1.0%', fuel:'3%', days:'1-2' },
-  { courier:'Trax',        zone:'Nationwide', weight:'0-1 kg', base:'₨160', extra:'₨60/kg',  codPct:'1.5%', fuel:'5%', days:'2-3' },
-];
-
 export const API_LOGS: APILog[] = [
   { ts:'2026-05-11 08:00:02', courier:'TCS',      type:'Status Poll',    track:'TCS-2026-04821',  code:200, ms:312,  result:'Updated'   },
   { ts:'2026-05-11 08:00:04', courier:'Leopards', type:'Status Poll',    track:'LCS-2026-01234',  code:200, ms:287,  result:'No Change'  },
@@ -239,13 +249,6 @@ export const API_LOGS: APILog[] = [
   { ts:'2026-05-11 07:00:08', courier:'Trax',     type:'Status Poll',    track:'TRAX-2026-0298',  code:404, ms:120,  result:'Not Found'  },
   { ts:'2026-05-11 06:00:03', courier:'Leopards', type:'Status Poll',    track:'LCS-2026-01190',  code:200, ms:305,  result:'Updated'    },
   { ts:'2026-05-11 06:00:05', courier:'M&P',      type:'Status Poll',    track:'MNP-2026-08780',  code:200, ms:221,  result:'No Change'  },
-];
-
-export const API_CREDS: APICredential[] = [
-  { courier:'TCS Express',      endpoint:'https://api.tcs.com.pk/track',  key:'TCS-••••••••••••7f2a',  connected:true,  lastPing:'11 May 08:00' },
-  { courier:'Leopards Courier', endpoint:'https://api.leopards.com.pk/',  key:'LCS-••••••••••••3b19',  connected:true,  lastPing:'11 May 08:00' },
-  { courier:'M&P Express',      endpoint:'https://mpm.com.pk/api/v2/',    key:'MNP-••••••••••••9c44',  connected:true,  lastPing:'11 May 08:00' },
-  { courier:'Trax',             endpoint:'https://api.traxlogistics.com/',key:'Not configured',         connected:false, lastPing:'N/A'           },
 ];
 
 export const BULK_SYNC: BulkSync[] = [
@@ -258,13 +261,23 @@ export const BULK_SYNC: BulkSync[] = [
 export const RECENT_REPORTS: RecentReport[] = [
   { name:'Delivery Performance — Apr 2026', type:'Performance', generated:'01 May 2026', format:'Excel', size:'48 KB' },
   { name:'COD Reconciliation — Apr 2026',   type:'COD',         generated:'01 May 2026', format:'CSV',   size:'22 KB' },
-  { name:'Shipment Status — Week 18',        type:'Status',      generated:'05 May 2026', format:'Excel', size:'31 KB' },
+  { name:'Shipment Status — Week 18',       type:'Status',      generated:'05 May 2026', format:'Excel', size:'31 KB' },
+];
+
+export const SHIPMENTS = [
+  { track:'TCS-2026-04821',  order:'ORD-1046', customer:'Sara Khan',      courier:'TCS',    city:'Islamabad', weight:'0.8', cod:3600, status:'In Transit', dispatched:'07 May', est:'12 May', codStatus:'Pending'   },
+  { track:'LCS-2026-01234',  order:'ORD-1044', customer:'Rabia Ahmed',    courier:'LCS',    city:'Karachi',   weight:'0.5', cod:2200, status:'Delivered',  dispatched:'06 May', est:'09 May', codStatus:'Collected'  },
+  { track:'MNP-2026-08812',  order:'ORD-1045', customer:'Nadia Malik',    courier:'MNP',    city:'Rawalpindi',weight:'1.2', cod:7100, status:'In Transit', dispatched:'06 May', est:'10 May', codStatus:'Pending'   },
+  { track:'TCS-2026-04800',  order:'ORD-1043', customer:'Hira Baig',      courier:'TCS',    city:'Multan',    weight:'0.6', cod:3900, status:'Delivered',  dispatched:'05 May', est:'08 May', codStatus:'Collected'  },
+  { track:'TRAX-2026-0312',  order:'ORD-1040', customer:'Sadia Hussain',  courier:'TRAX',   city:'Peshawar',  weight:'2.1', cod:9200, status:'In Transit', dispatched:'04 May', est:'11 May', codStatus:'Pending'   },
+  { track:'LCS-2026-01200',  order:'ORD-1039', customer:'Bushra Nawaz',   courier:'LCS',    city:'Quetta',    weight:'0.4', cod:3100, status:'Delivered',  dispatched:'04 May', est:'07 May', codStatus:'Collected'  },
+  { track:'TCS-2026-04780',  order:'ORD-1037', customer:'Maira Usman',    courier:'TCS',    city:'Lahore',    weight:'0.9', cod:5700, status:'RTO',        dispatched:'03 May', est:'06 May', codStatus:'N/A'       },
+  { track:'POSTEX-2026-0021',order:'ORD-1033', customer:'Fatima Zara',    courier:'POSTEX', city:'Multan',    weight:'0.8', cod:2800, status:'In Transit', dispatched:'08 May', est:'13 May', codStatus:'Pending'   },
 ];
 
 // ───────────────────────────────────────────────────────────
 // HELPERS
 // ───────────────────────────────────────────────────────────
-
 export const fmt = (n: number) => '₨' + Number(n).toLocaleString();
 
 export const rColor = (r: number) =>
@@ -273,22 +286,55 @@ export const rColor = (r: number) =>
 export function badgeClass(s: string): string {
   const m: Record<string, string> = {
     Active: 'green', Paused: 'yellow', Inactive: 'gray',
-    'In Transit': 'orange', Delivered: 'green', RTO: 'yellow',
-    Pending: 'yellow', Failed: 'red', 'Out for Delivery': 'blue',
+    'In Transit': 'orange', in_transit: 'orange',
+    Delivered: 'green', delivered: 'green',
+    RTO: 'yellow', returned: 'yellow',
+    Pending: 'yellow', assigned: 'blue', picked_up: 'blue',
+    Failed: 'red', failed: 'red',
+    'Out for Delivery': 'blue', out_for_delivery: 'blue',
     Collected: 'green', 'N/A': 'gray', Done: 'green',
     OK: 'green', Error: 'red', Connected: 'green', 'Not Connected': 'red',
     Updated: 'green', 'No Change': 'gray', Created: 'green', 'Not Found': 'red',
     'Re-dispatched': 'blue', Critical: 'red', Low: 'yellow', Good: 'green',
+    live: 'green', test: 'yellow', disabled: 'gray',
   };
   return m[s] || 'gray';
 }
 
+export function statusLabel(s: string): string {
+  const m: Record<string, string> = {
+    assigned: 'Assigned', picked_up: 'Picked Up',
+    in_transit: 'In Transit', out_for_delivery: 'Out for Delivery',
+    delivered: 'Delivered', failed: 'Failed', returned: 'RTO',
+  };
+  return m[s] ?? s;
+}
+
+export const courierInitials = (name: string) =>
+  name.split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase();
+
+// ───────────────────────────────────────────────────────────
+// SKELETON HELPER
+// ───────────────────────────────────────────────────────────
+export const TableSkeleton: React.FC<{ rows?: number; cols: number }> = ({ rows = 5, cols }) => (
+  <>
+    {Array.from({ length: rows }).map((_, i) => (
+      <tr key={i}>
+        {Array.from({ length: cols }).map((_, j) => (
+          <td key={j}>
+            <div style={{ height: 13, background: '#F3F4F6', borderRadius: 4, width: `${60 + Math.random() * 30}%` }} />
+          </td>
+        ))}
+      </tr>
+    ))}
+  </>
+);
+
 // ───────────────────────────────────────────────────────────
 // MICRO-COMPONENTS
 // ───────────────────────────────────────────────────────────
-
 export const Badge: React.FC<{ label: string }> = ({ label }) => (
-  <span className={`badge ${badgeClass(label)}`}>{label}</span>
+  <span className={`badge ${badgeClass(label)}`}>{statusLabel(label)}</span>
 );
 
 export const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
@@ -301,7 +347,7 @@ export const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
 export const PerfBar: React.FC<{ pct: number; color?: string }> = ({ pct, color }) => (
   <div className="perf-cell">
     <div className="perf-bar">
-      <div className="perf-fill" style={{ width: `${pct}%`, background: color || 'var(--accent)' }} />
+      <div className="perf-fill" style={{ width: `${Math.min(pct, 100)}%`, background: color || 'var(--accent)' }} />
     </div>
     <div className="perf-pct">{pct}%</div>
   </div>
@@ -315,21 +361,17 @@ export const EmptyState: React.FC<{ icon: string; title: string; desc: string }>
   </div>
 );
 
-export const ToggleSwitch: React.FC<{ defaultChecked?: boolean }> = ({ defaultChecked = false }) => {
+export const ToggleSwitch: React.FC<{ defaultChecked?: boolean; onChange?: (v: boolean) => void }> = ({ defaultChecked = false, onChange }) => {
   const [on, setOn] = useState(defaultChecked);
   return (
     <label className="toggle-switch">
-      <input type="checkbox" checked={on} onChange={e => setOn(e.target.checked)} />
+      <input type="checkbox" checked={on} onChange={e => { setOn(e.target.checked); onChange?.(e.target.checked); }} />
       <span className="toggle-track" />
     </label>
   );
 };
 
-// CPagination
-interface CPagProps {
-  current: number; total: number; totalItems: number; start: number; end: number;
-  onChange: (p: number) => void;
-}
+interface CPagProps { current: number; total: number; totalItems: number; start: number; end: number; onChange: (p: number) => void; }
 export const CPagination: React.FC<CPagProps> = ({ current, total, totalItems, start, end, onChange }) => {
   const pages: (number | '…')[] = [];
   if (total <= 7) { for (let p = 1; p <= total; p++) pages.push(p); }
@@ -358,7 +400,6 @@ export const CPagination: React.FC<CPagProps> = ({ current, total, totalItems, s
   );
 };
 
-// InnerTabs
 interface InnerTabsProps { tabs: { id: string; label: React.ReactNode }[]; active: string; onChange: (id: string) => void; }
 export const InnerTabs: React.FC<InnerTabsProps> = ({ tabs, active, onChange }) => (
   <div className="inner-tabs">
