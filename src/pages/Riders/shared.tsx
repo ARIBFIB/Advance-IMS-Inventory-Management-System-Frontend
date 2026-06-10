@@ -1,11 +1,11 @@
 // ═══════════════════════════════════════════════════════════
-// shared.tsx  —  Types · Static Data · Helpers · Micro-components
+// shared.tsx  —  API Types · Static Data · Helpers · Micro-components
 // ═══════════════════════════════════════════════════════════
 
 import React, { useState } from 'react';
 
 // ───────────────────────────────────────────────────────────
-// TYPES
+// NAV TYPE
 // ───────────────────────────────────────────────────────────
 
 export type NavPanel =
@@ -15,6 +15,97 @@ export type NavPanel =
   | 'performance' | 'earnings' | 'reports'
   | 'integrations'
   | 'settings' | 'zones';
+
+// ───────────────────────────────────────────────────────────
+// BACKEND API TYPES
+// ───────────────────────────────────────────────────────────
+
+export interface ApiRider {
+  _id: string;
+  fullName: string;
+  phone: string;
+  email?: string;
+  cnic?: string;
+  licenseNumber?: string;
+  licenseExpiry?: string;
+  licenseStatus?: 'Valid' | 'Expired' | 'Expiring Soon';
+  status: 'Active' | 'Inactive' | 'OnDelivery' | 'OnLeave' | 'Suspended';
+  isAvailable?: boolean;
+  assignedZone?: string;
+  serviceCities?: string[];
+  vehicle?: {
+    type: string;
+    make?: string;
+    model?: string;
+    year?: number;
+    registrationNumber?: string;
+    color?: string;
+  };
+  activeDeliveries?: number;
+  completionRate?: string;
+  performanceMetrics?: {
+    totalDeliveries: number;
+    completedDeliveries: number;
+  };
+  recentPerformance?: {
+    last30Days?: {
+      totalDeliveries: number;
+      completed: number;
+      completionRate: string;
+      avgDeliveryHours: string;
+    };
+  };
+  paymentMethod?: string;
+  bankDetails?: {
+    accountTitle?: string;
+    accountNumber?: string;
+    bankName?: string;
+  };
+  userId?: string;
+  createdAt?: string;
+}
+
+export interface ApiDelivery {
+  _id: string;
+  trackingNumber?: string;
+  orderReference?: string;
+  currentStatus: string;
+  customer?: { name?: string; phone?: string };
+  shippingAddress?: { city?: string; street?: string };
+  codAmount?: number;
+  estimatedDelivery?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ApiPagination {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+}
+
+export interface ApiRiderPerformance {
+  kpis?: {
+    totalRiders: number;
+    activeRiders: number;
+    totalDeliveries: number;
+    overallCompletionRate: string;
+    avgTransitHours: string;
+  };
+  byRider?: {
+    id: string;
+    name: string;
+    zone: string;
+    completionRate: string;
+    totalDeliveries: number;
+  }[];
+  timeline?: { date: string; total: number; completed: number; completionRate: number }[];
+}
+
+// ───────────────────────────────────────────────────────────
+// STATIC LEGACY TYPES (for panels not yet connected to API)
+// ───────────────────────────────────────────────────────────
 
 export interface Rider {
   id: number; name: string; phone: string; cnic: string;
@@ -44,9 +135,7 @@ export interface DocItem {
 export interface AvailabilityItem {
   rider: string; shift: string; checkin: string; zone: string; task: string; avail: string;
 }
-export interface ScheduleItem {
-  rider: string; days: string[];
-}
+export interface ScheduleItem { rider: string; days: string[]; }
 export interface ZoneItem {
   name: string; areas: string; primary: string; backup: string; time: string; active: number;
 }
@@ -134,11 +223,11 @@ export const SCHEDULE_DATA: ScheduleItem[] = [
 ];
 
 export const ZONES_DATA: ZoneItem[] = [
-  { name:'Lahore Central',       areas:'Anarkali, Gulberg I & II, Liberty Market',  primary:'Usman Ahmed',    backup:'Zubair Ali',   time:'30–50 min', active:3 },
-  { name:'DHA / Cantt',          areas:'DHA Phase 1–6, Cantonment',                 primary:'Bilal Raza',     backup:'Tariq Saleem', time:'35–60 min', active:2 },
-  { name:'Gulberg / Garden Town',areas:'Gulberg III–V, Garden Town, Jail Road',     primary:'Asad Khan',      backup:'Usman Ahmed',  time:'25–45 min', active:2 },
-  { name:'Model Town',           areas:'Model Town A-L Blocks, Faisal Town',        primary:'Hamza Iqbal',    backup:'—',            time:'30–50 min', active:1 },
-  { name:'Johar Town',           areas:'Johar Town Phase 1 & 2, Muslim Town',       primary:'Faisal Mehmood', backup:'—',            time:'35–55 min', active:1 },
+  { name:'Lahore Central',        areas:'Anarkali, Gulberg I & II, Liberty Market',  primary:'Usman Ahmed',    backup:'Zubair Ali',   time:'30–50 min', active:3 },
+  { name:'DHA / Cantt',           areas:'DHA Phase 1–6, Cantonment',                 primary:'Bilal Raza',     backup:'Tariq Saleem', time:'35–60 min', active:2 },
+  { name:'Gulberg / Garden Town', areas:'Gulberg III–V, Garden Town, Jail Road',     primary:'Asad Khan',      backup:'Usman Ahmed',  time:'25–45 min', active:2 },
+  { name:'Model Town',            areas:'Model Town A-L Blocks, Faisal Town',        primary:'Hamza Iqbal',    backup:'—',            time:'30–50 min', active:1 },
+  { name:'Johar Town',            areas:'Johar Town Phase 1 & 2, Muslim Town',       primary:'Faisal Mehmood', backup:'—',            time:'35–55 min', active:1 },
 ];
 
 export const ROUTES_DATA: RouteItem[] = [
@@ -160,11 +249,32 @@ export const RECENT_REPORTS: ReportItem[] = [
 export const fmt = (n: number) => '₨' + Number(n).toLocaleString();
 export const initials = (name: string) => name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 export const avatarColor = (id: number) => AVATAR_COLORS[(id - 1) % AVATAR_COLORS.length];
+export const avatarColorFromName = (name: string) => {
+  const idx = name.charCodeAt(0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[idx];
+};
 export const rColor = (r: number) => r >= 90 ? 'var(--green)' : r >= 80 ? 'var(--yellow)' : 'var(--red)';
+
+/** Map API rider status → display badge label */
+export function riderStatusLabel(status: string): string {
+  const m: Record<string, string> = {
+    Active: 'Active', Inactive: 'Inactive',
+    OnDelivery: 'On Delivery', OnLeave: 'On Leave', Suspended: 'Suspended',
+  };
+  return m[status] ?? status;
+}
+
+/** True if the API rider is currently available / online */
+export function isRiderOnline(r: ApiRider): boolean {
+  return r.isAvailable === true || r.status === 'Active' || r.status === 'OnDelivery';
+}
 
 export function badgeClass(s: string): string {
   const m: Record<string, string> = {
     Active: 'green', Inactive: 'gray', Online: 'green', Offline: 'gray',
+    'On Delivery': 'orange', 'OnDelivery': 'orange',
+    'On Leave': 'yellow', 'OnLeave': 'yellow',
+    Suspended: 'red',
     Busy: 'orange', 'Not Started': 'yellow', Absent: 'red',
     'In Transit': 'orange', 'Out for Delivery': 'blue', Delayed: 'red',
     'Pending Pickup': 'yellow', Collected: 'green', Pending: 'yellow',
@@ -174,9 +284,28 @@ export function badgeClass(s: string): string {
     'Per Delivery': 'purple', Hybrid: 'blue',
     Connected: 'green', 'Not Connected': 'red',
     'Option 2': 'orange', Manual: 'gray',
+    Valid: 'green', Expired: 'red',
   };
   return m[s] || 'gray';
 }
+
+// ───────────────────────────────────────────────────────────
+// SKELETON
+// ───────────────────────────────────────────────────────────
+
+export const TableSkeleton: React.FC<{ rows?: number; cols: number }> = ({ rows = 5, cols }) => (
+  <>
+    {Array.from({ length: rows }).map((_, i) => (
+      <tr key={i}>
+        {Array.from({ length: cols }).map((_, j) => (
+          <td key={j}>
+            <div style={{ height: 13, background: '#F3F4F6', borderRadius: 4, width: `${60 + Math.random() * 30}%` }} />
+          </td>
+        ))}
+      </tr>
+    ))}
+  </>
+);
 
 // ───────────────────────────────────────────────────────────
 // MICRO-COMPONENTS
@@ -189,7 +318,7 @@ export const Badge: React.FC<{ label: string }> = ({ label }) => (
 export const PerfBar: React.FC<{ pct: number; color?: string }> = ({ pct, color }) => (
   <div className="perf-cell">
     <div className="perf-bar">
-      <div className="perf-fill" style={{ width: `${pct}%`, background: color || 'var(--accent)' }} />
+      <div className="perf-fill" style={{ width: `${Math.min(pct, 100)}%`, background: color || 'var(--accent)' }} />
     </div>
     <div className="perf-pct">{pct}%</div>
   </div>
@@ -226,13 +355,19 @@ export const RiderAvatar: React.FC<{ rider: Rider; size?: number; fontSize?: num
   </div>
 );
 
+/** Avatar for API riders (uses name-based color) */
+export const ApiRiderAvatar: React.FC<{ rider: ApiRider; size?: number; fontSize?: number }> = ({ rider, size = 30, fontSize = 11 }) => (
+  <div className="row-avatar" style={{ background: avatarColorFromName(rider.fullName), width: size, height: size, fontSize }}>
+    {initials(rider.fullName)}
+  </div>
+);
+
 export const DayBadge: React.FC<{ d: string }> = ({ d }) => {
   if (d === 'M') return <span className="day-badge-morning">M</span>;
   if (d === 'E') return <span className="day-badge-evening">E</span>;
   return <span className="day-badge-off">—</span>;
 };
 
-// InnerTabs
 interface InnerTabsProps { tabs: { id: string; label: React.ReactNode }[]; active: string; onChange: (id: string) => void; }
 export const InnerTabs: React.FC<InnerTabsProps> = ({ tabs, active, onChange }) => (
   <div className="inner-tabs">
@@ -244,7 +379,6 @@ export const InnerTabs: React.FC<InnerTabsProps> = ({ tabs, active, onChange }) 
   </div>
 );
 
-// CPagination
 interface CPagProps { current: number; total: number; totalItems: number; start: number; end: number; onChange: (p: number) => void; }
 export const CPagination: React.FC<CPagProps> = ({ current, total, totalItems, start, end, onChange }) => {
   const pages: (number | '…')[] = [];

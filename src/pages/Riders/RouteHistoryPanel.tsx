@@ -1,280 +1,312 @@
-// RidersPage.tsx
-import React, { useState, useCallback } from 'react';
-import './RidersPage.css';
-import TopLoadingBar from '../../components/ui/TopLoadingBar';
-import { useTabLoading } from '../../hooks/useTabLoading';
-
+// RouteHistoryPanel.tsx — dynamic
+import React, { useState, useCallback, useEffect } from 'react';
 import {
-  NavPanel, Rider,
+  ApiRider, ApiDelivery, ApiPagination,
   RIDERS,
-  fmt, rColor, avatarColor, initials,
-  Badge, RiderAvatar,
+  riderStatusLabel, badgeClass,
+  Badge, InnerTabs, CPagination, EmptyState, TableSkeleton,
 } from './shared';
+import { ridersAPI } from '../../services/api';
 
-import OverviewPanel       from './OverviewPanel';
-import AllRidersPanel      from './AllRidersPanel';
-import AddRiderPanel       from './AddRiderPanel';
-import AvailabilityPanel   from './AvailabilityPanel';
-import ActiveDeliveriesPanel from './ActiveDeliveriesPanel';
-import AssignTasksPanel    from './AssignTasksPanel';
-import CompletedPanel      from './CompletedPanel';
-import FailedDeliveriesPanel from './FailedDeliveriesPanel';
-import LiveMapPanel        from './LiveMapPanel';
-import RouteHistoryPanel   from './RouteHistoryPanel';
-import PerformancePanel    from './PerformancePanel';
-import EarningsPanel       from './EarningsPanel';
-import ReportsPanel        from './ReportsPanel';
-import IntegrationsPanel   from './IntegrationsPanel';
-import SettingsPanel       from './SettingsPanel';
-import ZonesPanel          from './ZonesPanel';
-
-// ═══════════════════════════════════════════════════════════
-// OVERLAY STATE
-// ═══════════════════════════════════════════════════════════
-
-interface OverlayState {
-  open: boolean;
-  title: string;
-  content: React.ReactNode;
+interface RiderDelivery {
+  _id: string;
+  trackingNumber?: string;
+  orderReference?: string;
+  currentStatus: string;
+  customer?: { name?: string; phone?: string };
+  shippingAddress?: { city?: string; street?: string };
+  codAmount?: number;
+  estimatedDelivery?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-// ═══════════════════════════════════════════════════════════
-// MAIN PAGE COMPONENT
-// ═══════════════════════════════════════════════════════════
+const RouteHistoryPanel: React.FC = () => {
+  const [innerTab, setInnerTab]   = useState('all');
+  const [riders,   setRiders]     = useState<ApiRider[]>([]);
+  const [deliveries, setDeliveries] = useState<RiderDelivery[]>([]);
+  const [selectedRider, setSelectedRider] = useState('');
+  const [pagination, setPagination] = useState<ApiPagination>({ currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 10 });
+  const [loading,  setLoading]    = useState(false);
+  const [loadingDeliveries, setLoadingDeliveries] = useState(false);
+  const [error,    setError]      = useState('');
+  const [search,   setSearch]     = useState('');
+  const [page,     setPage]       = useState(1);
+  const [statusFilter, setStatusFilter] = useState('');
+  const PER_PAGE = 10;
 
-const RidersPage: React.FC = () => {
-  const [activePanel, setActivePanel] = useState<NavPanel>('overview');
-  const { isLoading, loadingProgress, switchTab } = useTabLoading(setActivePanel, activePanel);
-  const [overlay, setOverlay] = useState<OverlayState>({ open: false, title: '', content: null });
-
-  // ── Rider detail overlay ──────────────────────────────
-  const openRiderOverlay = useCallback((r: Rider) => {
-    const balance = r.earned + r.bonus - r.paid;
-    setOverlay({
-      open: true,
-      title: r.name,
-      content: (
-        <div>
-          {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-            <RiderAvatar rider={r} size={44} fontSize={14} />
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 800 }}>{r.name}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                {r.zone} · {r.vehicle} · {r.plate}
-              </div>
-            </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-              <Badge label={r.status} />
-              <Badge label={r.availability} />
-            </div>
-          </div>
-
-          {/* Key stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
-            {[
-              { val: r.deliveries,                   lbl: 'MTD Deliveries', color: 'var(--text-primary)' },
-              { val: `${r.completion}%`,              lbl: 'Completion',     color: rColor(r.completion)  },
-              { val: r.rating > 0 ? r.rating : '—',  lbl: 'Rating ★',      color: 'var(--yellow)'       },
-            ].map(s => (
-              <div key={s.lbl} style={{ background: 'var(--bg)', borderRadius: 6, padding: 8, textAlign: 'center' }}>
-                <div style={{ fontSize: 16, fontWeight: 900, color: s.color }}>{s.val}</div>
-                <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{s.lbl}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Detail rows */}
-          {(
-            [
-              ['Phone',             r.phone],
-              ['CNIC',              r.cnic],
-              ['Vehicle',           `${r.vehicle} · ${r.plate}`],
-              ['Zone',              r.zone],
-              ['Shift',             r.shift],
-              ['Avg. Delivery Time',r.avgTime > 0 ? `${r.avgTime} min` : '—'],
-              ['On-Time Rate',      r.onTime > 0  ? `${r.onTime}%`    : '—'],
-              ['Pay Type',          r.pay],
-              ['MTD Earnings',      <span style={{ color: 'var(--green)', fontWeight: 700 }}>{fmt(r.earned + r.bonus)}</span>],
-              ['Balance Due',       <span style={{ color: balance > 0 ? 'var(--red)' : 'var(--green)', fontWeight: 700 }}>{fmt(balance)}</span>],
-              ['Join Date',         r.join],
-            ] as [string, React.ReactNode][]
-          ).map(([k, v], i) => (
-            <div className="detail-row" key={i}>
-              <div className="detail-key">{k}</div>
-              <div className="detail-val">{v}</div>
-            </div>
-          ))}
-
-          <hr style={{ border: 'none', borderTop: '1px solid var(--divider)', margin: '12px 0' }} />
-
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <button className="c-btn primary" style={{ fontSize: 10 }}>
-              <i className="fa-solid fa-pen" /> Edit
-            </button>
-            <button className="c-btn" style={{ fontSize: 10 }}>
-              <i className="fa-solid fa-clipboard-list" /> View Tasks
-            </button>
-            <button className="c-btn" style={{ fontSize: 10 }}>
-              <i className="fa-solid fa-coins" /> Pay Now
-            </button>
-            <button className="c-btn" style={{ fontSize: 10, color: r.status === 'Active' ? 'var(--red)' : 'var(--green)' }}>
-              <i className={`fa-solid fa-${r.status === 'Active' ? 'pause' : 'play'}`} />
-              {r.status === 'Active' ? ' Deactivate' : ' Activate'}
-            </button>
-          </div>
-        </div>
-      ),
-    });
+  // Load riders for the dropdown
+  const fetchRiders = useCallback(async () => {
+    try {
+      const res = await ridersAPI.getAll({ limit: 50 });
+      setRiders(res.data?.data?.riders ?? []);
+    } catch {}
   }, []);
 
-  const closeOverlay = () => setOverlay(v => ({ ...v, open: false }));
+  useEffect(() => { fetchRiders(); }, [fetchRiders]);
 
-  // ── Navigation structure ──────────────────────────────
-  type NavEntry = {
-    panel: NavPanel;
-    icon: string;
-    label: string;
-    badge?: number | string;
-    badgeGray?: boolean;
-  };
-  type NavSection = { heading: string; items: NavEntry[] };
+  // Load deliveries for selected rider
+  const fetchDeliveries = useCallback(async () => {
+    if (!selectedRider) return;
+    setLoadingDeliveries(true); setError('');
+    try {
+      const params: Record<string, any> = { page, limit: PER_PAGE };
+      if (statusFilter) params.status = statusFilter;
+      if (search)       params.search  = search;
+      const res  = await ridersAPI.getDeliveries(selectedRider, params);
+      const data = res.data?.data;
+      setDeliveries(data?.deliveries ?? []);
+      setPagination(data?.pagination ?? { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: PER_PAGE });
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? 'Failed to load deliveries.');
+    } finally { setLoadingDeliveries(false); }
+  }, [selectedRider, page, statusFilter, search]);
 
-  const navSections: NavSection[] = [
-    {
-      heading: 'Overview',
-      items: [{ panel: 'overview', icon: 'fa-gauge', label: 'Overview' }],
-    },
-    {
-      heading: 'Riders',
-      items: [
-        { panel: 'all',          icon: 'fa-person-biking',  label: 'All Riders'   },
-        { panel: 'add',          icon: 'fa-user-plus',      label: 'Add Rider'    },
-        { panel: 'availability', icon: 'fa-calendar-check', label: 'Availability' },
-      ],
-    },
-    {
-      heading: 'Deliveries',
-      items: [
-        { panel: 'active',     icon: 'fa-map-location-dot', label: 'Active Deliveries', badge: 8            },
-        { panel: 'assign',     icon: 'fa-clipboard-list',   label: 'Assign Tasks',      badge: 5            },
-        { panel: 'completed',  icon: 'fa-circle-check',     label: 'Completed',         badge: 34, badgeGray: true },
-        { panel: 'failed-del', icon: 'fa-circle-xmark',     label: 'Failed / RTO',      badge: 3            },
-      ],
-    },
-    {
-      heading: 'Tracking',
-      items: [
-        { panel: 'livemap', icon: 'fa-location-dot', label: 'Live Map'      },
-        { panel: 'routes',  icon: 'fa-route',        label: 'Route History' },
-      ],
-    },
-    {
-      heading: 'Analytics',
-      items: [
-        { panel: 'performance', icon: 'fa-chart-bar',         label: 'Performance'    },
-        { panel: 'earnings',    icon: 'fa-coins',             label: 'Earnings & Pay' },
-        { panel: 'reports',     icon: 'fa-file-chart-column', label: 'Reports'        },
-      ],
-    },
-    {
-      heading: 'Integrations',
-      items: [{ panel: 'integrations', icon: 'fa-plug', label: 'App Integrations' }],
-    },
-    {
-      heading: 'Configuration',
-      items: [
-        { panel: 'settings', icon: 'fa-gear', label: 'Settings'        },
-        { panel: 'zones',    icon: 'fa-map',  label: 'Delivery Zones'  },
-      ],
-    },
-  ];
+  useEffect(() => { fetchDeliveries(); }, [fetchDeliveries]);
 
-  // ── Panel renderer ────────────────────────────────────
-  const renderPanel = () => {
-    switch (activePanel) {
-      case 'overview':     return <OverviewPanel onNav={setActivePanel} onOpenRider={openRiderOverlay} />;
-      case 'all':          return <AllRidersPanel onNav={setActivePanel} onOpenRider={openRiderOverlay} />;
-      case 'add':          return <AddRiderPanel onNav={setActivePanel} />;
-      case 'availability': return <AvailabilityPanel />;
-      case 'active':       return <ActiveDeliveriesPanel />;
-      case 'assign':       return <AssignTasksPanel />;
-      case 'completed':    return <CompletedPanel />;
-      case 'failed-del':   return <FailedDeliveriesPanel />;
-      case 'livemap':      return <LiveMapPanel />;
-      case 'routes':       return <RouteHistoryPanel />;
-      case 'performance':  return <PerformancePanel onOpenRider={openRiderOverlay} />;
-      case 'earnings':     return <EarningsPanel />;
-      case 'reports':      return <ReportsPanel />;
-      case 'integrations': return <IntegrationsPanel />;
-      case 'settings':     return <SettingsPanel />;
-      case 'zones':        return <ZonesPanel />;
-      default:             return null;
-    }
+  const { currentPage, totalPages, totalItems } = pagination;
+  const start = (currentPage - 1) * PER_PAGE + 1;
+  const end   = Math.min(currentPage * PER_PAGE, totalItems);
+
+  const statusColor = (s: string) => {
+    const m: Record<string, string> = {
+      delivered: 'var(--green)', in_transit: 'var(--accent)', out_for_delivery: 'var(--blue)',
+      failed: 'var(--red)', returned: 'var(--red)', assigned: 'var(--yellow)', picked_up: 'var(--yellow)',
+    };
+    return m[s] ?? 'var(--text-muted)';
   };
 
-  // ── Render ────────────────────────────────────────────
+  const fmtStatus = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+  const selectedRiderObj = riders.find(r => r._id === selectedRider);
+
   return (
-    <div id="page-riders">
-      <TopLoadingBar progress={loadingProgress} isLoading={isLoading} />
-
-      <div className="page-hero">
-        <div className="page-hero-title">Rider Management</div>
-        <div className="page-hero-sub">
-          Manage internal delivery riders, assign deliveries, track live status, and monitor
-          performance metrics.
-        </div>
+    <>
+      <div className="panel-heading">Route History</div>
+      <div className="panel-desc">
+        View historical delivery routes taken by riders. Useful for verifying delivery paths,
+        analyzing efficiency, and resolving customer disputes.
       </div>
 
-      <div className="rider-layout">
-        {/* ── Vertical Nav ── */}
-        <div className="vnav">
-          {navSections.map(section => (
-            <React.Fragment key={section.heading}>
-              <div className="vnav-section-label">{section.heading}</div>
-              {section.items.map(item => (
-                <div
-                  key={item.panel}
-                  className={`vnav-item ${activePanel === item.panel ? 'active' : ''}`}
-                  onClick={() => switchTab(item.panel)}
+      <InnerTabs
+        tabs={[
+          { id: 'all',    label: 'All Deliveries' },
+          { id: 'rider',  label: 'By Rider'       },
+        ]}
+        active={innerTab}
+        onChange={t => { setInnerTab(t); setPage(1); }}
+      />
+
+      {/* ── ALL DELIVERIES (rider selector required) ── */}
+      {innerTab === 'all' && (
+        <div className="card">
+          <div className="c-toolbar">
+            <div className="c-toolbar-left">
+              <div className="c-search">
+                <i className="fa-solid fa-magnifying-glass" />
+                <input
+                  placeholder="Search order or rider..."
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setPage(1); }}
+                />
+              </div>
+              <select
+                className="c-form-select"
+                style={{ height: 27, fontSize: 10.5 }}
+                value={selectedRider}
+                onChange={e => { setSelectedRider(e.target.value); setPage(1); }}
+              >
+                <option value="">— Select Rider —</option>
+                {riders.map(r => (
+                  <option key={r._id} value={r._id}>{r.fullName}</option>
+                ))}
+              </select>
+              {(['', 'delivered', 'in_transit', 'failed', 'returned'] as const).map(f => (
+                <button
+                  key={f}
+                  className={`c-btn ${statusFilter === f ? 'active' : ''}`}
+                  onClick={() => { setStatusFilter(f); setPage(1); }}
                 >
-                  <i className={`fa-solid ${item.icon}`} />
-                  {item.label}
-                  {item.badge !== undefined && (
-                    <span className={`vnav-badge ${item.badgeGray ? 'gray' : ''}`}>
-                      {item.badge}
-                    </span>
-                  )}
+                  {f === '' ? 'All' : fmtStatus(f)}
+                </button>
+              ))}
+            </div>
+            <div className="c-toolbar-right">
+              <button className="c-btn" onClick={fetchDeliveries}>
+                <i className="fa-solid fa-rotate" /> Refresh
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <div className="alert-strip danger" style={{ borderRadius: 0 }}>
+              <i className="fa-solid fa-circle-exclamation" /> {error}
+              <button className="c-btn" style={{ marginLeft: 'auto' }} onClick={fetchDeliveries}>Retry</button>
+            </div>
+          )}
+
+          {!selectedRider ? (
+            <div className="card-body">
+              <EmptyState icon="fa-route" title="Select a Rider" desc="Choose a rider from the dropdown above to view their delivery history." />
+            </div>
+          ) : (
+            <>
+              <div className="tbl-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Tracking #</th><th>Order Ref</th><th>Customer</th>
+                      <th>City</th><th>COD Amount</th><th>Status</th>
+                      <th>Date</th><th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingDeliveries ? (
+                      <TableSkeleton rows={6} cols={8} />
+                    ) : deliveries.length === 0 ? (
+                      <tr><td colSpan={8}>
+                        <EmptyState icon="fa-truck" title="No Deliveries Found" desc="No delivery records match your filters." />
+                      </td></tr>
+                    ) : deliveries.map(d => (
+                      <tr key={d._id}>
+                        <td><code className="sku">{d.trackingNumber ?? '—'}</code></td>
+                        <td><strong>{d.orderReference ?? '—'}</strong></td>
+                        <td>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 11 }}>{d.customer?.name ?? '—'}</div>
+                            <div className="td-sub">{d.customer?.phone ?? ''}</div>
+                          </div>
+                        </td>
+                        <td><span className="tag">{d.shippingAddress?.city ?? '—'}</span></td>
+                        <td><strong>{d.codAmount ? `₨${Number(d.codAmount).toLocaleString()}` : '—'}</strong></td>
+                        <td>
+                          <span style={{ fontSize: 10.5, fontWeight: 600, color: statusColor(d.currentStatus) }}>
+                            {fmtStatus(d.currentStatus)}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: 10.5 }}>
+                          {d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                        </td>
+                        <td>
+                          <button className="c-btn" style={{ height: 22, fontSize: 9.5 }}>
+                            <i className="fa-solid fa-map" /> View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {totalPages > 1 && (
+                <CPagination
+                  current={currentPage} total={totalPages}
+                  totalItems={totalItems} start={start} end={end}
+                  onChange={setPage}
+                />
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── BY RIDER ── */}
+      {innerTab === 'rider' && (
+        <div className="detail-grid-2">
+          {/* Rider list */}
+          <div className="card" style={{ marginBottom: 0 }}>
+            <div className="card-header">
+              <div className="card-title"><i className="fa-solid fa-person-biking" /> Select Rider</div>
+            </div>
+            <div className="card-body" style={{ padding: '8px 14px' }}>
+              {riders.length === 0 ? (
+                <EmptyState icon="fa-person-biking" title="No Riders" desc="No riders available." />
+              ) : riders.map(r => (
+                <div
+                  key={r._id}
+                  className="list-item"
+                  style={{ cursor: 'pointer', background: selectedRider === r._id ? 'var(--bg)' : 'transparent', borderRadius: 5, padding: '7px 8px' }}
+                  onClick={() => { setSelectedRider(r._id); setPage(1); }}
+                >
+                  <div className="row-avatar" style={{ background: '#FF6A00', width: 28, height: 28, fontSize: 10 }}>
+                    {r.fullName.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)}
+                  </div>
+                  <div className="list-content">
+                    <div className="list-title">{r.fullName}</div>
+                    <div className="list-meta">{r.assignedZone ?? '—'} · {r.vehicle?.type ?? '—'}</div>
+                  </div>
+                  <div className="list-right">
+                    <Badge label={riderStatusLabel(r.status)} />
+                    <div style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2 }}>
+                      {r.performanceMetrics?.totalDeliveries ?? 0} total
+                    </div>
+                  </div>
                 </div>
               ))}
-              <div className="vnav-divider" />
-            </React.Fragment>
-          ))}
-        </div>
+            </div>
+          </div>
 
-        {/* ── Content Area ── */}
-        <div className="rider-content">
-          {renderPanel()}
+          {/* Deliveries panel */}
+          <div className="card" style={{ marginBottom: 0 }}>
+            <div className="card-header">
+              <div className="card-title">
+                <i className="fa-solid fa-route" />
+                {selectedRiderObj ? ` ${selectedRiderObj.fullName}'s Deliveries` : ' Delivery History'}
+              </div>
+              {selectedRider && (
+                <button className="c-btn" onClick={fetchDeliveries}>
+                  <i className="fa-solid fa-rotate" /> Refresh
+                </button>
+              )}
+            </div>
+            {!selectedRider ? (
+              <div className="card-body">
+                <EmptyState icon="fa-route" title="Select a Rider" desc="Click a rider on the left to view their history." />
+              </div>
+            ) : loadingDeliveries ? (
+              <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 11 }}>
+                <i className="fa-solid fa-spinner fa-spin" /> Loading...
+              </div>
+            ) : (
+              <div className="tbl-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Order Ref</th><th>City</th><th>Status</th><th>Date</th></tr>
+                  </thead>
+                  <tbody>
+                    {deliveries.length === 0 ? (
+                      <tr><td colSpan={4}>
+                        <EmptyState icon="fa-truck" title="No Deliveries" desc="No records found for this rider." />
+                      </td></tr>
+                    ) : deliveries.map(d => (
+                      <tr key={d._id}>
+                        <td><strong>{d.orderReference ?? d.trackingNumber ?? '—'}</strong></td>
+                        <td><span className="tag">{d.shippingAddress?.city ?? '—'}</span></td>
+                        <td>
+                          <span style={{ fontSize: 10.5, fontWeight: 600, color: statusColor(d.currentStatus) }}>
+                            {fmtStatus(d.currentStatus)}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: 10.5 }}>
+                          {d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {totalPages > 1 && (
+                  <CPagination
+                    current={currentPage} total={totalPages}
+                    totalItems={totalItems} start={start} end={end}
+                    onChange={setPage}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* ── Rider Detail Overlay ── */}
-      <div
-        className={`rider-backdrop ${overlay.open ? 'open' : ''}`}
-        onClick={closeOverlay}
-      />
-      <div className={`rider-overlay ${overlay.open ? 'open' : ''}`}>
-        <div className="overlay-header">
-          <div className="overlay-title">{overlay.title}</div>
-          <button className="close-btn" onClick={closeOverlay}>
-            <i className="fa-solid fa-xmark" />
-          </button>
-        </div>
-        <div className="overlay-body">{overlay.content}</div>
-      </div>
-    </div>
+      )}
+    </>
   );
 };
 
-export default RidersPage;
+export default RouteHistoryPanel;

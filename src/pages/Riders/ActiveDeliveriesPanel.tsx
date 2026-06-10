@@ -1,51 +1,143 @@
-// ActiveDeliveriesPanel.tsx
-import React, { useState } from 'react';
+// ActiveDeliveriesPanel.tsx — dynamic
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  ACTIVE_DELIVERIES, RIDERS,
-  avatarColor, initials,
-  Badge, InnerTabs, EmptyState, CPagination,
+  ApiRider, ApiDelivery, ApiPagination,
+  ACTIVE_DELIVERIES,
+  riderStatusLabel, badgeClass,
+  Badge, InnerTabs, CPagination, EmptyState, TableSkeleton, ApiRiderAvatar,
 } from './shared';
+import { ridersAPI } from '../../services/api';
+
+// ── Types ──────────────────────────────────────────────────
+interface LiveDelivery {
+  _id: string;
+  trackingNumber?: string;
+  orderReference?: string;
+  currentStatus: string;
+  customer?: { name?: string; phone?: string };
+  shippingAddress?: { city?: string; street?: string };
+  codAmount?: number;
+  estimatedDelivery?: string;
+  rider?: { id: string; name: string; phone: string };
+  createdAt?: string;
+}
+
+interface RiderWithDeliveries {
+  rider: ApiRider;
+  deliveries: LiveDelivery[];
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  in_transit:       'var(--accent)',
+  out_for_delivery: 'var(--blue)',
+  delayed:          'var(--red)',
+  pending_pickup:   'var(--yellow)',
+  assigned:         'var(--yellow)',
+  picked_up:        'var(--accent)',
+  delivered:        'var(--green)',
+  failed:           'var(--red)',
+  returned:         'var(--red)',
+};
+
+const fmtStatus = (s: string) =>
+  s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 const ActiveDeliveriesPanel: React.FC = () => {
-  const [innerTab, setInnerTab] = useState('all');
-  const [search, setSearch]     = useState('');
-  const [page, setPage]         = useState(1);
-  const PER_PAGE = 6;
+  const [innerTab, setInnerTab]   = useState('all');
+  const [riders,   setRiders]     = useState<ApiRider[]>([]);
+  const [allDeliveries, setAllDeliveries] = useState<LiveDelivery[]>([]);
+  const [loading,  setLoading]    = useState(false);
+  const [error,    setError]      = useState('');
+  const [search,   setSearch]     = useState('');
+  const [page,     setPage]       = useState(1);
+  const PER_PAGE = 8;
 
-  const filtered = ACTIVE_DELIVERIES.filter(d =>
+  // ── Fetch all active riders then their active deliveries ──
+  const load = useCallback(async () => {
+    setLoading(true); setError('');
+    try {
+      // Get riders who are active / on-delivery
+      const rRes = await ridersAPI.getAll({ limit: 50, status: 'Active' });
+      const rList: ApiRider[] = rRes.data?.data?.riders ?? [];
+      setRiders(rList);
+
+      // For each rider, fetch deliveries with active statuses
+      const deliveryPromises = rList.map(r =>
+        ridersAPI
+          .getDeliveries(r._id, { limit: 20, status: 'in_transit,out_for_delivery,assigned,picked_up' })
+          .then(res => {
+            const deliveries: LiveDelivery[] = (res.data?.data?.deliveries ?? []).map((d: any) => ({
+              ...d,
+              rider: { id: r._id, name: r.fullName, phone: r.phone },
+            }));
+            return deliveries;
+          })
+          .catch(() => [] as LiveDelivery[])
+      );
+      const results = await Promise.all(deliveryPromises);
+      setAllDeliveries(results.flat());
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? 'Failed to load active deliveries.');
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // ── Update delivery status ──
+  const handleStatusUpdate = async (riderId: string, deliveryId: string, status: string) => {
+    try {
+      await ridersAPI.updateDeliveryStatus(riderId, deliveryId, { status });
+      load();
+    } catch (e: any) {
+      alert(e?.response?.data?.message ?? 'Failed to update delivery status.');
+    }
+  };
+
+  // ── Filter / paginate ──
+  const filtered = allDeliveries.filter(d =>
     !search ||
-    d.order.toLowerCase().includes(search.toLowerCase()) ||
-    d.rider.toLowerCase().includes(search.toLowerCase()) ||
-    d.customer.toLowerCase().includes(search.toLowerCase())
+    (d.orderReference ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (d.trackingNumber  ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (d.rider?.name     ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (d.customer?.name  ?? '').toLowerCase().includes(search.toLowerCase())
   );
-  const total     = filtered.length;
-  const start     = (page - 1) * PER_PAGE + 1;
-  const end       = Math.min(page * PER_PAGE, total);
-  const pageItems = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const delayed  = allDeliveries.filter(d => d.currentStatus === 'failed' || d.currentStatus === 'delayed');
+  const total    = filtered.length;
+  const start    = (page - 1) * PER_PAGE + 1;
+  const end      = Math.min(page * PER_PAGE, total);
+  const pageItems= filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   return (
     <>
       <div className="panel-heading">Active Deliveries</div>
       <div className="panel-desc">
-        All deliveries currently in progress by internal riders. Monitor real-time location updates,
-        estimated arrival, and flag delays.
+        All deliveries currently in progress by internal riders. Monitor real-time location
+        updates, estimated arrival, and flag delays.
       </div>
 
-      <div className="alert-strip warn">
-        <i className="fa-solid fa-triangle-exclamation" />
-        <strong>3 deliveries</strong> are running behind schedule by more than 20 minutes.
-        <button className="c-btn" style={{ marginLeft: 'auto' }}>View Delayed</button>
-      </div>
+      {delayed.length > 0 && (
+        <div className="alert-strip warn">
+          <i className="fa-solid fa-triangle-exclamation" />
+          <strong>{delayed.length} deliveries</strong> are running behind schedule.
+          <button className="c-btn" style={{ marginLeft: 'auto' }} onClick={() => { setInnerTab('delayed'); }}>
+            View Delayed
+          </button>
+        </div>
+      )}
 
       <InnerTabs
         tabs={[
-          { id: 'all',     label: 'All Active' },
+          { id: 'all',   label: 'All Active' },
           {
             id: 'delayed',
             label: (
               <span>
                 Delayed{' '}
-                <span style={{ background: 'var(--red-bg)', color: 'var(--red)', padding: '1px 5px', borderRadius: 8, fontSize: 9, marginLeft: 3 }}>3</span>
+                {delayed.length > 0 && (
+                  <span style={{ background: 'var(--red-bg)', color: 'var(--red)', padding: '1px 5px', borderRadius: 8, fontSize: 9, marginLeft: 3 }}>
+                    {delayed.length}
+                  </span>
+                )}
               </span>
             ),
           },
@@ -68,45 +160,93 @@ const ActiveDeliveriesPanel: React.FC = () => {
                   onChange={e => { setSearch(e.target.value); setPage(1); }}
                 />
               </div>
-              <button className="c-btn">All Riders</button>
+              <button className="c-btn" onClick={load}>
+                <i className="fa-solid fa-rotate" /> Refresh
+              </button>
             </div>
             <div className="c-toolbar-right">
-              <button className="c-btn"><i className="fa-solid fa-rotate" /> Refresh</button>
+              <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
+                {loading ? 'Loading…' : `${allDeliveries.length} active`}
+              </span>
             </div>
           </div>
+
+          {error && (
+            <div className="alert-strip danger" style={{ borderRadius: 0 }}>
+              <i className="fa-solid fa-circle-exclamation" /> {error}
+              <button className="c-btn" style={{ marginLeft: 'auto' }} onClick={load}>Retry</button>
+            </div>
+          )}
+
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Order ID</th><th>Rider</th><th>Customer</th><th>Address</th>
-                  <th>Assigned</th><th>ETA</th><th>COD</th><th>Status</th><th>Actions</th>
+                  <th>Order Ref</th><th>Tracking #</th><th>Rider</th><th>Customer</th>
+                  <th>City</th><th>COD</th><th>ETA</th><th>Status</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {pageItems.map(d => {
-                  const r = RIDERS.find(x => x.name === d.rider);
+                {loading ? (
+                  <TableSkeleton rows={6} cols={9} />
+                ) : pageItems.length === 0 ? (
+                  <tr><td colSpan={9}>
+                    <EmptyState icon="fa-truck" title="No Active Deliveries" desc="All riders are currently idle or no deliveries match your search." />
+                  </td></tr>
+                ) : pageItems.map(d => {
+                  const rider = riders.find(r => r._id === d.rider?.id);
                   return (
-                    <tr key={d.order}>
-                      <td><strong>{d.order}</strong></td>
+                    <tr key={d._id}>
+                      <td><strong>{d.orderReference ?? '—'}</strong></td>
+                      <td><code className="sku">{d.trackingNumber ?? '—'}</code></td>
                       <td>
                         <div className="td-flex">
-                          <div className="row-avatar" style={{ background: avatarColor(r?.id || 1), width: 22, height: 22, fontSize: 8 }}>
-                            {initials(d.rider)}
-                          </div>
-                          {d.rider.split(' ')[0]}
+                          {rider && <ApiRiderAvatar rider={rider} size={22} fontSize={8} />}
+                          <span>{d.rider?.name?.split(' ')[0] ?? '—'}</span>
                         </div>
                       </td>
-                      <td>{d.customer}</td>
-                      <td style={{ fontSize: 10.5, maxWidth: 130, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {d.address}
-                      </td>
-                      <td>{d.assigned}</td>
-                      <td><strong>{d.eta}</strong></td>
-                      <td><strong>{d.cod}</strong></td>
-                      <td><Badge label={d.status} /></td>
                       <td>
-                        <button className="c-btn" style={{ height: 22, fontSize: 9.5 }}><i className="fa-solid fa-location-dot" /></button>
-                        <button className="c-btn" style={{ height: 22, fontSize: 9.5, marginLeft: 3 }}><i className="fa-solid fa-phone" /></button>
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{d.customer?.name ?? '—'}</div>
+                          <div className="td-sub">{d.customer?.phone ?? ''}</div>
+                        </div>
+                      </td>
+                      <td><span className="tag">{d.shippingAddress?.city ?? '—'}</span></td>
+                      <td><strong>{d.codAmount ? `₨${Number(d.codAmount).toLocaleString()}` : '—'}</strong></td>
+                      <td style={{ fontSize: 10.5 }}>
+                        {d.estimatedDelivery
+                          ? new Date(d.estimatedDelivery).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                          : '—'}
+                      </td>
+                      <td>
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: STATUS_COLOR[d.currentStatus] ?? 'var(--text-muted)' }}>
+                          {fmtStatus(d.currentStatus)}
+                        </span>
+                      </td>
+                      <td style={{ display: 'flex', gap: 3 }}>
+                        <button className="c-btn" style={{ height: 22, fontSize: 9.5 }} title="Track">
+                          <i className="fa-solid fa-location-dot" />
+                        </button>
+                        {d.rider?.id && (
+                          <button
+                            className="c-btn"
+                            style={{ height: 22, fontSize: 9.5 }}
+                            title="Mark Out for Delivery"
+                            onClick={() => handleStatusUpdate(d.rider!.id, d._id, 'out_for_delivery')}
+                          >
+                            <i className="fa-solid fa-truck" />
+                          </button>
+                        )}
+                        {d.rider?.id && (
+                          <button
+                            className="c-btn"
+                            style={{ height: 22, fontSize: 9.5, color: 'var(--green)' }}
+                            title="Mark Delivered"
+                            onClick={() => handleStatusUpdate(d.rider!.id, d._id, 'delivered')}
+                          >
+                            <i className="fa-solid fa-check" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -114,6 +254,7 @@ const ActiveDeliveriesPanel: React.FC = () => {
               </tbody>
             </table>
           </div>
+
           <CPagination
             current={page} total={Math.ceil(total / PER_PAGE)}
             totalItems={total} start={start} end={end}
@@ -130,9 +271,46 @@ const ActiveDeliveriesPanel: React.FC = () => {
             The following deliveries are past their expected time. Contact riders immediately.
           </div>
           <div className="card">
-            <div className="card-body">
-              <EmptyState icon="fa-person-biking" title="3 Delayed Deliveries" desc="Contact riders or reassign orders." />
-            </div>
+            {loading ? (
+              <div className="card-body">
+                <EmptyState icon="fa-spinner" title="Loading..." desc="Fetching delayed deliveries." />
+              </div>
+            ) : delayed.length === 0 ? (
+              <div className="card-body">
+                <EmptyState icon="fa-circle-check" title="No Delayed Deliveries" desc="All active deliveries are on schedule." />
+              </div>
+            ) : (
+              <div className="tbl-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Order Ref</th><th>Rider</th><th>Customer</th><th>City</th>
+                      <th>Status</th><th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {delayed.map(d => (
+                      <tr key={d._id}>
+                        <td><strong>{d.orderReference ?? d.trackingNumber ?? '—'}</strong></td>
+                        <td>{d.rider?.name ?? '—'}</td>
+                        <td>{d.customer?.name ?? '—'}</td>
+                        <td><span className="tag">{d.shippingAddress?.city ?? '—'}</span></td>
+                        <td>
+                          <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--red)' }}>
+                            {fmtStatus(d.currentStatus)}
+                          </span>
+                        </td>
+                        <td>
+                          <button className="c-btn" style={{ height: 22, fontSize: 9.5 }}>
+                            <i className="fa-solid fa-phone" /> Contact
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -140,18 +318,25 @@ const ActiveDeliveriesPanel: React.FC = () => {
       {/* ── MAP ── */}
       {innerTab === 'map' && (
         <div className="map-placeholder">
-          {[
-            { color: '#FF6A00', top: '35%', left: '42%' },
-            { color: '#16A34A', top: '55%', left: '60%' },
-            { color: '#2563EB', top: '25%', left: '70%' },
-            { color: '#FF6A00', top: '65%', left: '30%' },
-            { color: '#16A34A', top: '45%', left: '50%' },
-            { color: '#7C3AED', top: '70%', left: '55%' },
-          ].map((dot, i) => (
-            <div key={i} className="map-rider-dot" style={{ background: dot.color, top: dot.top, left: dot.left }} />
-          ))}
+          {riders.slice(0, 6).map((r, i) => {
+            const positions = [
+              { top: '35%', left: '42%' }, { top: '55%', left: '60%' },
+              { top: '25%', left: '70%' }, { top: '65%', left: '30%' },
+              { top: '45%', left: '50%' }, { top: '70%', left: '55%' },
+            ];
+            const colors = ['#FF6A00','#16A34A','#2563EB','#FF6A00','#16A34A','#7C3AED'];
+            const pos = positions[i] ?? { top: '50%', left: '50%' };
+            return (
+              <div
+                key={r._id}
+                className="map-rider-dot"
+                style={{ background: colors[i % colors.length], top: pos.top, left: pos.left }}
+                title={r.fullName}
+              />
+            );
+          })}
           <div className="map-badge">
-            <i className="fa-solid fa-circle" style={{ color: 'var(--accent)', fontSize: 8 }} /> 6 riders live
+            <i className="fa-solid fa-circle" style={{ color: 'var(--accent)', fontSize: 8 }} /> {riders.length} riders loaded
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
             Live GPS tracking requires app integration. See <strong>App Integrations</strong> tab.

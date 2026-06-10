@@ -10,6 +10,11 @@ import type {
   MeResponse,
   LogoutResponse,
 } from './types/auth';
+import type {
+  CreateExpensePayload,
+  UpdateExpensePayload,
+  RecordSupplierPaymentPayload,
+} from '../types/finance';
 
 // ── Base URL ───────────────────────────────────────────────
 const BASE_URL =
@@ -67,63 +72,213 @@ api.interceptors.response.use(
 // 1. AUTH  (/api/auth)
 // ─────────────────────────────────────────────────────────
 export const authAPI = {
-  register: (data: RegisterPayload) => api.post<AuthResponse>('/auth/register', data),
-  login:    (data: LoginPayload)    => api.post<AuthResponse>('/auth/login', data),
-  refresh:  (data: RefreshPayload)  => api.post<RefreshResponse>('/auth/refresh', data),
-  me:       ()                      => api.get<MeResponse>('/auth/me'),
-  logout:   (data: LogoutPayload)   => api.post<LogoutResponse>('/auth/logout', data),
+  register: (data: RegisterPayload)  => api.post<AuthResponse>('/auth/register', data),
+  login:    (data: LoginPayload)     => api.post<AuthResponse>('/auth/login', data),
+  refresh:  (data: RefreshPayload)   => api.post<RefreshResponse>('/auth/refresh', data),
+  me:       ()                       => api.get<MeResponse>('/auth/me'),
+  logout:   (data: LogoutPayload)    => api.post<LogoutResponse>('/auth/logout', data),
 };
 
 // ─────────────────────────────────────────────────────────
 // 2. USERS  (/api/users)
 // ─────────────────────────────────────────────────────────
 export const usersAPI = {
-  getAll:            (params?: object)               => api.get('/users', { params }),
-  getById:           (id: string)                    => api.get(`/users/${id}`),
-  update:            (id: string, data: object)      => api.put(`/users/${id}`, data),
-  updateStatus:      (id: string, status: string)    => api.patch(`/users/${id}/status`, { status }),
-  delete:            (id: string)                    => api.delete(`/users/${id}`),
-  getPasswordPolicy: ()                              => api.get('/users/me/password'),
-  updatePassword:    (data: UpdatePasswordPayload)   => api.put('/users/me/password', data),
+  getAll:            (params?: object)              => api.get('/users', { params }),
+  getById:           (id: string)                   => api.get(`/users/${id}`),
+  update:            (id: string, data: object)     => api.put(`/users/${id}`, data),
+  updateStatus:      (id: string, status: string)   => api.patch(`/users/${id}/status`, { status }),
+  delete:            (id: string)                   => api.delete(`/users/${id}`),
+  getPasswordPolicy: ()                             => api.get('/users/me/password'),
+  updatePassword:    (data: UpdatePasswordPayload)  => api.put('/users/me/password', data),
 };
 
 // ─────────────────────────────────────────────────────────
 // 3. PRODUCTS  (/api/products)
 // ─────────────────────────────────────────────────────────
 export const productsAPI = {
-  getAll:      (params?: object)          => api.get('/products', { params }),
-  getById:     (id: string)               => api.get(`/products/${id}`),
-  create:      (data: object)             => api.post('/products', data),
-  update:      (id: string, data: object) => api.put(`/products/${id}`, data),
-  delete:      (id: string)               => api.delete(`/products/${id}`),
-  updateStock: (id: string, data: object) => api.patch(`/products/${id}/stock`, data),
-  toggleStatus:(id: string)               => api.patch(`/products/${id}/productStatus`),
+  getAll:       (params?: object)          => api.get('/products', { params }),
+  getById:      (id: string)               => api.get(`/products/${id}`),
+  create:       (data: object)             => api.post('/products', data),
+  update:       (id: string, data: object) => api.put(`/products/${id}`, data),
+  delete:       (id: string)               => api.delete(`/products/${id}`),
+  updateStock:  (id: string, data: object) => api.patch(`/products/${id}/stock`, data),
+  toggleStatus: (id: string)               => api.patch(`/products/${id}/productStatus`),
   // Variants
-  addVariant:    (id: string, data: object)                    => api.post(`/products/${id}/variants`, data),
-  updateVariant: (id: string, variantId: string, data: object) => api.put(`/products/${id}/variants/${variantId}`, data),
-  deleteVariant: (id: string, variantId: string)               => api.delete(`/products/${id}/variants/${variantId}`),
-  getVariantStock:(id: string, variantId: string, params?: object) => api.get(`/products/${id}/variants/${variantId}/stock`, { params }),
+  addVariant:      (id: string, data: object)                    => api.post(`/products/${id}/variants`, data),
+  updateVariant:   (id: string, variantId: string, data: object) => api.put(`/products/${id}/variants/${variantId}`, data),
+  deleteVariant:   (id: string, variantId: string)               => api.delete(`/products/${id}/variants/${variantId}`),
+  getVariantStock: (id: string, variantId: string, params?: object) => api.get(`/products/${id}/variants/${variantId}/stock`, { params }),
   // Images
-  uploadImages:  (id: string, formData: FormData) => api.post(`/products/${id}/images`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  deleteImage:   (id: string, index: number)      => api.delete(`/products/${id}/images/${index}`),
+  uploadImages: (id: string, formData: FormData) =>
+    api.post(`/products/${id}/images`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteImage: (id: string, index: number) => api.delete(`/products/${id}/images/${index}`),
 };
 
 // ─────────────────────────────────────────────────────────
 // 4. CATEGORIES  (/api/categories)
 // ─────────────────────────────────────────────────────────
 export const categoriesAPI = {
-  getAll:  (params?: object)          => api.get('/categories', { params }),
-  getTree: ()                         => api.get('/categories/tree'),
-  getById: (id: string)               => api.get(`/categories/${id}`),
-  create:  (data: object)             => api.post('/categories', data),
-  update:  (id: string, data: object) => api.put(`/categories/${id}`, data),
-  delete:  (id: string, data?: object)=> api.delete(`/categories/${id}`, { data }),
+  getAll:  (params?: object)           => api.get('/categories', { params }),
+  getTree: ()                          => api.get('/categories/tree'),
+  getById: (id: string)                => api.get(`/categories/${id}`),
+  create:  (data: object)              => api.post('/categories', data),
+  update:  (id: string, data: object)  => api.put(`/categories/${id}`, data),
+  delete:  (id: string, data?: object) => api.delete(`/categories/${id}`, { data }),
 };
 
 // ─────────────────────────────────────────────────────────
-// 5. ORDERS  (/api/orders)
+// 5. SUPPLIERS  (/api/suppliers)
+// Roles: any (read) | Accounts | InventoryManager | Administrator (write)
 // ─────────────────────────────────────────────────────────
+export const suppliersAPI = {
+  /**
+   * List suppliers with filters.
+   * hasBalance: true → only suppliers with outstanding > 0
+   */
+  getAll: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    city?: string;
+    country?: string;
+    paymentTerms?: string;
+    hasBalance?: boolean;
+  }) => api.get('/suppliers', { params }),
 
+  getById: (id: string) => api.get(`/suppliers/${id}`),
+
+  getProducts: (id: string, params?: object) =>
+    api.get(`/suppliers/${id}/products`, { params }),
+
+  create: (data: object) => api.post('/suppliers', data),
+
+  update: (id: string, data: object) => api.put(`/suppliers/${id}`, data),
+
+  delete: (id: string) => api.delete(`/suppliers/${id}`),
+
+  /**
+   * Manually adjust a supplier balance.
+   * adjustmentType 'credit' → reduces balance (payment made).
+   * adjustmentType 'debit'  → increases balance (new purchase).
+   */
+  adjustBalance: (id: string, data: {
+    adjustment: number;
+    adjustmentType: 'credit' | 'debit';
+    reason: string;
+    reference?: string;
+  }) => api.patch(`/suppliers/${id}/balance`, data),
+
+  // ── Nested Payments  /api/suppliers/:id/payments ──────
+
+  /**
+   * Full payment history for one supplier.
+   * Roles: Administrator | OperationsManager | Accounts
+   */
+  getPayments: (id: string, params?: {
+    page?: number;
+    limit?: number;
+    startDate?: string;
+    endDate?: string;
+    paymentMethod?: string;
+    includeVoided?: boolean;
+  }) => api.get(`/suppliers/${id}/payments`, { params }),
+
+  getPaymentById: (id: string, paymentId: string) =>
+    api.get(`/suppliers/${id}/payments/${paymentId}`),
+
+  /**
+   * Record a new payment to a supplier.
+   * Auto-decrements outstanding balance on the supplier record.
+   */
+  recordPayment: (id: string, data: RecordSupplierPaymentPayload) =>
+    api.post(`/suppliers/${id}/payments`, data),
+
+  /**
+   * Void/reverse a payment. Requires a reason string.
+   * Roles: Administrator | OperationsManager
+   */
+  voidPayment: (id: string, paymentId: string, reason: string) =>
+    api.patch(`/suppliers/${id}/payments/${paymentId}/void`, { reason }),
+
+  /**
+   * Outstanding balances across ALL suppliers.
+   * Used by: Finance Overview → Supplier Dues widget
+   *          Finance Suppliers → summary stats
+   * Roles: Administrator | OperationsManager | Accounts
+   */
+  getPaymentsSummary: (params?: {
+    sortBy?: 'outstanding' | 'totalPaid' | 'name' | 'lastPayment';
+    order?: 'asc' | 'desc';
+    minOutstanding?: number;
+  }) => api.get('/suppliers/payments/summary', { params }),
+};
+
+// ─────────────────────────────────────────────────────────
+// 6. EXPENSES  (/api/expenses)
+// Roles: Accounts | Administrator (write) | any (read)
+// ─────────────────────────────────────────────────────────
+export const expensesAPI = {
+  /**
+   * List expenses with filters.
+   * status: 'Active' | 'Cancelled'
+   */
+  getAll: (params?: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    status?: 'Active' | 'Cancelled';
+  }) => api.get('/expenses', { params }),
+
+  /** Single expense with attachments */
+  getById: (id: string) => api.get(`/expenses/${id}`),
+
+  /** Record a new expense */
+  create: (data: CreateExpensePayload) => api.post('/expenses', data),
+
+  /** Update an existing expense */
+  update: (id: string, data: UpdateExpensePayload) => api.put(`/expenses/${id}`, data),
+
+  /**
+   * Soft-cancel an expense (financial audit preserved).
+   * @param reason Optional cancellation reason
+   */
+  delete: (id: string, reason?: string) =>
+    api.delete(`/expenses/${id}`, { data: reason ? { reason } : undefined }),
+
+  /**
+   * Valid categories enum from server.
+   * Returns: { data: { categories: string[], total: number } }
+   */
+  getCategories: () => api.get('/expenses/categories'),
+
+  /**
+   * Dashboard KPIs + category breakdown + timeline.
+   * groupBy: 'day' | 'month' | 'category'
+   */
+  getAnalytics: (params?: {
+    dateFrom?: string;
+    dateTo?: string;
+    groupBy?: 'day' | 'month' | 'category';
+  }) => api.get('/expenses/analytics/summary', { params }),
+};
+
+// ─────────────────────────────────────────────────────────
+// 7. SUPPLIER PAYMENTS — flat routes (legacy / backward compat)
+//    Prefer suppliersAPI.recordPayment for new code.
+// ─────────────────────────────────────────────────────────
+export const supplierPaymentsAPI = {
+  getAll:  (params?: object)          => api.get('/supplier-payments', { params }),
+  getById: (id: string)               => api.get(`/supplier-payments/${id}`),
+  create:  (data: object)             => api.post('/supplier-payments', data),
+  update:  (id: string, data: object) => api.put(`/supplier-payments/${id}`, data),
+  delete:  (id: string)               => api.delete(`/supplier-payments/${id}`),
+};
+
+// ─────────────────────────────────────────────────────────
+// 8. ORDERS  (/api/orders)
+// ─────────────────────────────────────────────────────────
 export interface CreateOrderPayload {
   customer: string;
   source: 'WhatsApp' | 'Shopify' | 'Manual' | 'Instagram' | 'Website';
@@ -168,26 +323,82 @@ export interface AddOrderItemPayload {
 }
 
 export const ordersAPI = {
-  getAll:        (params?: object)                    => api.get('/orders', { params }),
-  getById:       (id: string)                         => api.get(`/orders/${id}`),
-  create:        (data: CreateOrderPayload)           => api.post('/orders', data),
-  update:        (id: string, data: UpdateOrderPayload) => api.put(`/orders/${id}`, data),
-  delete:        (id: string, reason?: string)        => api.delete(`/orders/${id}`, { data: reason ? { reason } : undefined }),
-  updateStatus:  (id: string, status: string, notes?: string) =>
+  getAll:         (params?: object)                       => api.get('/orders', { params }),
+  getById:        (id: string)                            => api.get(`/orders/${id}`),
+  create:         (data: CreateOrderPayload)              => api.post('/orders', data),
+  update:         (id: string, data: UpdateOrderPayload)  => api.put(`/orders/${id}`, data),
+  delete:         (id: string, reason?: string)           =>
+    api.delete(`/orders/${id}`, { data: reason ? { reason } : undefined }),
+  updateStatus:   (id: string, status: string, notes?: string) =>
     api.patch(`/orders/${id}/status`, { status, ...(notes ? { notes } : {}) }),
-  updatePayment: (id: string, paymentStatus: string, notes?: string) =>
+  updatePayment:  (id: string, paymentStatus: string, notes?: string) =>
     api.patch(`/orders/${id}/payment`, { paymentStatus, ...(notes ? { notes } : {}) }),
   updateDelivery: (id: string, deliveryStatus: string, trackingNumber?: string) =>
     api.patch(`/orders/${id}/delivery`, { deliveryStatus, ...(trackingNumber ? { trackingNumber } : {}) }),
-  fulfill:    (id: string, data: FulfillOrderPayload)          => api.post(`/orders/${id}/fulfill`, data),
-  addItem:    (id: string, data: AddOrderItemPayload)          => api.post(`/orders/${id}/items`, data),
+  fulfill:    (id: string, data: FulfillOrderPayload)     => api.post(`/orders/${id}/fulfill`, data),
+  addItem:    (id: string, data: AddOrderItemPayload)     => api.post(`/orders/${id}/items`, data),
   updateItem: (id: string, itemId: string, data: { quantity?: number; unitPrice?: number }) =>
     api.put(`/orders/${id}/items/${itemId}`, data),
-  removeItem: (id: string, itemId: string)                     => api.delete(`/orders/${id}/items/${itemId}`),
+  removeItem: (id: string, itemId: string)                => api.delete(`/orders/${id}/items/${itemId}`),
 };
 
 // ─────────────────────────────────────────────────────────
-// 6. CUSTOMERS  (/api/customers)
+// 9. FINANCE ORDERS — filtered queries for Finance panels
+// Convenience wrappers around ordersAPI for COD / Prepaid views.
+// ─────────────────────────────────────────────────────────
+export const financeOrdersAPI = {
+  /**
+   * COD Tracking panel — orders where paymentMethod = 'COD'.
+   * deliveryStatus maps to OutForDelivery / Delivered / Failed etc.
+   */
+  getCODOrders: (params?: {
+    page?: number;
+    limit?: number;
+    paymentStatus?: 'Pending' | 'Paid' | 'Partial';
+    deliveryStatus?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }) =>
+    api.get('/orders', {
+      params: { paymentMethod: 'COD', ...params },
+    }),
+
+  /**
+   * Prepaid Orders panel — orders where paymentMethod = 'Prepaid'.
+   */
+  getPrepaidOrders: (params?: {
+    page?: number;
+    limit?: number;
+    paymentStatus?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }) =>
+    api.get('/orders', {
+      params: { paymentMethod: 'Prepaid', ...params },
+    }),
+
+  /**
+   * Mark COD as submitted / verify prepaid.
+   * paymentStatus: 'Paid' | 'Pending' | 'Partial'
+   */
+  updatePaymentStatus: (id: string, paymentStatus: string, notes?: string) =>
+    api.patch(`/orders/${id}/payment`, {
+      paymentStatus,
+      ...(notes ? { notes } : {}),
+    }),
+
+  /**
+   * Update delivery status — used in "Contact Rider" flows.
+   */
+  updateDeliveryStatus: (id: string, deliveryStatus: string, trackingNumber?: string) =>
+    api.patch(`/orders/${id}/delivery`, {
+      deliveryStatus,
+      ...(trackingNumber ? { trackingNumber } : {}),
+    }),
+};
+
+// ─────────────────────────────────────────────────────────
+// 10. CUSTOMERS  (/api/customers)
 // ─────────────────────────────────────────────────────────
 export const customersAPI = {
   getAll:       (params?: object)          => api.get('/customers', { params }),
@@ -197,124 +408,24 @@ export const customersAPI = {
   delete:       (id: string)               => api.delete(`/customers/${id}`),
   updateSegment:(id: string, segment: string, reason?: string) =>
     api.patch(`/customers/${id}/segment`, { segment, ...(reason ? { reason } : {}) }),
-  getOrders:    (id: string, params?: object) => api.get(`/customers/${id}/orders`, { params }),
-  getSegmentAnalytics: ()                  => api.get('/customers/analytics/segments'),
+  getOrders:           (id: string, params?: object) => api.get(`/customers/${id}/orders`, { params }),
+  getSegmentAnalytics: ()                            => api.get('/customers/analytics/segments'),
 };
 
 // ─────────────────────────────────────────────────────────
-// 7. RIDERS  (/api/riders)
+// 11. STOCK  (/api/stock)
 // ─────────────────────────────────────────────────────────
-export const ridersAPI = {
-  getAll:       (params?: object)           => api.get('/riders', { params }),
-  getById:      (id: string)                => api.get(`/riders/${id}`),
-  create:       (data: object)              => api.post('/riders', data),
-  update:       (id: string, data: object)  => api.put(`/riders/${id}`, data),
-  updateStatus: (id: string, data: object)  => api.patch(`/riders/${id}/status`, data),
-  delete:       (id: string)               => api.delete(`/riders/${id}`),
+export const stockAPI = {
+  getAll:       (params?: object) => api.get('/stock', { params }),
+  getLowStock:  (params?: object) => api.get('/stock/low', { params }),
+  getLogs:      (params?: object) => api.get('/stock/logs', { params }),
+  adjust:       (data: object)    => api.post('/stock/adjust', data),
+  getHistory:   (params?: object) => api.get('/stock/history', { params }),
+  getAnalytics: (params?: object) => api.get('/stock/analytics', { params }),
 };
 
 // ─────────────────────────────────────────────────────────
-// 8. COURIERS  (/api/couriers)
-// ─────────────────────────────────────────────────────────
-export const couriersAPI = {
-  getAll:         (params?: object)          => api.get('/couriers', { params }),
-  getById:        (id: string)               => api.get(`/couriers/${id}`),
-  create:         (data: object)             => api.post('/couriers', data),
-  update:         (id: string, data: object) => api.put(`/couriers/${id}`, data),
-  delete:         (id: string, reason?: string) =>
-    api.delete(`/couriers/${id}`, { data: reason ? { reason } : undefined }),
-  // ── Test courier API connection ──
-  testConnection: (id: string)               => api.post(`/couriers/${id}/test-connection`),
-  // ── Manually sync shipment statuses ──
-  sync:           (id: string)               => api.post(`/couriers/${id}/sync`),
-  // ── Assign courier to an order (creates shipment) ──
-  assignToOrder:  (id: string, data: {
-    orderId: string;
-    serviceType?: 'Standard' | 'Express' | 'Same Day';
-    specialInstructions?: string;
-  }) => api.post(`/couriers/${id}/assign`, data),
-  // ── Courier performance analytics ──
-  getPerformance: (params?: object)          => api.get('/couriers/analytics/performance', { params }),
-};
-
-// ─────────────────────────────────────────────────────────
-// 9. SHIPMENTS  (/api/shipments)
-// ─────────────────────────────────────────────────────────
-export const shipmentsAPI = {
-  getAll:       (params?: object)          => api.get('/shipments', { params }),
-  getById:      (id: string)               => api.get(`/shipments/${id}`),
-  create:       (data: object)             => api.post('/shipments', data),
-  update:       (id: string, data: object) => api.put(`/shipments/${id}`, data),
-  // ── Manual status update (fallback when courier API unavailable) ──
-  updateStatus: (id: string, data: {
-    status: 'assigned' | 'picked_up' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'failed' | 'returned';
-    description?: string;
-    location?: string;
-  }) => api.patch(`/shipments/${id}/status`, data),
-  delete:        (id: string)              => api.delete(`/shipments/${id}`),
-  // ── Real-time tracking for a shipment ──
-  getTracking:  (id: string)               => api.get(`/shipments/${id}/tracking`),
-  // ── WebSocket stream info ──
-  getStreamInfo: ()                        => api.get('/shipments/stream/info'),
-};
-
-// ─────────────────────────────────────────────────────────
-// 10. SUPPLIERS  (/api/suppliers)
-// ─────────────────────────────────────────────────────────
-export const suppliersAPI = {
-  getAll:         (params?: object)          => api.get('/suppliers', { params }),
-  getById:        (id: string)               => api.get(`/suppliers/${id}`),
-  getProducts:    (id: string, params?: object) => api.get(`/suppliers/${id}/products`, { params }),
-  create:         (data: object)             => api.post('/suppliers', data),
-  update:         (id: string, data: object) => api.put(`/suppliers/${id}`, data),
-  delete:         (id: string)              => api.delete(`/suppliers/${id}`),
-  // ── NEW: balance adjustment (PATCH /api/suppliers/:id/balance) ──
-  adjustBalance:  (id: string, data: {
-    adjustment: number;
-    adjustmentType: 'credit' | 'debit';
-    reason: string;
-    reference?: string;
-  }) => api.patch(`/suppliers/${id}/balance`, data),
-  // ── NEW: payments sub-resource (/api/suppliers/:id/payments) ──
-  getPayments:    (id: string, params?: object) => api.get(`/suppliers/${id}/payments`, { params }),
-  getPaymentById: (id: string, paymentId: string) => api.get(`/suppliers/${id}/payments/${paymentId}`),
-  recordPayment:  (id: string, data: object)   => api.post(`/suppliers/${id}/payments`, data),
-  voidPayment:    (id: string, paymentId: string, reason: string) =>
-    api.patch(`/suppliers/${id}/payments/${paymentId}/void`, { reason }),
-  // ── NEW: outstanding summary (/api/suppliers/payments/summary) ──
-  getPaymentsSummary: (params?: object) => api.get('/suppliers/payments/summary', { params }),
-};
-
-// ─────────────────────────────────────────────────────────
-// 11. EXPENSES  (/api/expenses)
-// ─────────────────────────────────────────────────────────
-export const expensesAPI = {
-  getAll:     (params?: object)          => api.get('/expenses', { params }),
-  getById:    (id: string)               => api.get(`/expenses/${id}`),
-  create:     (data: object)             => api.post('/expenses', data),
-  update:     (id: string, data: object) => api.put(`/expenses/${id}`, data),
-  delete:     (id: string, reason?: string) =>
-    api.delete(`/expenses/${id}`, { data: reason ? { reason } : undefined }),
-  // ── NEW: categories & analytics ──
-  getCategories: ()                      => api.get('/expenses/categories'),
-  getAnalytics:  (params?: object)       => api.get('/expenses/analytics/summary', { params }),
-};
-
-// ─────────────────────────────────────────────────────────
-// 12. SUPPLIER PAYMENTS  (/api/supplier-payments)
-// NOTE: These are the old flat endpoints. Prefer suppliersAPI.recordPayment
-//       for the nested route. Keep for backward compat if used elsewhere.
-// ─────────────────────────────────────────────────────────
-export const supplierPaymentsAPI = {
-  getAll:  (params?: object)          => api.get('/supplier-payments', { params }),
-  getById: (id: string)               => api.get(`/supplier-payments/${id}`),
-  create:  (data: object)             => api.post('/supplier-payments', data),
-  update:  (id: string, data: object) => api.put(`/supplier-payments/${id}`, data),
-  delete:  (id: string)              => api.delete(`/supplier-payments/${id}`),
-};
-
-// ─────────────────────────────────────────────────────────
-// 13. TASKS  (/api/tasks)
+// 12. TASKS  (/api/tasks)
 // ─────────────────────────────────────────────────────────
 export const tasksAPI = {
   getAll:       (params?: object)             => api.get('/tasks', { params }),
@@ -323,39 +434,90 @@ export const tasksAPI = {
   update:       (id: string, data: object)    => api.put(`/tasks/${id}`, data),
   updateStatus: (id: string, status: string, completionNote?: string) =>
     api.patch(`/tasks/${id}/status`, { status, ...(completionNote ? { completionNote } : {}) }),
-  delete:       (id: string, reason?: string) =>
+  delete: (id: string, reason?: string) =>
     api.delete(`/tasks/${id}`, { data: reason ? { reason } : undefined }),
-  // ── NEW: my tasks & stats ──
-  getMy:   (params?: object) => api.get('/tasks/my', { params }),
-  getStats:(params?: object) => api.get('/tasks/stats', { params }),
+  getMy:    (params?: object) => api.get('/tasks/my', { params }),
+  getStats: (params?: object) => api.get('/tasks/stats', { params }),
 };
 
 // ─────────────────────────────────────────────────────────
-// 14. STOCK  (/api/stock)
+// 13. COURIERS  (/api/couriers)
 // ─────────────────────────────────────────────────────────
-export const stockAPI = {
-  getAll:      (params?: object) => api.get('/stock', { params }),
-  getLowStock: (params?: object) => api.get('/stock/low', { params }),
-  getLogs:     (params?: object) => api.get('/stock/logs', { params }),
-  adjust:      (data: object)    => api.post('/stock/adjust', data),
-  // ── NEW: full history & analytics ──
-  getHistory:  (params?: object) => api.get('/stock/history', { params }),
-  getAnalytics:(params?: object) => api.get('/stock/analytics', { params }),
+export const couriersAPI = {
+  getAll:         (params?: object)          => api.get('/couriers', { params }),
+  getById:        (id: string)               => api.get(`/couriers/${id}`),
+  create:         (data: object)             => api.post('/couriers', data),
+  update:         (id: string, data: object) => api.put(`/couriers/${id}`, data),
+  delete:         (id: string, reason?: string) =>
+    api.delete(`/couriers/${id}`, { data: reason ? { reason } : undefined }),
+  testConnection: (id: string)               => api.post(`/couriers/${id}/test-connection`),
+  sync:           (id: string)               => api.post(`/couriers/${id}/sync`),
+  assignToOrder:  (id: string, data: {
+    orderId: string;
+    serviceType?: 'Standard' | 'Express' | 'Same Day';
+    specialInstructions?: string;
+  }) => api.post(`/couriers/${id}/assign`, data),
+  getPerformance: (params?: object) => api.get('/couriers/analytics/performance', { params }),
 };
 
 // ─────────────────────────────────────────────────────────
-// 15. NOTIFICATIONS  (/api/notifications)
+// 14. SHIPMENTS  (/api/shipments)
+// ─────────────────────────────────────────────────────────
+export const shipmentsAPI = {
+  getAll:       (params?: object)          => api.get('/shipments', { params }),
+  getById:      (id: string)               => api.get(`/shipments/${id}`),
+  create:       (data: object)             => api.post('/shipments', data),
+  update:       (id: string, data: object) => api.put(`/shipments/${id}`, data),
+  updateStatus: (id: string, data: {
+    status: 'assigned' | 'picked_up' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'failed' | 'returned';
+    description?: string;
+    location?: string;
+  }) => api.patch(`/shipments/${id}/status`, data),
+  delete:        (id: string)  => api.delete(`/shipments/${id}`),
+  getTracking:   (id: string)  => api.get(`/shipments/${id}/tracking`),
+  getStreamInfo: ()            => api.get('/shipments/stream/info'),
+};
+
+// ─────────────────────────────────────────────────────────
+// 15. RIDERS  (/api/riders)
+// ─────────────────────────────────────────────────────────
+export const ridersAPI = {
+  getAll:               (params?: object)           => api.get('/riders', { params }),
+  getById:              (id: string)                => api.get(`/riders/${id}`),
+  create:               (data: object)              => api.post('/riders', data),
+  update:               (id: string, data: object)  => api.put(`/riders/${id}`, data),
+  updateStatus:         (id: string, data: object)  => api.patch(`/riders/${id}/status`, data),
+  delete:               (id: string)                => api.delete(`/riders/${id}`),
+  getDeliveries:        (id: string, params?: object) => api.get(`/riders/${id}/deliveries`, { params }),
+  updateDeliveryStatus: (id: string, orderId: string, data: object) =>
+    api.patch(`/riders/${id}/deliveries/${orderId}/status`, data),
+  getPerformance: (params?: object) => api.get('/riders/analytics/performance', { params }),
+};
+
+// ─────────────────────────────────────────────────────────
+// 16. NOTIFICATIONS  (/api/notifications)
 // ─────────────────────────────────────────────────────────
 export const notificationsAPI = {
-  getAll:         (params?: object) => api.get('/notifications', { params }),
-  getUnreadCount: ()                => api.get('/notifications/unread-count'),
-  markRead:       (id: string)      => api.patch(`/notifications/${id}/read`),
-  markAllRead:    ()                => api.patch('/notifications/read-all'),
-  delete:         (id: string)      => api.delete(`/notifications/${id}`),
+  getAll:           (params?: object) => api.get('/notifications', { params }),
+  getUnreadCount:   ()                => api.get('/notifications/unread-count'),
+  markRead:         (id: string)      => api.patch(`/notifications/${id}/read`),
+  markAllRead:      ()                => api.patch('/notifications/read-all'),
+  delete:           (id: string)      => api.delete(`/notifications/${id}`),
+  clearAll:         ()                => api.delete('/notifications/clear-all'),
+  send:             (data: object)    => api.post('/notifications/send', data),
+  broadcast:        (data: object)    => api.post('/notifications/broadcast', data),
+  getPreferences:   ()                => api.get('/notifications/preferences'),
+  updatePreferences:(data: object)    => api.patch('/notifications/preferences', data),
+  getTemplates:     ()                => api.get('/notifications/templates'),
+  updateTemplate:   (id: string, data: object) => api.patch(`/notifications/templates/${id}`, data),
+  schedule:         (data: object)    => api.post('/notifications/schedule', data),
+  getScheduled:     (params?: object) => api.get('/notifications/schedule', { params }),
+  cancelScheduled:  (id: string)      => api.delete(`/notifications/schedule/${id}`),
+  getHistory:       (params?: object) => api.get('/notifications/history', { params }),
 };
 
 // ─────────────────────────────────────────────────────────
-// 16. ANALYTICS  (/api/analytics)
+// 17. ANALYTICS  (/api/analytics)
 // ─────────────────────────────────────────────────────────
 export const analyticsAPI = {
   getDashboard:          (params?: object) => api.get('/analytics/dashboard', { params }),
@@ -373,53 +535,94 @@ export const analyticsAPI = {
 };
 
 // ─────────────────────────────────────────────────────────
-// 17. INTEGRATIONS  (/api/integrations)
+// 18. FINANCIAL ANALYTICS — typed wrappers for Finance page
+// Thin wrappers over analyticsAPI with explicit param types.
+// Roles: Administrator | Accounts | OperationsManager
 // ─────────────────────────────────────────────────────────
-export const integrationsAPI = {
-  getStatus:            ()             => api.get('/integrations/status'),
-  // Shopify
-  testShopify:          ()             => api.post('/integrations/shopify/test'),
-  syncShopifyOrders:    ()             => api.post('/integrations/shopify/sync-orders'),
-  getShopifyConfig:     ()             => api.get('/integrations/shopify/config'),
-  updateShopifyConfig:  (data: object) => api.put('/integrations/shopify/config', data),
-  // ── NEW: Shopify inventory sync & products ──
-  syncShopifyInventory: (productId?: string) =>
-    api.post('/integrations/shopify/sync-inventory', productId ? { productId } : {}),
-  getShopifyProducts:   ()             => api.get('/integrations/shopify/products'),
-  // AfterShip
-  testAfterShip:        ()             => api.post('/integrations/aftership/test'),
-  getAfterShipStatus:   ()             => api.get('/integrations/aftership/status'),
-  syncAfterShip:        ()             => api.post('/integrations/aftership/sync-tracking'),
-  getAfterShipTracking: (trackingNumber: string) => api.get(`/integrations/aftership/tracking/${trackingNumber}`),
-  getAfterShipConfig:   ()             => api.get('/integrations/aftership/config'),
-  updateAfterShipConfig:(data: object) => api.put('/integrations/aftership/config', data),
+export const financialAnalyticsAPI = {
+  /**
+   * Finance Overview KPIs + Revenue vs Expenses chart + supplier dues.
+   * Powers: OverviewPanel balance card, mini-stats, chart widget.
+   * Returns: kpis, timeline[], expenseByCategory[], outstandingSuppliers[]
+   */
+  getFinancial: (params?: {
+    from?: string;
+    to?: string;
+    groupBy?: 'day' | 'month';
+  }) => api.get('/analytics/financial', { params }),
+
+  /**
+   * Sales breakdown by channel, payment method, and order status.
+   * Powers: ReportsPanel monthly summary table, PLPanel revenue breakdown.
+   */
+  getSales: (params?: {
+    from?: string;
+    to?: string;
+    groupBy?: 'day' | 'week' | 'month';
+    source?: string;
+  }) => api.get('/analytics/sales', { params }),
+
+  /**
+   * Master dashboard KPIs — all modules in one call.
+   * Powers: Finance Overview hero balance card.
+   * Returns: orders, revenue, inventory, customers, expenses, tasks
+   */
+  getDashboard: (params?: {
+    from?: string;
+    to?: string;
+  }) => api.get('/analytics/dashboard', { params }),
 };
 
 // ─────────────────────────────────────────────────────────
-// 18. TRACKING MORE  (/api/trackingmore)
+// 19. INTEGRATIONS  (/api/integrations)
+// ─────────────────────────────────────────────────────────
+export const integrationsAPI = {
+  getStatus:             ()             => api.get('/integrations/status'),
+  // Shopify
+  testShopify:           ()             => api.post('/integrations/shopify/test'),
+  syncShopifyOrders:     ()             => api.post('/integrations/shopify/sync-orders'),
+  syncShopifyInventory:  (productId?: string) =>
+    api.post('/integrations/shopify/sync-inventory', productId ? { productId } : {}),
+  getShopifyProducts:    ()             => api.get('/integrations/shopify/products'),
+  getShopifyConfig:      ()             => api.get('/integrations/shopify/config'),
+  updateShopifyConfig:   (data: object) => api.put('/integrations/shopify/config', data),
+  // AfterShip
+  testAfterShip:         ()             => api.post('/integrations/aftership/test'),
+  getAfterShipStatus:    ()             => api.get('/integrations/aftership/status'),
+  syncAfterShip:         ()             => api.post('/integrations/aftership/sync-tracking'),
+  getAfterShipTracking:  (trackingNumber: string) =>
+    api.get(`/integrations/aftership/tracking/${trackingNumber}`),
+  getAfterShipConfig:    ()             => api.get('/integrations/aftership/config'),
+  updateAfterShipConfig: (data: object) => api.put('/integrations/aftership/config', data),
+};
+
+// ─────────────────────────────────────────────────────────
+// 20. TRACKING MORE  (/api/trackingmore)
 // ─────────────────────────────────────────────────────────
 export const trackingAPI = {
-  getStatus:      ()                                            => api.get('/trackingmore/status'),
+  getStatus:      ()                                             => api.get('/trackingmore/status'),
   test:           ()                                            => api.post('/trackingmore/test'),
   getConfig:      ()                                            => api.get('/trackingmore/config'),
   getCouriers:    (keyword?: string)                            => api.get('/trackingmore/couriers', { params: { keyword } }),
   detectCourier:  (trackingNumber: string)                      => api.post('/trackingmore/couriers/detect', { trackingNumber }),
   getTrackings:   (params?: object)                             => api.get('/trackingmore/trackings', { params }),
   createTracking: (data: object)                                => api.post('/trackingmore/trackings', data),
-  getTracking:    (courierCode: string, trackingNumber: string) => api.get(`/trackingmore/trackings/${courierCode}/${trackingNumber}`),
-  deleteTracking: (courierCode: string, trackingNumber: string) => api.delete(`/trackingmore/trackings/${courierCode}/${trackingNumber}`),
-  sync:           ()                                            => api.post('/trackingmore/sync'),
+  getTracking:    (courierCode: string, trackingNumber: string) =>
+    api.get(`/trackingmore/trackings/${courierCode}/${trackingNumber}`),
+  deleteTracking: (courierCode: string, trackingNumber: string) =>
+    api.delete(`/trackingmore/trackings/${courierCode}/${trackingNumber}`),
+  sync: () => api.post('/trackingmore/sync'),
 };
 
 // ─────────────────────────────────────────────────────────
 // Token Helpers
 // ─────────────────────────────────────────────────────────
 export const tokenHelper = {
-  save:       (accessToken: string, refreshToken: string) => {
+  save: (accessToken: string, refreshToken: string) => {
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
   },
-  clear:      () => {
+  clear: () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
   },

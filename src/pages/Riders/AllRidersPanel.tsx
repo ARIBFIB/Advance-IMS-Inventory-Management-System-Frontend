@@ -1,40 +1,74 @@
-// AllRidersPanel.tsx
-import React, { useState } from 'react';
+// AllRidersPanel.tsx — dynamic
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  NavPanel, Rider,
-  RIDERS, DOCS_DATA,
-  rColor,
-  Badge, PerfBar, StarRating, RiderAvatar, DayBadge,
-  InnerTabs, CPagination,
+  NavPanel, ApiRider, ApiPagination,
+  DOCS_DATA, SCHEDULE_DATA,
+  rColor, initials, avatarColorFromName, isRiderOnline, riderStatusLabel,
+  Badge, PerfBar, StarRating, ApiRiderAvatar, DayBadge,
+  InnerTabs, CPagination, EmptyState, TableSkeleton,
 } from './shared';
+import { ridersAPI } from '../../services/api';
 
 interface Props {
   onNav: (p: NavPanel) => void;
-  onOpenRider: (r: Rider) => void;
+  onOpenRider: (r: ApiRider) => void;
 }
 
-const SCHEDULE_DATA = [
-  { rider:'Usman Ahmed', days:['M','T','W','T','F','-','M'] },
-  { rider:'Bilal Raza',  days:['M','T','W','T','F','M','-'] },
-  { rider:'Asad Khan',   days:['M','T','W','T','F','M','M'] },
-  { rider:'Hamza Iqbal', days:['-','E','E','E','E','E','E']  },
-];
-
 const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
-  const [innerTab, setInnerTab] = useState('grid');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const PER_PAGE = 8;
+  const [innerTab,   setInnerTab]   = useState('grid');
+  const [riders,     setRiders]     = useState<ApiRider[]>([]);
+  const [pagination, setPagination] = useState<ApiPagination>({ currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 10 });
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState('');
+  const [search,     setSearch]     = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [page,       setPage]       = useState(1);
+  const PER_PAGE = 12;
 
-  const filtered = RIDERS.filter(r =>
-    !search ||
-    r.name.toLowerCase().includes(search.toLowerCase()) ||
-    r.zone.toLowerCase().includes(search.toLowerCase())
-  );
-  const total     = filtered.length;
-  const start     = (page - 1) * PER_PAGE + 1;
-  const end       = Math.min(page * PER_PAGE, total);
-  const pageItems = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const fetchRiders = useCallback(async () => {
+    setLoading(true); setError('');
+    try {
+      const params: Record<string, any> = { page, limit: PER_PAGE };
+      if (search)       params.search = search;
+      if (statusFilter) params.status = statusFilter;
+      const res  = await ridersAPI.getAll(params);
+      const data = res.data?.data;
+      setRiders(data?.riders ?? []);
+      setPagination(data?.pagination ?? { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: PER_PAGE });
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? 'Failed to load riders.');
+    } finally { setLoading(false); }
+  }, [page, search, statusFilter]);
+
+  useEffect(() => {
+    if (innerTab === 'grid' || innerTab === 'table') fetchRiders();
+  }, [fetchRiders, innerTab]);
+
+  const handleStatusUpdate = async (riderId: string, status: string) => {
+    try {
+      await ridersAPI.updateStatus(riderId, { status });
+      fetchRiders();
+    } catch (e: any) {
+      alert(e?.response?.data?.message ?? 'Failed to update status.');
+    }
+  };
+
+  const handleDelete = async (riderId: string) => {
+    if (!window.confirm('Deactivate this rider?')) return;
+    try {
+      await ridersAPI.delete(riderId);
+      fetchRiders();
+    } catch (e: any) {
+      alert(e?.response?.data?.message ?? 'Failed to deactivate rider.');
+    }
+  };
+
+  const { currentPage, totalPages, totalItems } = pagination;
+  const start = (currentPage - 1) * PER_PAGE + 1;
+  const end   = Math.min(currentPage * PER_PAGE, totalItems);
+
+  const activeCount   = riders.filter(r => r.status === 'Active').length;
+  const onlineCount   = riders.filter(r => isRiderOnline(r)).length;
 
   return (
     <>
@@ -45,18 +79,34 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
       </div>
 
       <div className="mini-stats">
-        <div className="mini-stat"><div className="ms-label">Total Riders</div><div className="ms-value">8</div><div className="ms-trend">6 active · 2 inactive</div></div>
-        <div className="mini-stat"><div className="ms-label">Online Now</div><div className="ms-value">6</div><div className="ms-trend up"><i className="fa-solid fa-circle" style={{ color: 'var(--green)', fontSize: 7 }} /> Tracking active</div></div>
-        <div className="mini-stat"><div className="ms-label">Avg. Rating</div><div className="ms-value">4.3</div><div className="ms-trend up"><i className="fa-solid fa-star" style={{ color: '#F59E0B' }} /> Customer rated</div></div>
-        <div className="mini-stat"><div className="ms-label">Deliveries (MTD)</div><div className="ms-value">312</div><div className="ms-trend up">+42 vs last month</div></div>
+        <div className="mini-stat">
+          <div className="ms-label">Total Riders</div>
+          <div className="ms-value">{loading ? '…' : totalItems}</div>
+          <div className="ms-trend">{activeCount} active</div>
+        </div>
+        <div className="mini-stat">
+          <div className="ms-label">Online Now</div>
+          <div className="ms-value">{loading ? '…' : onlineCount}</div>
+          <div className="ms-trend up"><i className="fa-solid fa-circle" style={{ color: 'var(--green)', fontSize: 7 }} /> This page</div>
+        </div>
+        <div className="mini-stat">
+          <div className="ms-label">Available</div>
+          <div className="ms-value">{loading ? '…' : riders.filter(r => r.isAvailable).length}</div>
+          <div className="ms-trend up">Ready for dispatch</div>
+        </div>
+        <div className="mini-stat">
+          <div className="ms-label">On Delivery</div>
+          <div className="ms-value">{loading ? '…' : riders.filter(r => r.status === 'OnDelivery').length}</div>
+          <div className="ms-trend">Active routes</div>
+        </div>
       </div>
 
       <InnerTabs
         tabs={[
-          { id: 'grid',     label: 'Grid View'   },
-          { id: 'table',    label: 'Table View'  },
-          { id: 'docs',     label: 'Documents'   },
-          { id: 'schedule', label: 'Schedules'   },
+          { id: 'grid',     label: 'Grid View'  },
+          { id: 'table',    label: 'Table View' },
+          { id: 'docs',     label: 'Documents'  },
+          { id: 'schedule', label: 'Schedules'  },
         ]}
         active={innerTab}
         onChange={t => { setInnerTab(t); setPage(1); }}
@@ -69,50 +119,102 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
             <div className="c-toolbar-left">
               <div className="c-search">
                 <i className="fa-solid fa-magnifying-glass" />
-                <input placeholder="Search rider..." value={search} onChange={e => setSearch(e.target.value)} />
+                <input placeholder="Search rider..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
               </div>
-              <button className="c-btn active">All</button>
-              <button className="c-btn" style={{ color: 'var(--green)' }}>
-                <i className="fa-solid fa-circle" style={{ fontSize: 7 }} /> Online
-              </button>
-              <button className="c-btn" style={{ color: 'var(--text-muted)' }}>
-                <i className="fa-solid fa-circle" style={{ fontSize: 7 }} /> Offline
-              </button>
+              {(['', 'Active', 'Inactive', 'OnDelivery', 'OnLeave'] as const).map(f => (
+                <button
+                  key={f}
+                  className={`c-btn ${statusFilter === f ? 'active' : ''}`}
+                  onClick={() => { setStatusFilter(f); setPage(1); }}
+                >
+                  {f === '' ? 'All' : riderStatusLabel(f)}
+                </button>
+              ))}
             </div>
             <div className="c-toolbar-right">
+              <button className="c-btn" onClick={fetchRiders}><i className="fa-solid fa-rotate" /> Refresh</button>
               <button className="c-btn primary" onClick={() => onNav('add')}>
                 <i className="fa-solid fa-plus" /> Add Rider
               </button>
             </div>
           </div>
-          <div className="rider-grid">
-            {filtered.map(r => (
-              <div className="rider-card" key={r.id} onClick={() => onOpenRider(r)}>
-                <div className="rider-card-status"><Badge label={r.availability} /></div>
-                <div className="rider-card-top">
-                  <RiderAvatar rider={r} size={36} fontSize={12} />
-                  <div>
-                    <div className="rider-card-name">{r.name}</div>
-                    <div className="rider-card-id">
-                      <i className="fa-solid fa-person-biking" style={{ fontSize: 9, color: 'var(--text-muted)' }} /> {r.zone}
+
+          {error && (
+            <div className="alert-strip danger" style={{ borderRadius: 0 }}>
+              <i className="fa-solid fa-circle-exclamation" /> {error}
+              <button className="c-btn" style={{ marginLeft: 'auto' }} onClick={fetchRiders}>Retry</button>
+            </div>
+          )}
+
+          {loading ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, padding: '12px 0' }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="card" style={{ padding: 14 }}>
+                  <div style={{ height: 36, width: 36, borderRadius: '50%', background: '#F3F4F6', marginBottom: 8 }} />
+                  <div style={{ height: 12, background: '#F3F4F6', borderRadius: 4, width: '60%', marginBottom: 6 }} />
+                  <div style={{ height: 10, background: '#F3F4F6', borderRadius: 4, width: '40%' }} />
+                </div>
+              ))}
+            </div>
+          ) : riders.length === 0 ? (
+            <div className="card"><div className="card-body">
+              <EmptyState icon="fa-person-biking" title="No riders found" desc="No riders match your current filters." />
+            </div></div>
+          ) : (
+            <div className="rider-grid">
+              {riders.map(r => {
+                const rate = parseFloat(r.completionRate ?? '0');
+                return (
+                  <div className="rider-card" key={r._id} onClick={() => onOpenRider(r)}>
+                    <div className="rider-card-status">
+                      <Badge label={riderStatusLabel(r.status)} />
+                    </div>
+                    <div className="rider-card-top">
+                      <ApiRiderAvatar rider={r} size={36} fontSize={12} />
+                      <div>
+                        <div className="rider-card-name">{r.fullName}</div>
+                        <div className="rider-card-id">
+                          <i className="fa-solid fa-person-biking" style={{ fontSize: 9, color: 'var(--text-muted)' }} /> {r.assignedZone ?? '—'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rider-card-stats">
+                      <div className="rider-stat">
+                        <div className="rider-stat-val">{r.performanceMetrics?.totalDeliveries ?? '—'}</div>
+                        <div className="rider-stat-lbl">Deliveries</div>
+                      </div>
+                      <div className="rider-stat">
+                        <div className="rider-stat-val">{r.completionRate ? `${parseFloat(r.completionRate).toFixed(0)}%` : '—'}</div>
+                        <div className="rider-stat-lbl">Completion</div>
+                      </div>
+                      <div className="rider-stat">
+                        <div className="rider-stat-val">{r.activeDeliveries ?? 0}</div>
+                        <div className="rider-stat-lbl">Active</div>
+                      </div>
+                      <div className="rider-stat">
+                        <div className="rider-stat-val">{r.isAvailable ? <span style={{ color: 'var(--green)' }}>Yes</span> : 'No'}</div>
+                        <div className="rider-stat-lbl">Available</div>
+                      </div>
+                    </div>
+                    <div className="rider-card-footer">
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                        <i className="fa-solid fa-motorcycle" style={{ fontSize: 9 }} /> {r.vehicle?.type ?? '—'} · {r.vehicle?.registrationNumber ?? '—'}
+                      </div>
+                      <span className="tag" style={{ fontSize: 9 }}>
+                        {r.serviceCities?.[0] ?? r.assignedZone ?? '—'}
+                      </span>
                     </div>
                   </div>
-                </div>
-                <div className="rider-card-stats">
-                  <div className="rider-stat"><div className="rider-stat-val">{r.deliveries}</div><div className="rider-stat-lbl">Deliveries</div></div>
-                  <div className="rider-stat"><div className="rider-stat-val">{r.completion}%</div><div className="rider-stat-lbl">Completion</div></div>
-                  <div className="rider-stat"><div className="rider-stat-val">{r.avgTime > 0 ? `${r.avgTime}m` : '—'}</div><div className="rider-stat-lbl">Avg Time</div></div>
-                  <div className="rider-stat"><div className="rider-stat-val">{r.rating > 0 ? r.rating : '—'}</div><div className="rider-stat-lbl">Rating ★</div></div>
-                </div>
-                <div className="rider-card-footer">
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                    <i className="fa-solid fa-motorcycle" style={{ fontSize: 9 }} /> {r.vehicle} · {r.plate}
-                  </div>
-                  <span className="tag" style={{ fontSize: 9 }}>{r.shift.split(' ')[0]}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div style={{ marginTop: 8 }}>
+              <CPagination current={currentPage} total={totalPages} totalItems={totalItems} start={start} end={end} onChange={setPage} />
+            </div>
+          )}
         </>
       )}
 
@@ -125,72 +227,107 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
                 <i className="fa-solid fa-magnifying-glass" />
                 <input placeholder="Search..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
               </div>
+              {(['', 'Active', 'Inactive', 'OnDelivery'] as const).map(f => (
+                <button key={f} className={`c-btn ${statusFilter === f ? 'active' : ''}`}
+                  onClick={() => { setStatusFilter(f); setPage(1); }}>
+                  {f === '' ? 'All' : riderStatusLabel(f)}
+                </button>
+              ))}
             </div>
             <div className="c-toolbar-right">
+              <button className="c-btn" onClick={fetchRiders}><i className="fa-solid fa-rotate" /> Refresh</button>
               <button className="c-btn"><i className="fa-solid fa-file-export" /> Export</button>
               <button className="c-btn primary" onClick={() => onNav('add')}>
                 <i className="fa-solid fa-plus" /> Add Rider
               </button>
             </div>
           </div>
+
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
                   <th><input type="checkbox" /></th>
                   <th>Rider</th><th>Phone</th><th>Vehicle</th><th>Zone</th>
-                  <th>Deliveries (MTD)</th><th>Completion %</th><th>Rating</th>
-                  <th>Status</th><th>Availability</th><th>Actions</th>
+                  <th>Total Deliveries</th><th>Completion %</th>
+                  <th>Active Deliveries</th><th>Status</th><th>Available</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {pageItems.map(r => (
-                  <tr key={r.id} onClick={() => onOpenRider(r)}>
-                    <td onClick={e => e.stopPropagation()}><input type="checkbox" /></td>
-                    <td>
-                      <div className="td-flex">
-                        <RiderAvatar rider={r} fontSize={9} />
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{r.name}</div>
-                          <div className="td-sub">{r.phone}</div>
+                {loading ? (
+                  <TableSkeleton rows={8} cols={11} />
+                ) : error ? (
+                  <tr><td colSpan={11} style={{ textAlign: 'center', padding: 24, color: 'var(--red)' }}>
+                    <i className="fa-solid fa-circle-exclamation" /> {error}
+                    <button className="c-btn" style={{ marginLeft: 8 }} onClick={fetchRiders}>Retry</button>
+                  </td></tr>
+                ) : riders.length === 0 ? (
+                  <tr><td colSpan={11}>
+                    <EmptyState icon="fa-person-biking" title="No riders found" desc="No riders match your search." />
+                  </td></tr>
+                ) : riders.map(r => {
+                  const rate = parseFloat(r.completionRate ?? '0');
+                  return (
+                    <tr key={r._id} onClick={() => onOpenRider(r)}>
+                      <td onClick={e => e.stopPropagation()}><input type="checkbox" /></td>
+                      <td>
+                        <div className="td-flex">
+                          <ApiRiderAvatar rider={r} fontSize={9} />
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{r.fullName}</div>
+                            <div className="td-sub">{r.email ?? r.phone}</div>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>{r.phone}</td>
-                    <td>
-                      <span className="tag">
-                        <i className="fa-solid fa-motorcycle" style={{ fontSize: 9, marginRight: 3 }} />
-                        {r.vehicle}
-                      </span>
-                    </td>
-                    <td><span className="tag">{r.zone}</span></td>
-                    <td>{r.deliveries}</td>
-                    <td><PerfBar pct={r.completion} color={rColor(r.completion)} /></td>
-                    <td>{r.rating > 0 ? <StarRating rating={r.rating} /> : '—'}</td>
-                    <td><Badge label={r.status} /></td>
-                    <td><Badge label={r.availability} /></td>
-                    <td onClick={e => e.stopPropagation()}>
-                      <button className="c-btn" style={{ height: 23, fontSize: 9.5 }} onClick={() => onOpenRider(r)}>
-                        <i className="fa-solid fa-eye" />
-                      </button>
-                      <button className="c-btn" style={{ height: 23, fontSize: 9.5, marginLeft: 3 }}>
-                        <i className="fa-solid fa-pen" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td>{r.phone}</td>
+                      <td>
+                        <span className="tag">
+                          <i className="fa-solid fa-motorcycle" style={{ fontSize: 9, marginRight: 3 }} />
+                          {r.vehicle?.type ?? '—'}
+                        </span>
+                      </td>
+                      <td><span className="tag">{r.assignedZone ?? '—'}</span></td>
+                      <td>{r.performanceMetrics?.totalDeliveries ?? '—'}</td>
+                      <td><PerfBar pct={rate} color={rColor(rate)} /></td>
+                      <td>{r.activeDeliveries ?? '—'}</td>
+                      <td><Badge label={riderStatusLabel(r.status)} /></td>
+                      <td>
+                        <span style={{ fontSize: 10.5, color: r.isAvailable ? 'var(--green)' : 'var(--text-muted)', fontWeight: 600 }}>
+                          {r.isAvailable ? 'Yes' : 'No'}
+                        </span>
+                      </td>
+                      <td onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 3 }}>
+                        <button className="c-btn" style={{ height: 23, fontSize: 9.5 }} onClick={() => onOpenRider(r)}>
+                          <i className="fa-solid fa-eye" />
+                        </button>
+                        <button
+                          className="c-btn"
+                          style={{ height: 23, fontSize: 9.5, color: r.status === 'Active' ? 'var(--yellow)' : 'var(--green)' }}
+                          title={r.status === 'Active' ? 'Set On Leave' : 'Set Active'}
+                          onClick={() => handleStatusUpdate(r._id, r.status === 'Active' ? 'OnLeave' : 'Active')}
+                        >
+                          <i className={`fa-solid fa-${r.status === 'Active' ? 'pause' : 'play'}`} />
+                        </button>
+                        <button
+                          className="c-btn"
+                          style={{ height: 23, fontSize: 9.5, color: 'var(--red)' }}
+                          title="Deactivate"
+                          onClick={() => handleDelete(r._id)}
+                        >
+                          <i className="fa-solid fa-ban" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-          <CPagination
-            current={page} total={Math.ceil(total / PER_PAGE)}
-            totalItems={total} start={start} end={end}
-            onChange={setPage}
-          />
+          <CPagination current={currentPage} total={totalPages} totalItems={totalItems} start={start} end={end} onChange={setPage} />
         </div>
       )}
 
-      {/* ── DOCUMENTS ── */}
+      {/* ── DOCUMENTS (static) ── */}
       {innerTab === 'docs' && (
         <div className="card">
           <div className="card-header">
@@ -228,7 +365,7 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
         </div>
       )}
 
-      {/* ── SCHEDULE ── */}
+      {/* ── SCHEDULE (static) ── */}
       {innerTab === 'schedule' && (
         <div className="card">
           <div className="card-header">

@@ -1,30 +1,50 @@
 import React, { useState } from 'react';
 
-// ═══════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════
-
+// ── Formatters ─────────────────────────────────────────────
 export const fmt = (n: number) => '₨' + Number(n).toLocaleString();
 
+export function fmtDate(iso: string): string {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleDateString('en-PK', {
+      day: '2-digit', month: 'short', year: 'numeric',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+export function fmtDateTime(iso: string): string {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString('en-PK', {
+      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+// ── Badge ──────────────────────────────────────────────────
 export function badgeClass(s: string): string {
   const m: Record<string, string> = {
-    'Collected': 'green', 'In Transit': 'yellow', 'Pending': 'yellow',
-    'Pending Submission': 'orange', 'Submitted': 'blue',
-    'Pending Verification': 'yellow', 'Verified': 'green',
-    'Overdue': 'red', 'Paid': 'green', 'Active': 'green', 'Inactive': 'gray',
-    'Available': 'green', 'Not Connected': 'yellow', 'Optional': 'orange',
+    Collected: 'green',    InTransit: 'yellow',   'In Transit': 'yellow',
+    Pending: 'yellow',     Submitted: 'blue',      Verified: 'green',
+    Overdue: 'red',        Paid: 'green',           Active: 'green',
+    Inactive: 'gray',      Available: 'green',      'Not Connected': 'yellow',
+    Optional: 'orange',    Cancelled: 'red',        Failed: 'red',
+    Delivered: 'green',    Partial: 'orange',       Refunded: 'blue',
+    high: 'red',           medium: 'yellow',        low: 'green',
+    cleared: 'green',
   };
   return m[s] || 'gray';
 }
-
-// ═══════════════════════════════════════════════════════════
-// REUSABLE MICRO-COMPONENTS
-// ═══════════════════════════════════════════════════════════
 
 export const Badge: React.FC<{ label: string }> = ({ label }) => (
   <span className={`badge ${badgeClass(label)}`}>{label}</span>
 );
 
+// ── Empty State ────────────────────────────────────────────
 export const EmptyState: React.FC<{ icon: string; title: string; desc: string }> = ({ icon, title, desc }) => (
   <div className="empty-state">
     <i className={`fa-solid ${icon}`} />
@@ -33,17 +53,60 @@ export const EmptyState: React.FC<{ icon: string; title: string; desc: string }>
   </div>
 );
 
-export const ToggleSwitch: React.FC<{ defaultChecked?: boolean }> = ({ defaultChecked = false }) => {
+// ── Skeleton loader row ────────────────────────────────────
+export const SkeletonRows: React.FC<{ cols: number; rows?: number }> = ({ cols, rows = 5 }) => (
+  <>
+    {Array.from({ length: rows }).map((_, i) => (
+      <tr key={i} style={{ opacity: 1 - i * 0.12 }}>
+        {Array.from({ length: cols }).map((_, j) => (
+          <td key={j}>
+            <div style={{
+              height: 11, borderRadius: 4,
+              background: 'linear-gradient(90deg,var(--divider) 25%,var(--bg) 50%,var(--divider) 75%)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 1.4s infinite',
+              width: j === 0 ? '60%' : '80%',
+            }} />
+          </td>
+        ))}
+      </tr>
+    ))}
+  </>
+);
+
+// ── Skeleton card ─────────────────────────────────────────
+export const SkeletonCard: React.FC<{ lines?: number }> = ({ lines = 3 }) => (
+  <div style={{ padding: '10px 14px' }}>
+    {Array.from({ length: lines }).map((_, i) => (
+      <div key={i} style={{
+        height: 12, borderRadius: 4, marginBottom: 10,
+        background: 'linear-gradient(90deg,var(--divider) 25%,var(--bg) 50%,var(--divider) 75%)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.4s infinite',
+        width: i === 0 ? '40%' : i === 1 ? '70%' : '55%',
+      }} />
+    ))}
+  </div>
+);
+
+// ── Toggle Switch ──────────────────────────────────────────
+export const ToggleSwitch: React.FC<{ defaultChecked?: boolean; onChange?: (v: boolean) => void }> = ({
+  defaultChecked = false, onChange,
+}) => {
   const [on, setOn] = useState(defaultChecked);
   return (
     <label className="toggle-switch">
-      <input type="checkbox" checked={on} onChange={e => setOn(e.target.checked)} />
+      <input
+        type="checkbox"
+        checked={on}
+        onChange={e => { setOn(e.target.checked); onChange?.(e.target.checked); }}
+      />
       <span className="toggle-track" />
     </label>
   );
 };
 
-// ── FPagination ──
+// ── Pagination ────────────────────────────────────────────
 interface FPagProps {
   current: number; total: number; totalItems: number;
   start: number; end: number; onChange: (p: number) => void;
@@ -77,7 +140,7 @@ export const FPagination: React.FC<FPagProps> = ({ current, total, totalItems, s
   );
 };
 
-// ── InnerTabs ──
+// ── Inner Tabs ────────────────────────────────────────────
 interface InnerTabsProps {
   tabs: { id: string; label: React.ReactNode }[];
   active: string;
@@ -90,5 +153,18 @@ export const InnerTabs: React.FC<InnerTabsProps> = ({ tabs, active, onChange }) 
         {t.label}
       </div>
     ))}
+  </div>
+);
+
+// ── Error Banner ──────────────────────────────────────────
+export const ErrorBanner: React.FC<{ message: string; onRetry?: () => void }> = ({ message, onRetry }) => (
+  <div className="alert-strip danger" style={{ marginBottom: 14 }}>
+    <i className="fa-solid fa-circle-exclamation" />
+    <div>{message}</div>
+    {onRetry && (
+      <button className="f-btn danger" style={{ marginLeft: 'auto', fontSize: 9.5 }} onClick={onRetry}>
+        <i className="fa-solid fa-rotate-right" /> Retry
+      </button>
+    )}
   </div>
 );

@@ -1,19 +1,60 @@
-// OverviewPanel.tsx
-import React from 'react';
+// OverviewPanel.tsx — dynamic
+import React, { useEffect, useState, useCallback } from 'react';
 import {
-  NavPanel, Rider,
-  RIDERS, ACTIVE_DELIVERIES, UNASSIGNED_ORDERS,
-  rColor,
-  Badge, PerfBar, RiderAvatar,
+  NavPanel, ApiRider, ApiDelivery,
+  ACTIVE_DELIVERIES, UNASSIGNED_ORDERS,
+  rColor, fmt, initials, avatarColorFromName, isRiderOnline, riderStatusLabel,
+  Badge, PerfBar, ApiRiderAvatar,
 } from './shared';
+import { ridersAPI } from '../../services/api';
 
 interface Props {
   onNav: (p: NavPanel) => void;
-  onOpenRider: (r: Rider) => void;
+  onOpenRider: (r: ApiRider) => void;
+}
+
+interface KPIs {
+  totalRiders: number;
+  activeRiders: number;
+  onlineNow: number;
+  avgCompletionRate: string;
 }
 
 const OverviewPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
-  const activeRiders = RIDERS.filter(r => r.status === 'Active');
+  const [riders,    setRiders]    = useState<ApiRider[]>([]);
+  const [kpis,      setKpis]      = useState<KPIs | null>(null);
+  const [perfData,  setPerfData]  = useState<any>(null);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('');
+    try {
+      const [rRes, pRes] = await Promise.allSettled([
+        ridersAPI.getAll({ limit: 20 }),
+        ridersAPI.getPerformance(),
+      ]);
+
+      if (rRes.status === 'fulfilled') {
+        const list: ApiRider[] = rRes.value.data?.data?.riders ?? [];
+        setRiders(list);
+        const active  = list.filter(r => r.status === 'Active').length;
+        const online  = list.filter(r => isRiderOnline(r)).length;
+        const total   = rRes.value.data?.data?.pagination?.totalItems ?? list.length;
+        const avgRate = list.length > 0
+          ? (list.reduce((a, r) => a + parseFloat(r.completionRate ?? '0'), 0) / list.length).toFixed(1)
+          : '0';
+        setKpis({ totalRiders: total, activeRiders: active, onlineNow: online, avgCompletionRate: avgRate });
+      }
+      if (pRes.status === 'fulfilled') setPerfData(pRes.value.data?.data ?? null);
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? 'Failed to load rider data.');
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const activeRiders = riders.filter(r => r.status === 'Active' || r.status === 'OnDelivery');
 
   return (
     <div className="rpanel active">
@@ -26,7 +67,7 @@ const OverviewPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
       <div className="alert-strip warn">
         <i className="fa-solid fa-triangle-exclamation" />
         <div>
-          <strong>5 orders</strong> in queue awaiting rider assignment ·{' '}
+          <strong>{UNASSIGNED_ORDERS.length} orders</strong> in queue awaiting rider assignment ·{' '}
           <strong>3 deliveries</strong> delayed beyond scheduled time.
         </div>
         <button className="c-btn" style={{ marginLeft: 'auto' }} onClick={() => onNav('assign')}>
@@ -35,19 +76,34 @@ const OverviewPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
       </div>
 
       <div className="mini-stats">
-        {[
-          { label: 'Active Riders (Today)', value: '6',   trend: '6 online · 2 offline', up: true  },
-          { label: 'Active Deliveries',     value: '8',   trend: 'In transit now',        up: false },
-          { label: 'Completed Today',       value: '34',  trend: '+6 vs yesterday',       up: true  },
-          { label: 'Avg. Delivery Time',    value: '42m', trend: '-8m vs last week',      up: true  },
-        ].map(s => (
-          <div className="mini-stat" key={s.label}>
-            <div className="ms-label">{s.label}</div>
-            <div className="ms-value">{s.value}</div>
-            <div className={`ms-trend ${s.up ? 'up' : ''}`}>{s.trend}</div>
-          </div>
-        ))}
+        <div className="mini-stat">
+          <div className="ms-label">Total Riders</div>
+          <div className="ms-value">{loading ? '…' : kpis?.totalRiders ?? '—'}</div>
+          <div className="ms-trend">{loading ? '' : `${kpis?.activeRiders ?? 0} active`}</div>
+        </div>
+        <div className="mini-stat">
+          <div className="ms-label">Online Now</div>
+          <div className="ms-value">{loading ? '…' : kpis?.onlineNow ?? '—'}</div>
+          <div className="ms-trend up"><i className="fa-solid fa-circle" style={{ color: 'var(--green)', fontSize: 7 }} /> Tracking active</div>
+        </div>
+        <div className="mini-stat">
+          <div className="ms-label">Avg. Completion</div>
+          <div className="ms-value">{loading ? '…' : `${kpis?.avgCompletionRate ?? '—'}%`}</div>
+          <div className="ms-trend up">Live average</div>
+        </div>
+        <div className="mini-stat">
+          <div className="ms-label">Active Deliveries</div>
+          <div className="ms-value">{ACTIVE_DELIVERIES.length}</div>
+          <div className="ms-trend">In transit now</div>
+        </div>
       </div>
+
+      {error && (
+        <div className="alert-strip danger" style={{ marginBottom: 12 }}>
+          <i className="fa-solid fa-circle-exclamation" /> {error}
+          <button className="c-btn" style={{ marginLeft: 'auto' }} onClick={load}>Retry</button>
+        </div>
+      )}
 
       <div className="detail-grid-3">
         {/* Rider Status */}
@@ -57,20 +113,31 @@ const OverviewPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
             <button className="c-btn" onClick={() => onNav('all')}>View All</button>
           </div>
           <div className="card-body" style={{ padding: '8px 14px' }}>
-            {RIDERS.slice(0, 5).map(r => (
-              <div className="list-item" key={r.id} style={{ cursor: 'pointer' }} onClick={() => onOpenRider(r)}>
-                <RiderAvatar rider={r} size={26} fontSize={9} />
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: 16, color: 'var(--text-muted)', fontSize: 11 }}>
+                <i className="fa-solid fa-spinner fa-spin" /> Loading…
+              </div>
+            ) : riders.slice(0, 5).map(r => (
+              <div className="list-item" key={r._id} style={{ cursor: 'pointer' }} onClick={() => onOpenRider(r)}>
+                <ApiRiderAvatar rider={r} size={26} fontSize={9} />
                 <div className="list-content">
-                  <div className="list-title">{r.name}</div>
-                  <div className="list-meta">{r.zone}</div>
+                  <div className="list-title">{r.fullName}</div>
+                  <div className="list-meta">{r.assignedZone ?? '—'}</div>
                 </div>
-                <div className="list-right"><Badge label={r.availability} /></div>
+                <div className="list-right">
+                  <Badge label={riderStatusLabel(r.status)} />
+                </div>
               </div>
             ))}
+            {!loading && riders.length === 0 && (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', padding: 12 }}>
+                No riders found.
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Active Now */}
+        {/* Active Now (static fallback) */}
         <div className="card">
           <div className="card-header">
             <div className="card-title"><i className="fa-solid fa-map-location-dot" /> Active Now</div>
@@ -88,7 +155,7 @@ const OverviewPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
           </div>
         </div>
 
-        {/* Pending Assignment */}
+        {/* Pending Assignment (static fallback) */}
         <div className="card">
           <div className="card-header">
             <div className="card-title"><i className="fa-solid fa-clipboard-list" /> Pending Assignment</div>
@@ -110,39 +177,48 @@ const OverviewPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
       {/* Performance Table */}
       <div className="card">
         <div className="card-header">
-          <div className="card-title">
-            <i className="fa-solid fa-trophy" /> Today's Rider Performance
-          </div>
-          <button className="c-btn"><i className="fa-solid fa-file-export" /> Export</button>
+          <div className="card-title"><i className="fa-solid fa-trophy" /> Rider Performance Snapshot</div>
+          <button className="c-btn" onClick={load}><i className="fa-solid fa-rotate" /> Refresh</button>
         </div>
         <div className="tbl-wrap">
           <table>
             <thead>
               <tr>
-                <th>Rider</th><th>Assigned</th><th>Completed</th><th>Failed</th>
-                <th>Completion %</th><th>Avg. Time</th><th>On-Time</th><th>Status</th>
+                <th>Rider</th><th>Zone</th><th>Total Deliveries</th><th>Completion Rate</th>
+                <th>Active Deliveries</th><th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {activeRiders.map(r => {
-                const daily = Math.round(r.deliveries / 30);
-                const done  = Math.round(daily * r.completion / 100);
-                const fail  = daily - done;
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}>
+                    {Array.from({ length: 6 }).map((_, j) => (
+                      <td key={j}><div style={{ height: 13, background: '#F3F4F6', borderRadius: 4, width: '70%' }} /></td>
+                    ))}
+                  </tr>
+                ))
+              ) : activeRiders.length === 0 ? (
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 11 }}>
+                  No active riders found.
+                </td></tr>
+              ) : activeRiders.map(r => {
+                const rate = parseFloat(r.completionRate ?? '0');
                 return (
-                  <tr key={r.id} onClick={() => onOpenRider(r)}>
+                  <tr key={r._id} onClick={() => onOpenRider(r)} style={{ cursor: 'pointer' }}>
                     <td>
                       <div className="td-flex">
-                        <RiderAvatar rider={r} size={26} fontSize={9} />
-                        {r.name.split(' ')[0]}
+                        <ApiRiderAvatar rider={r} size={26} fontSize={9} />
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{r.fullName}</div>
+                          <div className="td-sub">{r.phone}</div>
+                        </div>
                       </div>
                     </td>
-                    <td>{daily}</td>
-                    <td style={{ color: 'var(--green)', fontWeight: 600 }}>{done}</td>
-                    <td style={{ color: 'var(--red)' }}>{fail}</td>
-                    <td><PerfBar pct={r.completion} color={rColor(r.completion)} /></td>
-                    <td>{r.avgTime > 0 ? `${r.avgTime} min` : '—'}</td>
-                    <td><PerfBar pct={r.onTime} color={rColor(r.onTime)} /></td>
-                    <td><Badge label={r.availability} /></td>
+                    <td><span className="tag">{r.assignedZone ?? '—'}</span></td>
+                    <td>{r.performanceMetrics?.totalDeliveries ?? '—'}</td>
+                    <td><PerfBar pct={rate} color={rColor(rate)} /></td>
+                    <td>{r.activeDeliveries ?? '—'}</td>
+                    <td><Badge label={riderStatusLabel(r.status)} /></td>
                   </tr>
                 );
               })}

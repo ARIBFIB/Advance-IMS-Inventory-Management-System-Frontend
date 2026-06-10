@@ -1,9 +1,27 @@
-import React from 'react';
-import type { Integration } from './types';
+import React, { useState, useEffect } from 'react';
 import { Badge } from './helpers';
-import { INTEGRATIONS } from './data';
+import { integrationsAPI } from '../../services/api';
 
-const IntegCard: React.FC<{ int: Integration }> = ({ int }) => (
+interface IntegrationItem {
+  name: string;
+  desc: string;
+  logoText: string;
+  logoBg?: string;
+  status: string;
+}
+
+const STATIC_INTEGRATIONS: IntegrationItem[] = [
+  { name: 'Paymob',                desc: 'Accept online card payments. Automatically mark orders as prepaid on successful payment confirmation.',                             logoText: 'Paymob',    status: 'Not Connected' },
+  { name: 'JazzCash Business',     desc: 'Receive payments via JazzCash wallet. Auto-verify prepaid orders and log COD rider payouts.',                                       logoText: 'JazzCash',  logoBg: '#AA1F27', status: 'Not Connected' },
+  { name: 'EasyPaisa Business',    desc: 'Accept and verify EasyPaisa payments. Log digital COD submissions from riders automatically.',                                      logoText: 'EasyPaisa', logoBg: '#02a550', status: 'Not Connected' },
+  { name: 'Shopify',               desc: 'Sync Shopify order payments automatically. Prepaid Shopify orders appear verified instantly.',                                      logoText: 'SHOPIFY',   status: 'Not Connected' },
+  { name: 'QuickBooks',            desc: 'Export expenses, supplier payments, and revenue data to QuickBooks for full accounting integration.',                                logoText: 'QB',        status: 'Optional' },
+  { name: 'Microsoft Excel Export',desc: 'Export any financial dataset to formatted Excel sheets. Available for COD logs, expense reports, and P&L summaries.',              logoText: 'XLS',       logoBg: '#0078D4', status: 'Available' },
+  { name: 'Leopards Courier',      desc: 'Auto-import COD remittance data from Leopards courier portal. Match courier COD to order records for reconciliation.',             logoText: 'LCS',       status: 'Not Connected' },
+  { name: 'TCS Courier',           desc: 'Import TCS COD remittance reports. Auto-reconcile COD collected by TCS against pending order balances.',                           logoText: 'TCS',       status: 'Not Connected' },
+];
+
+const IntegCard: React.FC<{ int: IntegrationItem }> = ({ int }) => (
   <div className="integration-card">
     <div
       className="integration-logo"
@@ -45,10 +63,26 @@ const SectionLabel: React.FC<{ label: string; first?: boolean }> = ({ label, fir
 );
 
 const IntegrationsPanel: React.FC = () => {
-  const paymentGateways = INTEGRATIONS.slice(0, 3);
-  const ecommerce       = INTEGRATIONS.slice(3, 4);
-  const accounting      = INTEGRATIONS.slice(4, 6);
-  const banking         = INTEGRATIONS.slice(6);
+  const [liveStatus, setLiveStatus] = useState<any>(null);
+
+  useEffect(() => {
+    integrationsAPI.getStatus()
+      .then(r => setLiveStatus(r.data.data))
+      .catch(() => null);
+  }, []);
+
+  // Merge live status into integrations list
+  const integrations = STATIC_INTEGRATIONS.map(item => {
+    if (item.name === 'Shopify' && liveStatus?.shopify?.connected) {
+      return { ...item, status: 'Connected' };
+    }
+    return item;
+  });
+
+  const paymentGateways = integrations.slice(0, 3);
+  const ecommerce       = integrations.slice(3, 4);
+  const accounting      = integrations.slice(4, 6);
+  const banking         = integrations.slice(6);
 
   return (
     <>
@@ -61,6 +95,15 @@ const IntegrationsPanel: React.FC = () => {
         <i className="fa-solid fa-circle-info" />
         Connecting payment gateways enables automatic reconciliation of prepaid orders and COD updates in real time.
       </div>
+
+      {liveStatus?.shopify?.connected && (
+        <div className="alert-strip success" style={{ marginBottom: 12 }}>
+          <i className="fa-solid fa-circle-check" />
+          <div>
+            <strong>Shopify</strong> connected — {liveStatus.shopify.pendingOrders ?? 0} pending orders.
+          </div>
+        </div>
+      )}
 
       <SectionLabel label="Payment Gateways" first />
       {paymentGateways.map(i => <IntegCard key={i.name} int={i} />)}
