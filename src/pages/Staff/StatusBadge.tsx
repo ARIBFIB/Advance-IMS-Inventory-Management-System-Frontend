@@ -1,13 +1,13 @@
 // ═══════════════════════════════════════════════════════════
-// StatusBadge.tsx — Active / Offline / Suspended badge
+// StatusBadge.tsx — Active / Inactive / Suspended badge
 // ═══════════════════════════════════════════════════════════
 
 import React from 'react';
-import { StaffStatus } from './staff.types';
+import { ApiStatus } from './staff.types';
 import { statusBadgeClass, statusDotClass } from './staffData';
 
 interface Props {
-  status: StaffStatus;
+  status: ApiStatus;
 }
 
 const StatusBadge: React.FC<Props> = ({ status }) => (

@@ -1,15 +1,28 @@
 // ═══════════════════════════════════════════════════════════
 // RolesTab.tsx — Tab 2: Roles & Access
+// Member counts are fetched live from GET /api/users
 // ═══════════════════════════════════════════════════════════
 
-import React, { useState } from 'react';
-import { AccessLevel } from './staff.types';
+import React, { useState, useEffect } from 'react';
+import { AccessLevel, ApiRole } from './staff.types';
 import { ROLES_DATA, MATRIX_MODULES, levelBadgeClass } from './staffData';
+import { usersAPI } from '../../services/api';
 import ThreeDot from './ThreeDot';
 import Toggle from './Toggle';
 import PermissionsPanel from './PermissionsPanel';
 
 const MATRIX_COLS = ['Admin', 'Ops Manager', 'Inventory Mgr', 'Sales Operator', 'Accounts', 'Courier Handler', 'Rider'];
+
+// ── Role → ApiRole key map (display name → backend key) ──
+const ROLE_NAME_TO_API: Record<string, ApiRole> = {
+  'Administrator':    'Administrator',
+  'Ops Manager':      'OperationsManager',
+  'Inventory Manager':'InventoryManager',
+  'Sales Operator':   'SalesOperator',
+  'Accounts':         'Accounts',
+  'Courier Handler':  'CourierHandler',
+  'Rider':            'Rider',
+};
 
 // ── Role Form Side Panel ───────────────────────────────────
 interface RolePanelProps {
@@ -80,9 +93,43 @@ const RoleFormPanel: React.FC<RolePanelProps> = ({ editRoleName, onClose }) => (
 
 // ── Main Tab ───────────────────────────────────────────────
 const RolesTab: React.FC = () => {
-  const [selectedRole,   setSelectedRole]   = useState<{ name: string; idx: number } | null>(null);
-  const [showRolePanel,  setShowRolePanel]  = useState(false);
-  const [editRoleName,   setEditRoleName]   = useState<string | null>(null);
+  const [selectedRole,  setSelectedRole]  = useState<{ name: string; idx: number } | null>(null);
+  const [showRolePanel, setShowRolePanel] = useState(false);
+  const [editRoleName,  setEditRoleName]  = useState<string | null>(null);
+
+  // Live member counts keyed by ApiRole string
+  const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
+  const [countsLoading, setCountsLoading] = useState(true);
+
+  // Fetch all users (no pagination limit — use large limit) and count by role
+  useEffect(() => {
+    const load = async () => {
+      setCountsLoading(true);
+      try {
+        // Fetch up to 200 users; backend default is 20 so we pass limit explicitly
+        const res = await usersAPI.getAll({ limit: 200, page: 1 });
+        const users: { role: ApiRole }[] = res.data.data.users;
+        const counts: Record<string, number> = {};
+        users.forEach(u => {
+          counts[u.role] = (counts[u.role] ?? 0) + 1;
+        });
+        setMemberCounts(counts);
+      } catch {
+        // Non-critical — member count stays 0 if this fails
+      } finally {
+        setCountsLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Merge static ROLES_DATA with live member counts
+  const rolesWithCounts = ROLES_DATA.map(r => ({
+    ...r,
+    members: memberCounts[ROLE_NAME_TO_API[r.name] ?? r.name] ?? 0,
+  }));
+
+  const totalMembers = Object.values(memberCounts).reduce((s, n) => s + n, 0);
 
   return (
     <>
@@ -93,11 +140,14 @@ const RolesTab: React.FC = () => {
           Role-based access control (RBAC) restricts system access based on each user's assigned role.
           Changes to permissions apply immediately to all staff with that role.{' '}
           <strong>Admin role cannot be modified.</strong>
+          {!countsLoading && totalMembers > 0 && (
+            <> &nbsp;·&nbsp; <strong>{totalMembers}</strong> registered user{totalMembers !== 1 ? 's' : ''} across all roles.</>
+          )}
         </div>
       </div>
 
       <div className="grid-2" style={{ marginBottom: 14 }}>
-        {/* ── Roles Table ───────────────────────────────── */}
+        {/* ── Roles Table ──────────────────────────────── */}
         <div className="card">
           <div className="card-header">
             <div className="card-title"><i className="fa-solid fa-shield-halved" /> System Roles</div>
@@ -119,8 +169,12 @@ const RolesTab: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {ROLES_DATA.map((r, i) => (
-                  <tr key={r.name} onClick={() => setSelectedRole({ name: r.name, idx: i })} style={{ cursor: 'pointer' }}>
+                {rolesWithCounts.map((r, i) => (
+                  <tr
+                    key={r.name}
+                    onClick={() => setSelectedRole({ name: r.name, idx: i })}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <td>
                       <div className="td-flex">
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: r.color, flexShrink: 0 }} />
@@ -130,18 +184,23 @@ const RolesTab: React.FC = () => {
                         </div>
                       </div>
                     </td>
-                    <td><strong>{r.members}</strong></td>
+                    <td>
+                      {countsLoading
+                        ? <div style={{ width: 24, height: 10, background: 'var(--divider)', borderRadius: 3 }} />
+                        : <strong>{r.members}</strong>
+                      }
+                    </td>
                     <td><span className={`badge ${levelBadgeClass[r.level]}`}>{r.level}</span></td>
                     <td><span className="badge green">Active</span></td>
                     <td onClick={e => e.stopPropagation()}>
                       <ThreeDot
                         id={`role-dot-${i}`}
                         items={[
-                          { label: 'View Permissions', icon: 'fa-eye',   onClick: () => setSelectedRole({ name: r.name, idx: i }) },
+                          { label: 'View Permissions', icon: 'fa-eye',  onClick: () => setSelectedRole({ name: r.name, idx: i }) },
                           ...(r.name !== 'Administrator'
                             ? [
-                                { label: 'Edit Role',   icon: 'fa-pen',   onClick: () => { setEditRoleName(r.name); setShowRolePanel(true); } },
-                                { label: '---',         icon: '',          onClick: () => {} },
+                                { label: 'Edit Role',   icon: 'fa-pen',  onClick: () => { setEditRoleName(r.name); setShowRolePanel(true); } },
+                                { label: '---',         icon: '',         onClick: () => {} },
                                 { label: 'Delete Role', icon: 'fa-trash', danger: true, onClick: () => {} },
                               ]
                             : []
@@ -156,7 +215,7 @@ const RolesTab: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Role Detail / Permissions ──────────────────── */}
+        {/* ── Role Detail / Permissions ─────────────────── */}
         <div className="card">
           <div className="card-header">
             <div className="card-title">
@@ -175,13 +234,13 @@ const RolesTab: React.FC = () => {
               <>
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>
-                    {ROLES_DATA[selectedRole.idx].desc}
+                    {rolesWithCounts[selectedRole.idx].desc}
                   </div>
                   <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
                     <span className="tag">
-                      {ROLES_DATA[selectedRole.idx].members} member{ROLES_DATA[selectedRole.idx].members !== 1 ? 's' : ''}
+                      {rolesWithCounts[selectedRole.idx].members} member{rolesWithCounts[selectedRole.idx].members !== 1 ? 's' : ''}
                     </span>
-                    <span className="tag">Access: {ROLES_DATA[selectedRole.idx].level}</span>
+                    <span className="tag">Access: {rolesWithCounts[selectedRole.idx].level}</span>
                   </div>
                 </div>
                 <PermissionsPanel role={selectedRole.name} />
@@ -201,7 +260,7 @@ const RolesTab: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Permissions Matrix ─────────────────────────── */}
+      {/* ── Permissions Matrix ────────────────────────── */}
       <div className="card">
         <div className="card-header">
           <div className="card-title"><i className="fa-solid fa-table-columns" /> Permissions Matrix</div>
@@ -236,7 +295,7 @@ const RolesTab: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Add / Edit Role Panel ──────────────────────── */}
+      {/* ── Add / Edit Role Panel ─────────────────────── */}
       {showRolePanel && (
         <RoleFormPanel
           editRoleName={editRoleName}
