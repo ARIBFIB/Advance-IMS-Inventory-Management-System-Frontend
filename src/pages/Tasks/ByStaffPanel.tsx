@@ -3,18 +3,19 @@
 // ═══════════════════════════════════════════════════════════
 
 import React from 'react';
-import { Task } from './types';
-import { getStaffColor, getStaffRole, initials } from './helpers';
+import type { Task } from './types';
+import { getStaffColor, initials } from './helpers';
 import { Badge, ProgressBar } from './MicroComponents';
 
 interface ByStaffPanelProps {
-  tasks: Task[];
+  tasks:      Task[];
+  loading:    boolean;
   onOpenTask: (id: string) => void;
 }
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-const ByStaffPanel: React.FC<ByStaffPanelProps> = ({ tasks, onOpenTask }) => {
+const ByStaffPanel: React.FC<ByStaffPanelProps> = ({ tasks, loading, onOpenTask }) => {
   // Group tasks by assignee
   const grouped: Record<string, Task[]> = {};
   tasks.forEach(t => {
@@ -22,7 +23,6 @@ const ByStaffPanel: React.FC<ByStaffPanelProps> = ({ tasks, onOpenTask }) => {
     grouped[t.assignee].push(t);
   });
 
-  // Completion rate per staff member
   const staffRates = Object.entries(grouped).map(([name, staffTasks]) => ({
     name,
     pct: Math.round(
@@ -32,13 +32,33 @@ const ByStaffPanel: React.FC<ByStaffPanelProps> = ({ tasks, onOpenTask }) => {
 
   const topPerformers = [...staffRates].sort((a, b) => b.pct - a.pct).slice(0, 3);
 
+  if (loading) {
+    return (
+      <div className="tasks-layout">
+        <div>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div className="staff-col" key={i} style={{ marginBottom: 10 }}>
+              <div className="staff-col-head">
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--divider)' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ height: 10, borderRadius: 3, background: 'var(--divider)', width: '50%', marginBottom: 6 }} />
+                  <div style={{ height: 8,  borderRadius: 3, background: 'var(--divider)', width: '35%' }} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div />
+      </div>
+    );
+  }
+
   return (
     <div className="tasks-layout">
       {/* ── Left: grouped task lists ── */}
       <div>
         {Object.entries(grouped).map(([name, staffTasks]) => {
           const color    = getStaffColor(name);
-          const role     = getStaffRole(name);
           const done     = staffTasks.filter(t => t.status === 'Done').length;
           const total    = staffTasks.length;
           const pct      = Math.round((done / total) * 100);
@@ -46,7 +66,6 @@ const ByStaffPanel: React.FC<ByStaffPanelProps> = ({ tasks, onOpenTask }) => {
 
           return (
             <div className="staff-col" key={name}>
-              {/* Staff Header */}
               <div className="staff-col-head">
                 <div
                   className="row-avatar"
@@ -56,29 +75,24 @@ const ByStaffPanel: React.FC<ByStaffPanelProps> = ({ tasks, onOpenTask }) => {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 700 }}>{name}</div>
-                  <div style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>{role}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 13, fontWeight: 800, color: pctColor }}>{pct}%</div>
-                  <div style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>
-                    {done}/{total} done
-                  </div>
+                  <div style={{ fontSize: 9.5, color: 'var(--text-muted)' }}>{done}/{total} done</div>
                 </div>
               </div>
 
-              {/* Staff Body */}
               <div className="staff-col-body">
-                {/* Overall progress */}
                 <div className="prog-bar" style={{ marginBottom: 8 }}>
                   <div className="prog-fill" style={{ width: `${pct}%`, background: pctColor }} />
                 </div>
 
-                {/* Task list */}
                 {staffTasks.map(t => {
                   const iconClass =
                     t.status === 'Done'        ? 'fa-circle-check ic-green'       :
                     t.status === 'Overdue'     ? 'fa-triangle-exclamation ic-red' :
                     t.status === 'In Progress' ? 'fa-spinner ic-blue'             :
+                    t.status === 'Cancelled'   ? 'fa-ban ic-muted'                :
                                                  'fa-clock ic-muted';
 
                   const bgColor =
@@ -115,7 +129,6 @@ const ByStaffPanel: React.FC<ByStaffPanelProps> = ({ tasks, onOpenTask }) => {
 
       {/* ── Right: sidebar cards ── */}
       <div>
-        {/* Completion Rates Card */}
         <div className="card" style={{ marginBottom: 12 }}>
           <div className="card-header">
             <div className="card-title">
@@ -149,11 +162,10 @@ const ByStaffPanel: React.FC<ByStaffPanelProps> = ({ tasks, onOpenTask }) => {
           </div>
         </div>
 
-        {/* Top Performers Card */}
         <div className="card">
           <div className="card-header">
             <div className="card-title">
-              <i className="fa-solid fa-trophy" style={{ color: 'var(--yellow)' }} /> Top Performers Today
+              <i className="fa-solid fa-trophy" style={{ color: 'var(--yellow)' }} /> Top Performers
             </div>
           </div>
           <div className="card-body" style={{ padding: '8px 14px' }}>

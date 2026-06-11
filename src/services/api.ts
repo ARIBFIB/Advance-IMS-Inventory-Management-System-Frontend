@@ -15,6 +15,11 @@ import type {
   UpdateExpensePayload,
   RecordSupplierPaymentPayload,
 } from '../types/finance';
+import type {
+  CreateTaskPayload,
+  UpdateTaskPayload,
+  UpdateTaskStatusPayload,
+} from '../types/task';
 
 // ── Base URL ───────────────────────────────────────────────
 const BASE_URL =
@@ -128,13 +133,8 @@ export const categoriesAPI = {
 
 // ─────────────────────────────────────────────────────────
 // 5. SUPPLIERS  (/api/suppliers)
-// Roles: any (read) | Accounts | InventoryManager | Administrator (write)
 // ─────────────────────────────────────────────────────────
 export const suppliersAPI = {
-  /**
-   * List suppliers with filters.
-   * hasBalance: true → only suppliers with outstanding > 0
-   */
   getAll: (params?: {
     page?: number;
     limit?: number;
@@ -156,11 +156,6 @@ export const suppliersAPI = {
 
   delete: (id: string) => api.delete(`/suppliers/${id}`),
 
-  /**
-   * Manually adjust a supplier balance.
-   * adjustmentType 'credit' → reduces balance (payment made).
-   * adjustmentType 'debit'  → increases balance (new purchase).
-   */
   adjustBalance: (id: string, data: {
     adjustment: number;
     adjustmentType: 'credit' | 'debit';
@@ -168,12 +163,6 @@ export const suppliersAPI = {
     reference?: string;
   }) => api.patch(`/suppliers/${id}/balance`, data),
 
-  // ── Nested Payments  /api/suppliers/:id/payments ──────
-
-  /**
-   * Full payment history for one supplier.
-   * Roles: Administrator | OperationsManager | Accounts
-   */
   getPayments: (id: string, params?: {
     page?: number;
     limit?: number;
@@ -186,26 +175,12 @@ export const suppliersAPI = {
   getPaymentById: (id: string, paymentId: string) =>
     api.get(`/suppliers/${id}/payments/${paymentId}`),
 
-  /**
-   * Record a new payment to a supplier.
-   * Auto-decrements outstanding balance on the supplier record.
-   */
   recordPayment: (id: string, data: RecordSupplierPaymentPayload) =>
     api.post(`/suppliers/${id}/payments`, data),
 
-  /**
-   * Void/reverse a payment. Requires a reason string.
-   * Roles: Administrator | OperationsManager
-   */
   voidPayment: (id: string, paymentId: string, reason: string) =>
     api.patch(`/suppliers/${id}/payments/${paymentId}/void`, { reason }),
 
-  /**
-   * Outstanding balances across ALL suppliers.
-   * Used by: Finance Overview → Supplier Dues widget
-   *          Finance Suppliers → summary stats
-   * Roles: Administrator | OperationsManager | Accounts
-   */
   getPaymentsSummary: (params?: {
     sortBy?: 'outstanding' | 'totalPaid' | 'name' | 'lastPayment';
     order?: 'asc' | 'desc';
@@ -215,13 +190,8 @@ export const suppliersAPI = {
 
 // ─────────────────────────────────────────────────────────
 // 6. EXPENSES  (/api/expenses)
-// Roles: Accounts | Administrator (write) | any (read)
 // ─────────────────────────────────────────────────────────
 export const expensesAPI = {
-  /**
-   * List expenses with filters.
-   * status: 'Active' | 'Cancelled'
-   */
   getAll: (params?: {
     page?: number;
     limit?: number;
@@ -231,32 +201,17 @@ export const expensesAPI = {
     status?: 'Active' | 'Cancelled';
   }) => api.get('/expenses', { params }),
 
-  /** Single expense with attachments */
   getById: (id: string) => api.get(`/expenses/${id}`),
 
-  /** Record a new expense */
   create: (data: CreateExpensePayload) => api.post('/expenses', data),
 
-  /** Update an existing expense */
   update: (id: string, data: UpdateExpensePayload) => api.put(`/expenses/${id}`, data),
 
-  /**
-   * Soft-cancel an expense (financial audit preserved).
-   * @param reason Optional cancellation reason
-   */
   delete: (id: string, reason?: string) =>
     api.delete(`/expenses/${id}`, { data: reason ? { reason } : undefined }),
 
-  /**
-   * Valid categories enum from server.
-   * Returns: { data: { categories: string[], total: number } }
-   */
   getCategories: () => api.get('/expenses/categories'),
 
-  /**
-   * Dashboard KPIs + category breakdown + timeline.
-   * groupBy: 'day' | 'month' | 'category'
-   */
   getAnalytics: (params?: {
     dateFrom?: string;
     dateTo?: string;
@@ -266,7 +221,6 @@ export const expensesAPI = {
 
 // ─────────────────────────────────────────────────────────
 // 7. SUPPLIER PAYMENTS — flat routes (legacy / backward compat)
-//    Prefer suppliersAPI.recordPayment for new code.
 // ─────────────────────────────────────────────────────────
 export const supplierPaymentsAPI = {
   getAll:  (params?: object)          => api.get('/supplier-payments', { params }),
@@ -343,14 +297,9 @@ export const ordersAPI = {
 };
 
 // ─────────────────────────────────────────────────────────
-// 9. FINANCE ORDERS — filtered queries for Finance panels
-// Convenience wrappers around ordersAPI for COD / Prepaid views.
+// 9. FINANCE ORDERS
 // ─────────────────────────────────────────────────────────
 export const financeOrdersAPI = {
-  /**
-   * COD Tracking panel — orders where paymentMethod = 'COD'.
-   * deliveryStatus maps to OutForDelivery / Delivered / Failed etc.
-   */
   getCODOrders: (params?: {
     page?: number;
     limit?: number;
@@ -363,9 +312,6 @@ export const financeOrdersAPI = {
       params: { paymentMethod: 'COD', ...params },
     }),
 
-  /**
-   * Prepaid Orders panel — orders where paymentMethod = 'Prepaid'.
-   */
   getPrepaidOrders: (params?: {
     page?: number;
     limit?: number;
@@ -377,19 +323,12 @@ export const financeOrdersAPI = {
       params: { paymentMethod: 'Prepaid', ...params },
     }),
 
-  /**
-   * Mark COD as submitted / verify prepaid.
-   * paymentStatus: 'Paid' | 'Pending' | 'Partial'
-   */
   updatePaymentStatus: (id: string, paymentStatus: string, notes?: string) =>
     api.patch(`/orders/${id}/payment`, {
       paymentStatus,
       ...(notes ? { notes } : {}),
     }),
 
-  /**
-   * Update delivery status — used in "Contact Rider" flows.
-   */
   updateDeliveryStatus: (id: string, deliveryStatus: string, trackingNumber?: string) =>
     api.patch(`/orders/${id}/delivery`, {
       deliveryStatus,
@@ -428,16 +367,56 @@ export const stockAPI = {
 // 12. TASKS  (/api/tasks)
 // ─────────────────────────────────────────────────────────
 export const tasksAPI = {
-  getAll:       (params?: object)             => api.get('/tasks', { params }),
-  getById:      (id: string)                  => api.get(`/tasks/${id}`),
-  create:       (data: object)                => api.post('/tasks', data),
-  update:       (id: string, data: object)    => api.put(`/tasks/${id}`, data),
-  updateStatus: (id: string, status: string, completionNote?: string) =>
-    api.patch(`/tasks/${id}/status`, { status, ...(completionNote ? { completionNote } : {}) }),
+  getAll:  (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    priority?: string;
+    assignee?: string;   // MongoID
+    overdue?: boolean;
+  }) => api.get('/tasks', { params }),
+
+  getById: (id: string) => api.get(`/tasks/${id}`),
+
+  /**
+   * Create and assign a task.
+   * Auth: Administrator | OperationsManager | InventoryManager
+   * priority: 'Low' | 'Medium' | 'High'  (backend does NOT accept 'Critical' on create)
+   */
+  create: (data: CreateTaskPayload) => api.post('/tasks', data),
+
+  /**
+   * Update task fields (title, description, dueDate, priority).
+   * Auth: Administrator | OperationsManager | InventoryManager
+   */
+  update: (id: string, data: UpdateTaskPayload) => api.put(`/tasks/${id}`, data),
+
+  /**
+   * Update task status via the backend state machine.
+   * Valid transitions:
+   *   Pending → InProgress → Completed
+   *   Pending | InProgress → Cancelled
+   * Auth: any role
+   */
+  updateStatus: (id: string, data: UpdateTaskStatusPayload) =>
+    api.patch(`/tasks/${id}/status`, data),
+
+  /**
+   * Cancel / soft-delete a task.
+   * Auth: Administrator | OperationsManager
+   */
   delete: (id: string, reason?: string) =>
     api.delete(`/tasks/${id}`, { data: reason ? { reason } : undefined }),
-  getMy:    (params?: object) => api.get('/tasks/my', { params }),
-  getStats: (params?: object) => api.get('/tasks/stats', { params }),
+
+  /** Get current user's active tasks (default: Pending, InProgress). */
+  getMy: (params?: { status?: string }) => api.get('/tasks/my', { params }),
+
+  /**
+   * Task dashboard KPIs.
+   * Response wrapped in `result` key (not `data`):
+   *   { success, result: { total, pending, inProgress, completed, cancelled, overdue, highPriority } }
+   */
+  getStats: (params?: { assignee?: string }) => api.get('/tasks/stats', { params }),
 };
 
 // ─────────────────────────────────────────────────────────
@@ -535,26 +514,15 @@ export const analyticsAPI = {
 };
 
 // ─────────────────────────────────────────────────────────
-// 18. FINANCIAL ANALYTICS — typed wrappers for Finance page
-// Thin wrappers over analyticsAPI with explicit param types.
-// Roles: Administrator | Accounts | OperationsManager
+// 18. FINANCIAL ANALYTICS
 // ─────────────────────────────────────────────────────────
 export const financialAnalyticsAPI = {
-  /**
-   * Finance Overview KPIs + Revenue vs Expenses chart + supplier dues.
-   * Powers: OverviewPanel balance card, mini-stats, chart widget.
-   * Returns: kpis, timeline[], expenseByCategory[], outstandingSuppliers[]
-   */
   getFinancial: (params?: {
     from?: string;
     to?: string;
     groupBy?: 'day' | 'month';
   }) => api.get('/analytics/financial', { params }),
 
-  /**
-   * Sales breakdown by channel, payment method, and order status.
-   * Powers: ReportsPanel monthly summary table, PLPanel revenue breakdown.
-   */
   getSales: (params?: {
     from?: string;
     to?: string;
@@ -562,11 +530,6 @@ export const financialAnalyticsAPI = {
     source?: string;
   }) => api.get('/analytics/sales', { params }),
 
-  /**
-   * Master dashboard KPIs — all modules in one call.
-   * Powers: Finance Overview hero balance card.
-   * Returns: orders, revenue, inventory, customers, expenses, tasks
-   */
   getDashboard: (params?: {
     from?: string;
     to?: string;
@@ -578,7 +541,6 @@ export const financialAnalyticsAPI = {
 // ─────────────────────────────────────────────────────────
 export const integrationsAPI = {
   getStatus:             ()             => api.get('/integrations/status'),
-  // Shopify
   testShopify:           ()             => api.post('/integrations/shopify/test'),
   syncShopifyOrders:     ()             => api.post('/integrations/shopify/sync-orders'),
   syncShopifyInventory:  (productId?: string) =>
@@ -586,7 +548,6 @@ export const integrationsAPI = {
   getShopifyProducts:    ()             => api.get('/integrations/shopify/products'),
   getShopifyConfig:      ()             => api.get('/integrations/shopify/config'),
   updateShopifyConfig:   (data: object) => api.put('/integrations/shopify/config', data),
-  // AfterShip
   testAfterShip:         ()             => api.post('/integrations/aftership/test'),
   getAfterShipStatus:    ()             => api.get('/integrations/aftership/status'),
   syncAfterShip:         ()             => api.post('/integrations/aftership/sync-tracking'),

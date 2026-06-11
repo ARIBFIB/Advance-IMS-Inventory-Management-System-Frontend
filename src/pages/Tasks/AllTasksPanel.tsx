@@ -3,54 +3,128 @@
 // ═══════════════════════════════════════════════════════════
 
 import React, { useState } from 'react';
-import { Task } from './types';
-import { STAFF_LIST } from './constants';
-import { getStaffColor, getStaffRole, initials, progressColor } from './helpers';
-import { Badge, PriorityDot, ProgressBar } from './MicroComponents';
+import type { Task, ApiUser } from './types';
+import { getStaffColor, initials, progressColor } from './helpers';
+import { Badge, PriorityDot, ProgressBar, SkeletonRows, EmptyState } from './MicroComponents';
+import { STATUS_CHIPS } from './constants';
 
 interface AllTasksPanelProps {
-  tasks: Task[];
-  onOpenTask: (id: string) => void;
-  onMarkDone: (id: string) => void;
-  onNewTask: () => void;
+  tasks:        Task[];
+  users:        ApiUser[];
+  loading:      boolean;
+  totalItems:   number;
+  page:         number;
+  totalPages:   number;
+  onPageChange: (p: number) => void;
+  onOpenTask:   (id: string) => void;
+  onMarkDone:   (id: string) => void;
+  onNewTask:    () => void;
+  onFilter:     (params: { status?: string; priority?: string; assignee?: string }) => void;
 }
 
-const CHIPS = [
-  { label: 'All',         value: '',            icon: 'fa-list'                },
-  { label: 'Pending',     value: 'Pending',     icon: ''                       },
-  { label: 'In Progress', value: 'In Progress', icon: ''                       },
-  { label: 'Done',        value: 'Done',        icon: ''                       },
-  { label: 'Overdue',     value: 'Overdue',     icon: 'fa-triangle-exclamation' },
-  { label: '🔴 High',    value: 'High',         icon: ''                       },
-  { label: '🟡 Medium',  value: 'Medium',       icon: ''                       },
-  { label: '🟢 Low',     value: 'Low',          icon: ''                       },
-];
-
-const AllTasksPanel: React.FC<AllTasksPanelProps> = ({ tasks, onOpenTask, onMarkDone, onNewTask }) => {
+const AllTasksPanel: React.FC<AllTasksPanelProps> = ({
+  tasks, users, loading, totalItems, page, totalPages,
+  onPageChange, onOpenTask, onMarkDone, onNewTask, onFilter,
+}) => {
   const [search,         setSearch]         = useState('');
   const [chipFilter,     setChipFilter]     = useState('');
   const [assigneeFilter, setAssigneeFilter] = useState('');
 
-  const filtered = tasks.filter(t => {
-    const q           = search.toLowerCase();
-    const matchSearch = !search
-      || t.title.toLowerCase().includes(q)
-      || t.assignee.toLowerCase().includes(q)
-      || t.id.toLowerCase().includes(q);
-    const matchChip     = !chipFilter     || t.status === chipFilter || t.priority === chipFilter;
-    const matchAssignee = !assigneeFilter || t.assignee === assigneeFilter;
-    return matchSearch && matchChip && matchAssignee;
-  });
+  // ── Client-side search filter on current page ────────────
+  const filtered = search
+    ? tasks.filter(t => {
+        const q = search.toLowerCase();
+        return (
+          t.title.toLowerCase().includes(q) ||
+          t.assignee.toLowerCase().includes(q) ||
+          t.id.toLowerCase().includes(q)
+        );
+      })
+    : tasks;
+
+  // ── Chip filter → API call via onFilter ─────────────────
+  const handleChip = (value: string) => {
+    // Toggle off if same chip clicked again
+    const next = chipFilter === value ? '' : value;
+    setChipFilter(next);
+
+    if (!next) {
+      // Reset: fetch all
+      onFilter({});
+      return;
+    }
+
+    const isPriority = ['High', 'Medium', 'Low'].includes(next);
+    const isStatus   = ['Pending', 'In Progress', 'Done', 'Overdue', 'Cancelled'].includes(next);
+
+    onFilter({
+      priority: isPriority ? next : undefined,
+      // Map UI label → API status value
+      status: isStatus
+        ? next === 'In Progress' ? 'InProgress'
+        : next === 'Done'        ? 'Completed'
+        : next === 'Overdue'     ? 'Pending'    // backend has no 'Overdue' status; filter Pending + client detects overdue
+        : next
+        : undefined,
+    });
+  };
+
+  // ── Assignee filter → API call via onFilter ──────────────
+  const handleAssignee = (id: string) => {
+    setAssigneeFilter(id);
+    onFilter({ assignee: id || undefined });
+  };
+
+  // ── Pagination display range ─────────────────────────────
+  const PAGE_SIZE = 20;
+  const start = totalItems === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const end   = Math.min(page * PAGE_SIZE, totalItems);
+
+  // ── Render pagination buttons (max 7 visible) ───────────
+  const renderPageButtons = () => {
+    if (totalPages <= 1) return null;
+
+    const buttons: React.ReactNode[] = [];
+    let startPage = Math.max(1, page - 3);
+    let endPage   = Math.min(totalPages, startPage + 6);
+    // Adjust window if near the end
+    if (endPage - startPage < 6) startPage = Math.max(1, endPage - 6);
+
+    for (let p = startPage; p <= endPage; p++) {
+      buttons.push(
+        <button
+          key={p}
+          className={`pag-btn ${p === page ? 'active' : ''}`}
+          onClick={() => onPageChange(p)}
+        >
+          {p}
+        </button>
+      );
+    }
+
+    if (endPage < totalPages) {
+      buttons.push(
+        <button key="ellipsis" className="pag-btn" style={{ pointerEvents: 'none' }}>…</button>
+      );
+      buttons.push(
+        <button key={totalPages} className="pag-btn" onClick={() => onPageChange(totalPages)}>
+          {totalPages}
+        </button>
+      );
+    }
+
+    return buttons;
+  };
 
   return (
     <>
       {/* ── Chip Filters ── */}
       <div className="chip-group">
-        {CHIPS.map(c => (
+        {STATUS_CHIPS.map(c => (
           <div
             key={c.value}
             className={`chip ${chipFilter === c.value ? 'active' : ''}`}
-            onClick={() => setChipFilter(c.value)}
+            onClick={() => handleChip(c.value)}
           >
             {c.icon && (
               <i
@@ -76,17 +150,18 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({ tasks, onOpenTask, onMark
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <button className="t-btn">
-              <i className="fa-solid fa-calendar" /> Due Date
-            </button>
             <select
               className="form-select"
               style={{ height: 27, fontSize: '10.5px' }}
               value={assigneeFilter}
-              onChange={e => setAssigneeFilter(e.target.value)}
+              onChange={e => handleAssignee(e.target.value)}
             >
               <option value="">All Staff</option>
-              {STAFF_LIST.map(s => <option key={s.name}>{s.name}</option>)}
+              {users.map(u => (
+                <option key={u._id} value={u._id}>
+                  {u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : u.username}
+                </option>
+              ))}
             </select>
           </div>
           <div className="toolbar-right">
@@ -117,7 +192,19 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({ tasks, onOpenTask, onMark
               </tr>
             </thead>
             <tbody>
-              {filtered.map(t => {
+              {loading ? (
+                <SkeletonRows cols={10} rows={8} />
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={10}>
+                    <EmptyState
+                      icon="fa-clipboard-list"
+                      title="No tasks found"
+                      desc="Try adjusting your filters."
+                    />
+                  </td>
+                </tr>
+              ) : filtered.map(t => {
                 const color    = getStaffColor(t.assignee);
                 const barColor = progressColor(t.status);
                 return (
@@ -132,7 +219,7 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({ tasks, onOpenTask, onMark
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 11 }}>{t.title}</div>
                           <div className="td-sub">
-                            <code className="ref">{t.id}</code>
+                            <code className="ref">{t.id.slice(-8)}</code>
                             {t.linked !== '—' && (
                               <> · <span className="tag">{t.linked}</span></>
                             )}
@@ -145,16 +232,10 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({ tasks, onOpenTask, onMark
 
                     <td>
                       <div className="td-flex">
-                        <div
-                          className="row-avatar"
-                          style={{ background: color }}
-                        >
+                        <div className="row-avatar" style={{ background: color }}>
                           {initials(t.assignee)}
                         </div>
-                        <div>
-                          <div style={{ fontSize: '10.5px', fontWeight: 500 }}>{t.assignee}</div>
-                          <div className="td-sub">{getStaffRole(t.assignee)}</div>
-                        </div>
+                        <div style={{ fontSize: '10.5px', fontWeight: 500 }}>{t.assignee}</div>
                       </div>
                     </td>
 
@@ -184,7 +265,8 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({ tasks, onOpenTask, onMark
                     </td>
 
                     <td onClick={e => e.stopPropagation()}>
-                      {t.status !== 'Done' && (
+                      {/* Only show Mark Done for Pending / In Progress / Overdue */}
+                      {(t.status === 'Pending' || t.status === 'In Progress' || t.status === 'Overdue') && (
                         <button
                           className="t-btn primary"
                           style={{ height: 22, fontSize: 9.5 }}
@@ -210,10 +292,25 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({ tasks, onOpenTask, onMark
 
         {/* ── Pagination ── */}
         <div className="pagination">
-          <div>Showing 1–{filtered.length} of {filtered.length} tasks</div>
+          <div>
+            Showing <strong>{start}–{end}</strong> of <strong>{totalItems}</strong> tasks
+          </div>
           <div className="pag-controls">
-            <button className="pag-btn active">1</button>
-            {filtered.length > 10 && <button className="pag-btn">2</button>}
+            <button
+              className="pag-btn"
+              disabled={page <= 1}
+              onClick={() => onPageChange(page - 1)}
+            >
+              ‹
+            </button>
+            {renderPageButtons()}
+            <button
+              className="pag-btn"
+              disabled={page >= totalPages}
+              onClick={() => onPageChange(page + 1)}
+            >
+              ›
+            </button>
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════
 
 import React, { useState } from 'react';
-import { TaskPriority } from './types';
+import type { TaskPriority } from './types';
 import { badgeClass } from './helpers';
 
 // ── Badge ────────────────────────────────────────────────────
@@ -48,6 +48,27 @@ export const EmptyState: React.FC<{ icon: string; title: string; desc?: string }
   </div>
 );
 
+// ── Skeleton rows ────────────────────────────────────────────
+export const SkeletonRows: React.FC<{ cols: number; rows?: number }> = ({ cols, rows = 5 }) => (
+  <>
+    {Array.from({ length: rows }).map((_, i) => (
+      <tr key={i} style={{ opacity: 1 - i * 0.15 }}>
+        {Array.from({ length: cols }).map((_, j) => (
+          <td key={j}>
+            <div style={{
+              height: 10, borderRadius: 3,
+              background: 'linear-gradient(90deg,var(--divider) 25%,var(--bg) 50%,var(--divider) 75%)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 1.4s infinite',
+              width: j === 0 ? '55%' : '75%',
+            }} />
+          </td>
+        ))}
+      </tr>
+    ))}
+  </>
+);
+
 // ── Inner Tabs ───────────────────────────────────────────────
 interface InnerTabsProps {
   tabs: { id: string; label: React.ReactNode }[];
@@ -65,5 +86,18 @@ export const InnerTabs: React.FC<InnerTabsProps> = ({ tabs, active, onChange }) 
         {t.label}
       </div>
     ))}
+  </div>
+);
+
+// ── Error Banner ─────────────────────────────────────────────
+export const ErrorBanner: React.FC<{ message: string; onRetry?: () => void }> = ({ message, onRetry }) => (
+  <div className="alert-strip danger" style={{ marginBottom: 14 }}>
+    <i className="fa-solid fa-circle-exclamation" />
+    <div>{message}</div>
+    {onRetry && (
+      <button className="t-btn danger" style={{ marginLeft: 'auto' }} onClick={onRetry}>
+        <i className="fa-solid fa-rotate-right" /> Retry
+      </button>
+    )}
   </div>
 );
