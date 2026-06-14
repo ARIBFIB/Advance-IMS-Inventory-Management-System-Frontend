@@ -26,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, currentPath }) => {
     { path: '/reports',   icon: 'fa-chart-pie',      label: 'Reports' },
     { path: '/settings',  icon: 'fa-gear',           label: 'Settings' },
     { path: '/security',  icon: 'fa-shield-halved',  label: 'Security' },
-    { path: '/audit',     icon: 'fa-file-alt',       label: 'Audit Logs' },
+    // { path: '/audit',     icon: 'fa-file-alt',       label: 'Audit Logs' },
   ];
 
   const handleLogout = async () => {
