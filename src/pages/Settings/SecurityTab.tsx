@@ -1,34 +1,6 @@
 import React from 'react';
 import { StgToggleRow, StgRow } from './SettingsShared';
 
-// ── Types ──────────────────────────────────────────────────
-
-interface SecurityEvent {
-  time: string;
-  event: string;
-  user: string;
-  ip: string;
-  device: string;
-  severity: 'Info' | 'Warning' | 'Critical';
-}
-
-// ── Static Data ────────────────────────────────────────────
-
-const SECURITY_LOG: SecurityEvent[] = [
-  { time: '11 May 09:12', event: 'Successful Login',  user: 'Admin Khan',  ip: '192.168.1.5',   device: 'Chrome / Windows',  severity: 'Info'     },
-  { time: '11 May 09:30', event: 'Password Changed',  user: 'Sara Khan',   ip: '192.168.1.8',   device: 'Chrome / Windows',  severity: 'Info'     },
-  { time: '11 May 10:00', event: 'Failed Login (x3)', user: 'Unknown',     ip: '203.55.41.12',  device: 'Unknown',            severity: 'Critical' },
-  { time: '11 May 10:15', event: 'IP Blocked',        user: 'System',      ip: '203.55.41.12',  device: '—',                  severity: 'Warning'  },
-  { time: '11 May 11:30', event: 'Role Changed',      user: 'Admin Khan',  ip: '192.168.1.5',   device: 'Chrome / Windows',  severity: 'Warning'  },
-  { time: '10 May 18:00', event: 'Successful Login',  user: 'Bilal Raza',  ip: '10.0.0.14',     device: 'Safari / iPhone',   severity: 'Info'     },
-  { time: '10 May 16:30', event: 'Export Triggered',  user: 'Fatima Noor', ip: '192.168.1.12',  device: 'Firefox / Windows', severity: 'Info'     },
-];
-
-function severityBadgeColor(s: SecurityEvent['severity']): string {
-  const map: Record<string, string> = { Info: 'blue', Warning: 'yellow', Critical: 'red' };
-  return map[s] || 'gray';
-}
-
 // ── SecurityTab ────────────────────────────────────────────
 
 const SecurityTab: React.FC = () => (
@@ -101,30 +73,22 @@ const SecurityTab: React.FC = () => (
     <div className="card">
       <div className="card-header">
         <div className="card-title"><i className="fa-solid fa-clock-rotate-left" /> Recent Security Events</div>
-        <button className="header-btn"><i className="fa-solid fa-file-export" /> Export Log</button>
+        <button className="header-btn" disabled>
+          <i className="fa-solid fa-file-export" /> Export Log
+        </button>
       </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Timestamp</th><th>Event</th><th>User</th><th>IP Address</th><th>Device</th><th>Severity</th></tr>
-          </thead>
-          <tbody>
-            {SECURITY_LOG.map((l, i) => (
-              <tr key={i}>
-                <td><span style={{ fontSize: 10.5, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{l.time}</span></td>
-                <td><strong style={{ fontSize: 11.5 }}>{l.event}</strong></td>
-                <td>{l.user}</td>
-                <td>
-                  <code style={{ fontSize: 10, fontFamily: 'monospace', background: 'var(--bg)', padding: '1px 4px', borderRadius: 3 }}>
-                    {l.ip}
-                  </code>
-                </td>
-                <td><span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{l.device}</span></td>
-                <td><span className={`badge ${severityBadgeColor(l.severity)}`}>{l.severity}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        textAlign: 'center', padding: '40px 20px', gap: 8,
+      }}>
+        <i className="fa-solid fa-clock-rotate-left" style={{ fontSize: 24, color: 'var(--text-muted)', opacity: 0.5 }} />
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>
+          Security Event Log — Coming Soon
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 420 }}>
+          Live login history, audit trail, and IP-based security events will appear here once the
+          audit log API endpoint is available.
+        </div>
       </div>
     </div>
   </>

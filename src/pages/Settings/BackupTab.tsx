@@ -1,96 +1,62 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { StgToggleRow } from './SettingsShared';
 
-// ── Types ──────────────────────────────────────────────────
-
-interface BackupRecord {
-  date: string;
-  size: string;
-  duration: string;
-  status: 'Success' | 'Failed';
-}
-
-// ── Static Data ────────────────────────────────────────────
-
-const INITIAL_BACKUP_HISTORY: BackupRecord[] = [
-  { date: '11 May 2026, 08:00', size: '4.2 MB', duration: '12s', status: 'Success' },
-  { date: '10 May 2026, 08:00', size: '4.1 MB', duration: '11s', status: 'Success' },
-  { date: '09 May 2026, 08:00', size: '4.0 MB', duration: '13s', status: 'Success' },
-  { date: '08 May 2026, 08:00', size: '3.9 MB', duration: '10s', status: 'Success' },
-  { date: '07 May 2026, 08:00', size: '3.8 MB', duration: '14s', status: 'Failed'  },
-  { date: '06 May 2026, 08:00', size: '3.8 MB', duration: '11s', status: 'Success' },
-];
-
-// ── BackupTab ──────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// BackupTab.tsx
+// No backend endpoints exist yet for backup/export/danger-zone
+// operations. Stats are zeroed and history/lists show
+// "Coming Soon" empty states until an API is available.
+// ═══════════════════════════════════════════════════════════
 
 const BackupTab: React.FC = () => {
-  const [backupHistory, setBackupHistory] = useState<BackupRecord[]>(INITIAL_BACKUP_HISTORY);
-  const [backupLoading, setBackupLoading] = useState(false);
-  const [backupDone, setBackupDone] = useState(false);
-
-  const runBackup = () => {
-    setBackupLoading(true);
-    setTimeout(() => {
-      setBackupLoading(false);
-      setBackupDone(true);
-      const now = new Date();
-      const label = `${now.getDate()} May ${now.getFullYear()}, ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      setBackupHistory(prev => [
-        { date: label, size: '4.3 MB', duration: '11s', status: 'Success' },
-        ...prev,
-      ]);
-      setTimeout(() => setBackupDone(false), 3000);
-    }, 2000);
-  };
-
   return (
     <>
-      {/* Stats Row */}
+      {/* Stats Row — zeroed, no backend source */}
       <div className="stats-row" style={{ marginBottom: 14 }}>
         <div className="stat-card">
           <div className="stat-card-top">
             <div className="stat-label">Last Backup</div>
-            <div className="stat-icon" style={{ background: 'var(--green-bg)' }}>
-              <i className="fa-solid fa-circle-check ic-green" />
+            <div className="stat-icon" style={{ background: 'var(--divider)' }}>
+              <i className="fa-solid fa-circle-minus" style={{ color: 'var(--text-muted)' }} />
             </div>
           </div>
-          <div className="stat-value stat-value-sm">11 May</div>
-          <div className="stat-trend up"><i className="fa-solid fa-circle-check" /> 08:00 AM · Success</div>
+          <div className="stat-value stat-value-sm">—</div>
+          <div className="stat-trend neutral">No backups yet</div>
         </div>
         <div className="stat-card">
           <div className="stat-card-top">
             <div className="stat-label">Backup Size</div>
-            <div className="stat-icon" style={{ background: '#EFF6FF' }}>
-              <i className="fa-solid fa-database" style={{ color: 'var(--blue)' }} />
+            <div className="stat-icon" style={{ background: 'var(--divider)' }}>
+              <i className="fa-solid fa-database" style={{ color: 'var(--text-muted)' }} />
             </div>
           </div>
-          <div className="stat-value">4.2 MB</div>
-          <div className="stat-trend neutral">Compressed archive</div>
+          <div className="stat-value">0 MB</div>
+          <div className="stat-trend neutral">—</div>
         </div>
         <div className="stat-card">
           <div className="stat-card-top">
             <div className="stat-label">Backups Stored</div>
-            <div className="stat-icon" style={{ background: '#FFFBEB' }}>
-              <i className="fa-solid fa-boxes-stacked ic-yellow" />
+            <div className="stat-icon" style={{ background: 'var(--divider)' }}>
+              <i className="fa-solid fa-boxes-stacked" style={{ color: 'var(--text-muted)' }} />
             </div>
           </div>
-          <div className="stat-value">30</div>
-          <div className="stat-trend neutral">Last 30 days retained</div>
+          <div className="stat-value">0</div>
+          <div className="stat-trend neutral">—</div>
         </div>
         <div className="stat-card">
           <div className="stat-card-top">
             <div className="stat-label">Next Scheduled</div>
-            <div className="stat-icon" style={{ background: '#FFF5EE' }}>
-              <i className="fa-solid fa-clock ic-orange" />
+            <div className="stat-icon" style={{ background: 'var(--divider)' }}>
+              <i className="fa-solid fa-clock" style={{ color: 'var(--text-muted)' }} />
             </div>
           </div>
-          <div className="stat-value stat-value-sm">12 May</div>
-          <div className="stat-trend neutral">08:00 AM · Auto</div>
+          <div className="stat-value stat-value-sm">—</div>
+          <div className="stat-trend neutral">Not scheduled</div>
         </div>
       </div>
 
       <div className="grid-2" style={{ marginBottom: 14 }}>
-        {/* Backup Config */}
+        {/* Backup Configuration */}
         <div className="card">
           <div className="card-header">
             <div className="card-title"><i className="fa-solid fa-database" /> Backup Configuration</div>
@@ -139,44 +105,39 @@ const BackupTab: React.FC = () => {
               <StgToggleRow label="Encrypt Backup File" desc="AES-256 encryption applied to all backups" defaultChecked />
             </div>
             <hr />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="header-btn primary"><i className="fa-solid fa-check" /> Save Backup Settings</button>
-              <button className="header-btn" onClick={runBackup} disabled={backupLoading}>
-                {backupLoading
-                  ? <><i className="fa-solid fa-spinner fa-spin" /> Running...</>
-                  : backupDone
-                    ? <><i className="fa-solid fa-circle-check" style={{ color: 'var(--green)' }} /> Done!</>
-                    : <><i className="fa-solid fa-play" /> Run Backup Now</>}
+            <div className="info-banner" style={{ marginBottom: 0 }}>
+              <i className="fa-solid fa-circle-info" />
+              <div className="info-banner-text">
+                Backup configuration and manual backup actions will be enabled once the backup API endpoint is available.
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <button className="header-btn primary" disabled>
+                <i className="fa-solid fa-check" /> Save Backup Settings
+              </button>
+              <button className="header-btn" disabled>
+                <i className="fa-solid fa-play" /> Run Backup Now
               </button>
             </div>
           </div>
         </div>
 
-        {/* Backup History */}
+        {/* Backup History — empty state */}
         <div className="card">
           <div className="card-header">
             <div className="card-title"><i className="fa-solid fa-clock-rotate-left" /> Backup History</div>
           </div>
-          <div className="backup-list-wrap">
-            {backupHistory.map((b, i) => (
-              <div key={i} className="list-item">
-                <div className="list-icon" style={{ background: b.status === 'Success' ? 'var(--green-bg)' : 'var(--red-bg)' }}>
-                  <i
-                    className={`fa-solid fa-${b.status === 'Success' ? 'circle-check ic-green' : 'circle-xmark ic-red'}`}
-                    style={{ fontSize: 11 }}
-                  />
-                </div>
-                <div className="list-content">
-                  <div className="list-title" style={{ fontSize: 11 }}>{b.date}</div>
-                  <div className="list-meta">{b.size} · {b.duration} · {b.status}</div>
-                </div>
-                <div className="list-right">
-                  {b.status === 'Success'
-                    ? <button className="header-btn" style={{ height: 23, fontSize: 9.5 }}><i className="fa-solid fa-download" /></button>
-                    : <button className="header-btn" style={{ height: 23, fontSize: 9.5, color: 'var(--red)' }}><i className="fa-solid fa-rotate" /></button>}
-                </div>
-              </div>
-            ))}
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            textAlign: 'center', padding: '40px 20px', gap: 8,
+          }}>
+            <i className="fa-solid fa-clock-rotate-left" style={{ fontSize: 24, color: 'var(--text-muted)', opacity: 0.5 }} />
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>
+              Backup History — Coming Soon
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 320 }}>
+              Backup records will appear here once the backup API endpoint is available.
+            </div>
           </div>
         </div>
       </div>
@@ -209,46 +170,31 @@ const BackupTab: React.FC = () => {
                 </select>
               </div>
             </div>
-            <button className="header-btn primary" style={{ width: '100%', justifyContent: 'center' }}>
+            <button className="header-btn primary" style={{ width: '100%', justifyContent: 'center' }} disabled>
               <i className="fa-solid fa-file-export" /> Export Data
             </button>
+            <div style={{ fontSize: 9.5, color: 'var(--text-muted)', marginTop: 6, textAlign: 'center' }}>
+              Coming Soon — analytics export endpoint not yet wired
+            </div>
           </div>
         </div>
 
-        {/* Danger Zone */}
+        {/* Danger Zone — empty state */}
         <div className="card">
           <div className="card-header">
             <div className="card-title"><i className="fa-solid fa-triangle-exclamation ic-red" /> Danger Zone</div>
           </div>
-          <div className="card-body">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div className="danger-item">
-                <div>
-                  <div className="danger-item-title">Clear All Order History</div>
-                  <div className="danger-item-desc">Permanently delete all orders. Cannot be undone.</div>
-                </div>
-                <button className="header-btn" style={{ color: 'var(--red)', borderColor: 'var(--red)', flexShrink: 0 }}>
-                  <i className="fa-solid fa-trash" /> Clear
-                </button>
-              </div>
-              <div className="danger-item">
-                <div>
-                  <div className="danger-item-title">Reset Inventory Counts</div>
-                  <div className="danger-item-desc">Set all stock quantities to zero. Use before a full recount.</div>
-                </div>
-                <button className="header-btn" style={{ color: 'var(--red)', borderColor: 'var(--red)', flexShrink: 0 }}>
-                  <i className="fa-solid fa-rotate-left" /> Reset
-                </button>
-              </div>
-              <div className="danger-item">
-                <div>
-                  <div className="danger-item-title">Factory Reset</div>
-                  <div className="danger-item-desc">Wipe all data and return system to default state.</div>
-                </div>
-                <button className="header-btn" style={{ color: 'var(--red)', borderColor: 'var(--red)', flexShrink: 0 }}>
-                  <i className="fa-solid fa-bomb" /> Reset
-                </button>
-              </div>
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            textAlign: 'center', padding: '40px 20px', gap: 8,
+          }}>
+            <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 24, color: 'var(--text-muted)', opacity: 0.5 }} />
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>
+              Danger Zone Actions — Coming Soon
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 320 }}>
+              Bulk data clearing, inventory resets, and factory reset actions will be available once
+              the corresponding API endpoints are implemented.
             </div>
           </div>
         </div>
