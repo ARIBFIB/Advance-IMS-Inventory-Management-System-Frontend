@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AccessResult } from './types';
 import { STAFF_COLORS, EXPORTS_DATA } from './auditData';
+import ComingSoon from './ComingSoon';
 
 // ── HELPERS ───────────────────────────────────────────────
 const initials = (name: string) =>
@@ -82,6 +83,8 @@ const ExportsTab: React.FC = () => {
 
   return (
     <>
+      <ComingSoon feature="Exports Log" note="No GET /api/audit/exports endpoint exists yet. The analytics.exportReport endpoint exists but is not yet logged here. Showing sample export records." />
+
       <div className="alert-strip info">
         <i className="fa-solid fa-circle-info" />
         All data exports from the system are logged here. Each export captures who requested it, what data was included, and when it was downloaded.

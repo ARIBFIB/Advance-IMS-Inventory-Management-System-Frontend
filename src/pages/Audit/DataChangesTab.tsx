@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChangeType } from './types';
 import { STAFF_COLORS, MODULE_ICONS, DATA_CHANGES } from './auditData';
+import ComingSoon from './ComingSoon';
 
 // ── HELPERS ───────────────────────────────────────────────
 const initials = (name: string) =>
@@ -92,6 +93,8 @@ const DataChangesTab: React.FC = () => {
 
   return (
     <>
+      <ComingSoon feature="Data Changes" note="No GET /api/audit/data-changes endpoint exists yet. Showing sample data-change records." />
+
       <div className="mini-stats" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
         <div className="mini-stat">
           <div className="ms-label">Data Changes (24h)</div>

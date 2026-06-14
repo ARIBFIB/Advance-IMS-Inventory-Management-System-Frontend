@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AccessResult } from './types';
 import { STAFF_COLORS, ACCESS_DATA, ACTIVE_SESSIONS, SPARKLINE_DAYS, SPARKLINE_SUCCESS, SPARKLINE_FAILED } from './auditData';
+import ComingSoon from './ComingSoon';
 
 // ── HELPERS ───────────────────────────────────────────────
 const initials = (name: string) =>
@@ -87,6 +88,8 @@ const AccessTab: React.FC = () => {
 
   return (
     <>
+      <ComingSoon feature="Access & Logins" note="No GET /api/audit/access or /api/auth/sessions endpoint exists yet. Showing sample access log data." />
+
       <div className="detail-grid-2" style={{ marginBottom: 14 }}>
         {/* Login Sparkline */}
         <div className="card" style={{ marginBottom: 0 }}>

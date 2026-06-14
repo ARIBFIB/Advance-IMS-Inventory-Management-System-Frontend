@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AuditLog, Severity, AccessResult, ChangeType } from './types';
 import { STAFF_COLORS, MODULE_ICONS, ALL_LOGS_DATA, CHIPS } from './auditData';
+import ComingSoon from './ComingSoon';
 
 // ── HELPERS ──────────────────────────────────────────────
 const initials = (name: string) =>
@@ -149,6 +150,8 @@ const AllLogsTab: React.FC = () => {
 
   return (
     <>
+      <ComingSoon feature="All Logs" note="No GET /api/audit/logs endpoint exists yet. Showing sample log entries." />
+
       {/* Chips */}
       <div className="chip-group">
         {CHIPS.map(c => (

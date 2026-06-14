@@ -3,6 +3,7 @@ import {
   MODULE_BREAKDOWN, STAFF_ACTIVITY_ANALYTICS,
   HOURLY_COUNTS, HOURLY_LABELS, TOP_ACTIONS, SEV_DATA,
 } from './auditData';
+import ComingSoon from './ComingSoon';
 
 // ── HELPERS ───────────────────────────────────────────────
 const initials = (name: string) =>
@@ -26,6 +27,8 @@ const AnalyticsTab: React.FC = () => {
 
   return (
     <>
+      <ComingSoon feature="Audit Analytics" note="No GET /api/audit/analytics endpoint exists yet. analyticsAPI.getStaffPerformance could partially power 'Most Active Staff' once wired. Showing sample analytics data." />
+
       <div className="detail-grid-3" style={{ marginBottom: 14 }}>
 
         {/* Events by Module */}

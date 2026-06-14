@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ComingSoon from './ComingSoon';
 
 // ── TOGGLE ROW ────────────────────────────────────────────
 const ToggleRow: React.FC<{ label: string; desc?: string; defaultChecked: boolean }> = ({ label, desc, defaultChecked }) => {
@@ -20,6 +21,8 @@ const ToggleRow: React.FC<{ label: string; desc?: string; defaultChecked: boolea
 // ── SETTINGS TAB ──────────────────────────────────────────
 const SettingsTab: React.FC = () => (
   <>
+    <ComingSoon feature="Audit Settings" note="No GET/PUT /api/audit/settings endpoint exists yet, so changes here cannot be saved. The form below is a preview of upcoming configuration options." />
+
     <div className="settings-grid">
 
       {/* Audit Log Configuration */}
@@ -131,8 +134,8 @@ const SettingsTab: React.FC = () => (
     </div>
 
     <div style={{ marginTop: 14 }}>
-      <button className="t-btn primary">
-        <i className="fa-solid fa-check" /> Save Audit Settings
+      <button className="t-btn primary" disabled title="Audit Settings API not available yet">
+        <i className="fa-solid fa-check" /> Save Audit Settings (Coming Soon)
       </button>
     </div>
   </>

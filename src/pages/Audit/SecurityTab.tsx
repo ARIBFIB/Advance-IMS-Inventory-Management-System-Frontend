@@ -1,6 +1,7 @@
 import React from 'react';
 import { Severity, AccessResult } from './types';
 import { STAFF_COLORS, SECURITY_DATA } from './auditData';
+import ComingSoon from './ComingSoon';
 
 // ── HELPERS ───────────────────────────────────────────────
 const initials = (name: string) =>
@@ -37,6 +38,8 @@ const AvatarEl: React.FC<{ name: string; size?: number }> = ({ name, size = 26 }
 // ── SECURITY TAB ──────────────────────────────────────────
 const SecurityTab: React.FC = () => (
   <>
+    <ComingSoon feature="Security Events" note="No GET /api/audit/security or /api/security/events endpoint exists yet. Showing sample security events." />
+
     <div className="alert-strip danger" style={{ marginBottom: 14 }}>
       <i className="fa-solid fa-shield-exclamation" />
       <div>
