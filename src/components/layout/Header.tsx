@@ -15,7 +15,7 @@ const SEARCH_INDEX = [
   { title: 'Reports',       sub: 'Sales, inventory reports',  page: 'reports',    icon: 'fa-solid fa-chart-pie',       color: '#2563EB', bg: '#EFF6FF', badge: 'Page',   badgeClass: 'blue' },
   { title: 'New Order',     sub: 'Create a new order',        page: 'orders',     icon: 'fa-solid fa-plus-circle',     color: '#FF6A00', bg: '#FFF5EE', badge: 'Action', badgeClass: 'orange' },
   { title: 'Settings',      sub: 'System configuration',      page: 'settings',   icon: 'fa-solid fa-gear',            color: '#6B7280', bg: '#F3F4F6', badge: 'Page',   badgeClass: 'blue' },
-  { title: 'Audit Logs',    sub: 'System activity trail',     page: 'audit',      icon: 'fa-solid fa-file-alt',        color: '#6B7280', bg: '#F3F4F6', badge: 'Page',   badgeClass: 'blue' },
+  // { title: 'Audit Logs',    sub: 'System activity trail',     page: 'audit',      icon: 'fa-solid fa-file-alt',        color: '#6B7280', bg: '#F3F4F6', badge: 'Page',   badgeClass: 'blue' },
 ];
 
 const BREADCRUMB_MAP: Record<string, { title: string; crumb: string }> = {
@@ -33,7 +33,7 @@ const BREADCRUMB_MAP: Record<string, { title: string; crumb: string }> = {
   'reports':   { title: 'Reports',         crumb: 'Sales Reports' },
   'settings':  { title: 'Settings',        crumb: 'General' },
   'security':  { title: 'Security',        crumb: 'Overview' },
-  'audit':     { title: 'Audit Logs',      crumb: 'All Logs' },
+  // 'audit':     { title: 'Audit Logs',      crumb: 'All Logs' },
 };
 
 const Header: React.FC = () => {

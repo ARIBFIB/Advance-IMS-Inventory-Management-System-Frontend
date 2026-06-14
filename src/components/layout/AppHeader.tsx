@@ -50,7 +50,7 @@ const SEARCH_INDEX: SearchItem[] = [
   { type: 'page', color: '#2563EB', bg: '#EFF6FF', title: 'Reports',            sub: 'Sales, inventory, financial',        page: 'reports',   badge: 'Page', badgeClass: 'blue' },
   { type: 'page', color: '#6B7280', bg: '#F3F4F6', title: 'Settings',           sub: 'System configuration',               page: 'settings',  badge: 'Page', badgeClass: 'blue' },
   { type: 'page', color: '#DC2626', bg: '#FEF2F2', title: 'Security & Backup',  sub: 'Auth, IPs, backups',                 page: 'security',  badge: 'Page', badgeClass: 'blue' },
-  { type: 'page', color: '#6B7280', bg: '#F3F4F6', title: 'Audit Logs',         sub: 'System activity trail',              page: 'audit',     badge: 'Page', badgeClass: 'blue' },
+  // { type: 'page', color: '#6B7280', bg: '#F3F4F6', title: 'Audit Logs',         sub: 'System activity trail',              page: 'audit',     badge: 'Page', badgeClass: 'blue' },
   // Quick Actions
   { type: 'action', icon: 'fa-plus-circle',          color: '#FF6A00', bg: '#FFF5EE', title: 'New Order',             sub: 'Create a new order',           badge: 'Action', badgeClass: 'orange' },
   { type: 'action', icon: 'fa-plus-circle',          color: '#16A34A', bg: '#F0FDF4', title: 'Add Product',           sub: 'Add product to catalog',       page: 'products', badge: 'Action', badgeClass: 'orange' },
