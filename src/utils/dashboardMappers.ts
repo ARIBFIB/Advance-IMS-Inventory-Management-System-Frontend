@@ -226,7 +226,7 @@ function riderBadge(status: string): string {
 export function mapRiders(riders: LiveRider[]): RiderStatus[] {
   return riders.map((r, i) => {
     const palette  = AVATAR_PALETTES[i % AVATAR_PALETTES.length];
-    const initials = `${r.firstName[0]}${r.lastName[0]}`.toUpperCase();
+    const initials = `${r.firstName?.[0] ?? '?'}${r.lastName?.[0] ?? ''}`.toUpperCase();
     const isOnline = r.status === 'Active' || r.status === 'OnDelivery';
     return {
       initials,
@@ -262,7 +262,7 @@ export function mapRecentOrders(orders: LiveOrder[]): RecentOrder[] {
     const palette   = AVATAR_PALETTES[i % AVATAR_PALETTES.length];
     const firstName = o.customer?.firstName ?? 'Unknown';
     const lastName  = o.customer?.lastName  ?? '';
-    const initials  = `${firstName[0]}${(lastName[0] ?? '')}`.toUpperCase();
+    const initials  = `${firstName?.[0] ?? '?'}${lastName?.[0] ?? ''}`.toUpperCase();
     return {
       id:               o.orderNumber ?? o._id.slice(-6).toUpperCase(),
       customerInitials: initials,

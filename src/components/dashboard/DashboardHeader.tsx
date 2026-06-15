@@ -6,7 +6,7 @@ import { authAPI } from '../../services/api';
 import { analyticsAPI } from '../../services/api';
 
 interface DashboardHeaderProps {
-  kpis?: KpiStat[]; // ✅ made optional
+  kpis: KpiStat[];
   onNewOrder: () => void;
   onExport: () => void;
 }
@@ -35,11 +35,7 @@ const trendIcon: Record<string, string> = {
   neutral: 'fa-minus',
 };
 
-const DashboardHeader: React.FC<DashboardHeaderProps> = ({
-  kpis = [], // ✅ default to empty array — prevents .map() crash when undefined
-  onNewOrder,
-  onExport,
-}) => {
+const DashboardHeader: React.FC<DashboardHeaderProps> = ({ kpis, onNewOrder, onExport }) => {
   const [dateStr, setDateStr]     = useState(formatLiveDate);
   const [firstName, setFirstName] = useState<string>('');
   const [subtitle, setSubtitle]   = useState<string>("Here's your operations snapshot.");
@@ -103,7 +99,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       });
   }, []);
 
-  const greeting  = getGreeting();
+  const greeting = getGreeting();
   const nameLabel = firstName ? `, ${firstName}` : '';
 
   return (
@@ -126,7 +122,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       </div>
 
       <div className="d-header-kpis">
-        {/* ✅ safe — kpis defaults to [] so .map() never runs on undefined */}
         {kpis.map((kpi, idx) => (
           <div className="d-header-kpi" key={kpi.label}>
             <div className="d-kpi-label">{kpi.label}</div>

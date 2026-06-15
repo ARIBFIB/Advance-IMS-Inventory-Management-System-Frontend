@@ -55,26 +55,27 @@ const Dashboard: React.FC = () => {
 
   // ── Map API → UI ──────────────────────────────────────────
   const headerKpis         = mapHeaderKpis(kpis);
-  const statCards          = mapStatCards(kpis);
-  const weekBars           = mapWeekBars(trends);
-  const weekSummary        = mapWeekSummary(kpis);   // ← drives the 4 numbers
-  const topProducts        = mapTopProducts(kpis);
-  const riderList          = mapRiders(riders);
-  const recentOrdersMapped = mapRecentOrders(recentOrders);
-  const codRings           = mapCodRings(kpis);
-  const activityItems      = mapActivityItems(kpis);
+const statCards          = mapStatCards(kpis);
+const weekBars           = mapWeekBars(trends);
+const weekSummary        = mapWeekSummary(kpis);
+const topProducts        = mapTopProducts(kpis);
+const riderList          = mapRiders(riders ?? []);                    // ✅ guard
+const recentOrdersMapped = mapRecentOrders(recentOrders ?? []);        // ✅ guard
+const codRings           = mapCodRings(kpis);
+const activityItems      = mapActivityItems(kpis);
 
-  const pendingCount  = kpis?.orders.pending            ?? 0;
-  const lowStockCount = kpis?.inventory.lowStockAlerts  ?? 0;
+const pendingCount  = kpis?.orders?.pending           ?? 0;            // ✅ double optional chain
+const lowStockCount = kpis?.inventory?.lowStockAlerts ?? 0;            // ✅ double optional chain
 
-  const sparkHeights = trends?.dailyRevenue?.length
-    ? (() => {
-        const max = Math.max(...trends.dailyRevenue.map(d => d.revenue), 1);
-        return trends.dailyRevenue.slice(-10).map(d =>
-          Math.max(10, Math.round((d.revenue / max) * 90))
-        );
-      })()
-    : [30, 45, 60, 40, 70, 55, 80, 65, 50, 75];
+const sparkHeights = trends?.dailyRevenue?.length
+  ? (() => {
+      const revenues = trends.dailyRevenue.map(d => d.revenue ?? 0);  // ✅ guard undefined revenue
+      const max = Math.max(...revenues, 1);
+      return trends.dailyRevenue.slice(-10).map(d =>
+        Math.max(10, Math.round(((d.revenue ?? 0) / max) * 90))       // ✅ guard undefined revenue
+      );
+    })()
+  : [30, 45, 60, 40, 70, 55, 80, 65, 50, 75];
 
   return (
     <div className="page-dashboard">
