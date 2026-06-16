@@ -33,13 +33,32 @@ const api: AxiosInstance = axios.create({
   timeout: 15000,
 });
 
-// ── Request Interceptor (attach token) ────────────────────
+// ── Tenant Helper ────────────────────────────────────────────
+const getTenantSlug = (): string | null => {
+  // 1. Check URL query param (?tenant=raza-fabrics) — set on first load
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.get('tenant');
+  if (fromUrl) {
+    localStorage.setItem('tenantSlug', fromUrl); // persist across navigation/refresh
+    return fromUrl;
+  }
+  // 2. Fall back to whatever was saved earlier in this session
+  return localStorage.getItem('tenantSlug');
+};
+
+// ── Request Interceptor (attach token + tenant) ────────────
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('accessToken');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    const tenantSlug = getTenantSlug();
+    if (tenantSlug && config.headers) {
+      config.headers['X-Tenant-ID'] = tenantSlug;
+    }
+
     return config;
   },
   (error: any) => Promise.reject(error)
@@ -378,44 +397,18 @@ export const tasksAPI = {
 
   getById: (id: string) => api.get(`/tasks/${id}`),
 
-  /**
-   * Create and assign a task.
-   * Auth: Administrator | OperationsManager | InventoryManager
-   * priority: 'Low' | 'Medium' | 'High'  (backend does NOT accept 'Critical' on create)
-   */
   create: (data: CreateTaskPayload) => api.post('/tasks', data),
 
-  /**
-   * Update task fields (title, description, dueDate, priority).
-   * Auth: Administrator | OperationsManager | InventoryManager
-   */
   update: (id: string, data: UpdateTaskPayload) => api.put(`/tasks/${id}`, data),
 
-  /**
-   * Update task status via the backend state machine.
-   * Valid transitions:
-   *   Pending → InProgress → Completed
-   *   Pending | InProgress → Cancelled
-   * Auth: any role
-   */
   updateStatus: (id: string, data: UpdateTaskStatusPayload) =>
     api.patch(`/tasks/${id}/status`, data),
 
-  /**
-   * Cancel / soft-delete a task.
-   * Auth: Administrator | OperationsManager
-   */
   delete: (id: string, reason?: string) =>
     api.delete(`/tasks/${id}`, { data: reason ? { reason } : undefined }),
 
-  /** Get current user's active tasks (default: Pending, InProgress). */
   getMy: (params?: { status?: string }) => api.get('/tasks/my', { params }),
 
-  /**
-   * Task dashboard KPIs.
-   * Response wrapped in `result` key (not `data`):
-   *   { success, result: { total, pending, inProgress, completed, cancelled, overdue, highPriority } }
-   */
   getStats: (params?: { assignee?: string }) => api.get('/tasks/stats', { params }),
 };
 
