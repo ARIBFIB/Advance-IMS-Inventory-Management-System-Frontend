@@ -51,7 +51,7 @@ const Login: React.FC = () => {
         <nav className="login-header-nav">
           <Link to="/">Home</Link>
           <Link to="/about">About</Link>
-          <Link to="/signup" className="login-btn-outline">Create Account</Link>
+          {/* <Link to="/signup" className="login-btn-outline">Create Account</Link> */}
         </nav>
       </header>
 
@@ -174,9 +174,9 @@ const Login: React.FC = () => {
               </button>
             </div>
 
-            <p className="login-auth-footer">
+            {/* <p className="login-auth-footer">
               Don't have an account? <Link to="/signup">Create one</Link>
-            </p>
+            </p> */}
           </div>
         </div>
       </main>

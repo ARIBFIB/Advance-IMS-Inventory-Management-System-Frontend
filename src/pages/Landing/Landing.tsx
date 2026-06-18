@@ -315,7 +315,7 @@ const Landing: React.FC = () => {
 
         <div className="landing-header-actions">
           <Link to="/login" className="landing-btn-outline">Sign In</Link>
-          <Link to="/signup" className="landing-btn-accent">Get Started</Link>
+          {/* <Link to="/signup" className="landing-btn-accent">Get Started</Link> */}
           <button
             className="landing-hamburger"
             onClick={() => setMobileMenuOpen((v) => !v)}
@@ -333,7 +333,7 @@ const Landing: React.FC = () => {
         <button onClick={() => { scrollTo('roles'); closeMobileMenu(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: 'var(--text-secondary)', padding: '10px 0', textAlign: 'left', borderBottom: '1px solid var(--divider)' }}>Roles</button>
         <Link to="/about" onClick={closeMobileMenu} style={{ fontSize: '14px', color: 'var(--text-secondary)', textDecoration: 'none', padding: '10px 0', borderBottom: '1px solid var(--divider)', display: 'block' }}>About</Link>
         <Link to="/login" onClick={closeMobileMenu} style={{ fontSize: '14px', color: 'var(--text-secondary)', textDecoration: 'none', padding: '10px 0', borderBottom: '1px solid var(--divider)', display: 'block' }}>Sign In</Link>
-        <Link to="/signup" onClick={closeMobileMenu} style={{ fontSize: '14px', color: 'var(--accent)', textDecoration: 'none', padding: '10px 0', display: 'block', fontWeight: 600 }}>Get Started →</Link>
+        {/* <Link to="/signup" onClick={closeMobileMenu} style={{ fontSize: '14px', color: 'var(--accent)', textDecoration: 'none', padding: '10px 0', display: 'block', fontWeight: 600 }}>Get Started →</Link> */}
       </div>
 
       {/* ── HERO ── */}
@@ -516,11 +516,11 @@ const Landing: React.FC = () => {
                 sync, real-time updates, and advanced analytics. Scale at your own pace.
               </p>
             </div>
-            <div className="landing-info-banner-action">
+            {/* <div className="landing-info-banner-action">
               <Link to="/signup" className="landing-banner-btn">
                 <i className="fa-solid fa-arrow-right" /> Get Started
               </Link>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -698,9 +698,9 @@ const Landing: React.FC = () => {
           card required.
         </p>
         <div className="landing-cta-btns">
-          <Link to="/signup" className="landing-btn-hero-primary">
+          {/* <Link to="/signup" className="landing-btn-hero-primary">
             <i className="fa-solid fa-rocket" /> Create Free Account
-          </Link>
+          </Link> */}
           <Link to="/login" className="landing-btn-hero-secondary">
             <i className="fa-solid fa-sign-in-alt" /> Sign In
           </Link>

@@ -442,13 +442,13 @@ const Signup: React.FC = () => {
                   </label>
                 </div>
 
-                <button className="signup-btn-primary" onClick={handleSubmit} disabled={isLoading}>
+                {/* <button className="signup-btn-primary" onClick={handleSubmit} disabled={isLoading}>
                   {isLoading ? (
                     <><i className="fa-solid fa-spinner fa-spin" /> Creating account...</>
                   ) : (
                     <><i className="fa-solid fa-user-check" /> Create Account</>
                   )}
-                </button>
+                </button> */}
                 <button className="signup-btn-back" onClick={() => goToStep(2)} disabled={isLoading}>
                   <i className="fa-solid fa-arrow-left" /> Back
                 </button>

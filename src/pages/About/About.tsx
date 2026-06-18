@@ -65,7 +65,7 @@ const About: React.FC = () => {
           <Link to="/">Home</Link>
           <Link to="/about" className="active">About</Link>
           <Link to="/login" className="btn-outline">Sign In</Link>
-          <Link to="/signup" className="btn-accent">Get Started</Link>
+          {/* <Link to="/signup" className="btn-accent">Get Started</Link> */}
         </nav>
       </header>
 
@@ -213,9 +213,9 @@ const About: React.FC = () => {
           <h2>Ready to transform your operations?</h2>
           <p>Join businesses already using Inventory OS to manage inventory, orders, and teams from one powerful platform.</p>
           <div className="cta-buttons">
-            <Link to="/signup" className="btn-lg btn-lg-accent">
+            {/* <Link to="/signup" className="btn-lg btn-lg-accent">
               <i className="fa-solid fa-rocket" /> Get Started Free
-            </Link>
+            </Link> */}
             <Link to="/login" className="btn-lg cta-ghost">
               <i className="fa-solid fa-sign-in-alt" /> Sign In
             </Link>
