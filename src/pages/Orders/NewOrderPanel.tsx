@@ -144,7 +144,9 @@ const StepCustomer: React.FC<StepCustomerProps> = ({
           onChange={e => {
             setCustomerName(e.target.value);
             setExistingCustomerId(null); // clear selection when typing
+            setShowSuggestions(true);
           }}
+          onFocus={() => setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
           placeholder="Type to search existing customers..."
         />
@@ -153,31 +155,67 @@ const StepCustomer: React.FC<StepCustomerProps> = ({
             <i className="fa-solid fa-circle-check" /> Existing customer selected
           </div>
         )}
-        {showSuggestions && apiSuggestions.length > 0 && (
-          <div style={{
-            position: 'absolute', top: '100%', left: 0, right: 0,
-            background: 'var(--card)', border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-input)', zIndex: 20,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginTop: 2, overflow: 'hidden',
-          }}>
-            {apiSuggestions.map(c => (
-              <div
-                key={c._id}
-                onMouseDown={() => pickCustomer(c)}
-                style={{
-                  padding: '7px 10px', cursor: 'pointer', fontSize: 12,
-                  borderBottom: '1px solid var(--border)',
-                  display: 'flex', justifyContent: 'space-between',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-                onMouseLeave={e => (e.currentTarget.style.background = '')}
-              >
-                <span style={{ fontWeight: 600 }}>{c.name}</span>
-                <span style={{ color: 'var(--text-muted)' }}>{c.phone}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        {showSuggestions && (
+  <div style={{
+    position: 'absolute', top: '100%', left: 0, right: 0,
+    background: 'var(--card)', border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-input)', zIndex: 20,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginTop: 2, overflow: 'hidden',
+  }}>
+    {/* + New Customer row — hamesha sabse upar */}
+    <div
+      onMouseDown={() => {
+        setShowSuggestions(false);
+        window.dispatchEvent(new CustomEvent('navigate-to', { detail: 'customers' }));
+      }}
+      style={{
+        padding: '9px 10px', cursor: 'pointer', fontSize: 12,
+        borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: 'var(--bg)',
+        color: 'var(--accent)', fontWeight: 700,
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = '#EFF6FF')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}
+    >
+      <span style={{
+        width: 20, height: 20, borderRadius: '50%',
+        background: 'var(--accent)', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 14, fontWeight: 700, flexShrink: 0,
+      }}>+</span>
+      New Customer
+    </div>
+
+    {/* Existing customers list */}
+    {apiSuggestions.map(c => (
+      <div
+        key={c._id}
+        onMouseDown={() => pickCustomer(c)}
+        style={{
+          padding: '7px 10px', cursor: 'pointer', fontSize: 12,
+          borderBottom: '1px solid var(--border)',
+          display: 'flex', justifyContent: 'space-between',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+        onMouseLeave={e => (e.currentTarget.style.background = '')}
+      >
+        <span style={{ fontWeight: 600 }}>{c.name}</span>
+        <span style={{ color: 'var(--text-muted)' }}>{c.phone}</span>
+      </div>
+    ))}
+
+    {/* Agar koi customer nahi mila search mein */}
+    {apiSuggestions.length === 0 && customerName.length >= 2 && (
+      <div style={{
+        padding: '8px 10px', fontSize: 12,
+        color: 'var(--text-muted)', textAlign: 'center',
+      }}>
+        No customers found
+      </div>
+    )}
+  </div>
+)}
       </div>
 
       <div className="form-row">
