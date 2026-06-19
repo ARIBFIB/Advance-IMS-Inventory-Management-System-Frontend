@@ -297,31 +297,35 @@ const StepItems: React.FC<StepItemsProps> = ({ items, setItems }) => {
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   // Search products from API
-  useEffect(() => {
-    if (prodSearch.length === 0) { setApiProducts([]); return; }
-    if (searchTimeout) clearTimeout(searchTimeout);
-    setSearching(true);
-    const t = setTimeout(async () => {
-      try {
-        const res  = await productsAPI.getAll({ search: prodSearch, limit: 10, inStock: true });
-        const data = (res.data as any).data;
-        setApiProducts(data?.products ?? []);
-      } catch {
-        // fallback to static catalog on error
-        const lower = prodSearch.toLowerCase();
-        setApiProducts(
-          FALLBACK_CATALOG
-            .filter(p => p.name.toLowerCase().includes(lower) || p.sku.toLowerCase().includes(lower))
-            .map(p => ({ _id: p.sku, name: p.name, sku: p.sku, basePrice: p.price, totalStock: 99 }))
-        );
-      } finally {
-        setSearching(false);
-      }
-    }, 350);
-    setSearchTimeout(t);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prodSearch]);
+  // Search products from API
+    useEffect(() => {
+      if (searchTimeout) clearTimeout(searchTimeout);
+      setSearching(true);
+      const t = setTimeout(async () => {
+        try {
+          const res  = await productsAPI.getAll({ 
+            search: prodSearch,  // empty string = sab products
+            limit: 10, 
+            inStock: true 
+          });
+          const data = (res.data as any).data;
+          setApiProducts(data?.products ?? []);
+        } catch {
+          // fallback to static catalog on error
+          const lower = prodSearch.toLowerCase();
+          setApiProducts(
+            FALLBACK_CATALOG
+              .filter(p => p.name.toLowerCase().includes(lower) || p.sku.toLowerCase().includes(lower))
+              .map(p => ({ _id: p.sku, name: p.name, sku: p.sku, basePrice: p.price, totalStock: 99 }))
+          );
+        } finally {
+          setSearching(false);
+        }
+      }, prodSearch.length === 0 ? 0 : 350); // focus pe instantly, type pe debounce
+      setSearchTimeout(t);
+      return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [prodSearch]);
 
   const addItem = (p: typeof apiProducts[0]) => {
     const existing = items.find(i => i.id === p._id);
@@ -362,40 +366,82 @@ const StepItems: React.FC<StepItemsProps> = ({ items, setItems }) => {
             placeholder="Search product name or SKU..."
             value={prodSearch}
             onChange={e => { setProdSearch(e.target.value); setShowProdList(true); }}
-            onFocus={() => prodSearch && setShowProdList(true)}
+            onFocus={() => {
+              setShowProdList(true);
+              if (apiProducts.length === 0) {
+                setProdSearch(''); // empty string se useEffect trigger hoga
+              }
+            }}
             onBlur={() => setTimeout(() => setShowProdList(false), 150)}
             style={{ width: '100%' }}
           />
         </div>
-        {showProdList && apiProducts.length > 0 && (
-          <div style={{
-            position: 'absolute', top: '100%', left: 0, right: 0,
-            background: 'var(--card)', border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-input)', zIndex: 20,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            marginTop: 2, maxHeight: 200, overflowY: 'auto',
-          }}>
-            {apiProducts.map(p => (
-              <div
-                key={p._id}
-                onMouseDown={() => addItem(p)}
-                style={{
-                  padding: '8px 10px', cursor: 'pointer', fontSize: 12,
-                  borderBottom: '1px solid var(--border)',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-                onMouseLeave={e => (e.currentTarget.style.background = '')}
-              >
-                <div>
-                  <div style={{ fontWeight: 600 }}>{p.name}</div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>{p.sku} · Stock: {p.totalStock}</div>
-                </div>
-                <div style={{ fontWeight: 700, color: 'var(--accent)' }}>{fmt(p.basePrice)}</div>
-              </div>
-            ))}
-          </div>
-        )}
+        {showProdList && (
+  <div style={{
+    position: 'absolute', top: '100%', left: 0, right: 0,
+    background: 'var(--card)', border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-input)', zIndex: 20,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    marginTop: 2, maxHeight: 220, overflowY: 'auto',
+  }}>
+    {/* + New Product row — hamesha sabse upar */}
+    <div
+      onMouseDown={() => {
+        setShowProdList(false);
+        // TODO: navigate target abhi finalize nahi hua, baad mein wire karenge
+        window.dispatchEvent(new CustomEvent('navigate-to', { detail: 'products' }));
+      }}
+      style={{
+        padding: '9px 10px', cursor: 'pointer', fontSize: 12,
+        borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: 'var(--bg)',
+        color: 'var(--accent)', fontWeight: 700,
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = '#EFF6FF')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}
+    >
+      <span style={{
+        width: 20, height: 20, borderRadius: '50%',
+        background: 'var(--accent)', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 14, fontWeight: 700, flexShrink: 0,
+      }}>+</span>
+      New Product
+    </div>
+
+    {/* Products list */}
+    {apiProducts.map(p => (
+      <div
+        key={p._id}
+        onMouseDown={() => addItem(p)}
+        style={{
+          padding: '8px 10px', cursor: 'pointer', fontSize: 12,
+          borderBottom: '1px solid var(--border)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+        onMouseLeave={e => (e.currentTarget.style.background = '')}
+      >
+        <div>
+          <div style={{ fontWeight: 600 }}>{p.name}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>{p.sku} · Stock: {p.totalStock}</div>
+        </div>
+        <div style={{ fontWeight: 700, color: 'var(--accent)' }}>{fmt(p.basePrice)}</div>
+      </div>
+    ))}
+
+    {/* Agar koi product nahi mila search mein */}
+    {apiProducts.length === 0 && prodSearch.length >= 2 && (
+      <div style={{
+        padding: '8px 10px', fontSize: 12,
+        color: 'var(--text-muted)', textAlign: 'center',
+      }}>
+        No products found
+      </div>
+    )}
+  </div>
+)}
       </div>
 
       {/* Items list */}
