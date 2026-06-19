@@ -101,11 +101,13 @@ const StepCustomer: React.FC<StepCustomerProps> = ({
 
   // Search customers from real API
   useEffect(() => {
-    if (customerName.length < 2) { setApiSuggestions([]); return; }
     if (searchTimeout) clearTimeout(searchTimeout);
     const t = setTimeout(async () => {
       try {
-        const res  = await customersAPI.getAll({ search: customerName, limit: 6 });
+        const res  = await customersAPI.getAll({ 
+          search: customerName,  // empty string = sab customers
+          limit: 20 
+        });
         const data = (res.data as any).data;
         const customers = (data?.customers ?? []) as Array<{ _id: string; firstName: string; lastName: string; phone?: string }>;
         setApiSuggestions(customers.map(c => ({
@@ -113,14 +115,12 @@ const StepCustomer: React.FC<StepCustomerProps> = ({
           name:  `${c.firstName} ${c.lastName}`.trim(),
           phone: c.phone ?? '',
         })));
-        setShowSuggestions(true);
       } catch {
         setApiSuggestions([]);
       }
-    }, 350);
+    }, customerName.length === 0 ? 0 : 350); // focus pe instantly, type pe debounce
     setSearchTimeout(t);
     return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerName]);
 
   const pickCustomer = (c: { _id: string; name: string; phone: string }) => {
@@ -146,7 +146,13 @@ const StepCustomer: React.FC<StepCustomerProps> = ({
             setExistingCustomerId(null); // clear selection when typing
             setShowSuggestions(true);
           }}
-          onFocus={() => setShowSuggestions(true)}
+          onFocus={() => {
+              setShowSuggestions(true);
+              // Agar suggestions empty hain (pehli baar focus) to trigger karo
+              if (apiSuggestions.length === 0) {
+                setCustomerName(''); // empty string se useEffect trigger hoga
+              }
+            }}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
           placeholder="Type to search existing customers..."
         />
@@ -161,6 +167,8 @@ const StepCustomer: React.FC<StepCustomerProps> = ({
     background: 'var(--card)', border: '1px solid var(--border)',
     borderRadius: 'var(--radius-input)', zIndex: 20,
     boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginTop: 2, overflow: 'hidden',
+    maxHeight: 220,
+    overflowY: 'auto',
   }}>
     {/* + New Customer row — hamesha sabse upar */}
     <div
