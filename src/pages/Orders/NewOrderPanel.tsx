@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ordersAPI, customersAPI, productsAPI } from '../../services/api';
 import type { CreateOrderPayload } from '../../services/api';
+import CitySearchInput from '../../components/shared/CitySearchInput';
 
 // ── Types ──────────────────────────────────────────────────
 interface OrderItem {
@@ -257,11 +258,11 @@ const StepCustomer: React.FC<StepCustomerProps> = ({
       <div className="form-row">
         <div className="form-group">
           <div className="form-label">City *</div>
-          <select className="form-select" value={city} onChange={e => setCity(e.target.value)}>
-            <option>Lahore</option><option>Karachi</option><option>Islamabad</option>
-            <option>Rawalpindi</option><option>Faisalabad</option><option>Multan</option>
-            <option>Peshawar</option><option>Quetta</option>
-          </select>
+          <CitySearchInput
+            value={city}
+            onChange={setCity}
+            placeholder="Search city..."
+          />
         </div>
         <div className="form-group">
           <div className="form-label">Payment Type</div>
