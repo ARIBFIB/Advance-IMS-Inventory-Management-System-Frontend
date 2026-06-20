@@ -1391,6 +1391,13 @@ const SuppliersTab: React.FC = () => {
       balance: form.balance,
       paymentTerms: form.paymentTerms,
     };
+    try {
+      if (editing) await suppliersAPI.update(editing._id, payload);
+      else         await suppliersAPI.create(payload);
+      fetchSuppliers(); setShowPanel(false);
+    } catch { /* ignore */ }
+    finally { setSaving(false); }
+  };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this supplier?')) return;
