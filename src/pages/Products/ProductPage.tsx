@@ -1327,7 +1327,11 @@ const SuppliersTab: React.FC = () => {
   const [pagination, setPagination] = useState<Pagination>({ currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 20 });
 
   // form state
-  const [form, setForm] = useState({ name: '', contact: '', phone: '', city: '', balance: 0, lead: 3, paymentTerms: 'Net 30' });
+  const [form, setForm] = useState({
+    name: '', contact: '', phone: '', email: '',
+    street: '', city: '', country: 'Pakistan',
+    balance: 0, lead: 3, paymentTerms: 'Net 30',
+  });
 
   const fetchSuppliers = useCallback(async () => {
     setLoading(true);
@@ -1349,10 +1353,25 @@ const SuppliersTab: React.FC = () => {
 
   useEffect(() => { fetchSuppliers(); }, [fetchSuppliers]);
 
-  const openNew  = () => { setEditing(null); setForm({ name: '', contact: '', phone: '', city: '', balance: 0, lead: 3, paymentTerms: 'Net 30' }); setShowPanel(true); };
+  const openNew  = () => {
+    setEditing(null);
+    setForm({ name: '', contact: '', phone: '', email: '', street: '', city: '', country: 'Pakistan', balance: 0, lead: 3, paymentTerms: 'Net 30' });
+    setShowPanel(true);
+  };
   const openEdit = (s: ApiSupplier) => {
     setEditing(s);
-    setForm({ name: s.name, contact: s.contactPerson ?? '', phone: s.phone ?? '', city: s.address?.city ?? '', balance: s.balance ?? 0, lead: 3, paymentTerms: s.paymentTerms ?? 'Net 30' });
+    setForm({
+      name: s.name,
+      contact: s.contactPerson ?? '',
+      phone: s.phone ?? '',
+      email: (s as any).email ?? '',
+      street: (s as any).address?.street ?? '',
+      city: s.address?.city ?? '',
+      country: s.address?.country ?? 'Pakistan',
+      balance: s.balance ?? 0,
+      lead: 3,
+      paymentTerms: s.paymentTerms ?? 'Net 30',
+    });
     setShowPanel(true);
   };
 
@@ -1360,16 +1379,18 @@ const SuppliersTab: React.FC = () => {
     if (!form.name) return;
     setSaving(true);
     const payload = {
-      name: form.name, contactPerson: form.contact, phone: form.phone,
-      address: { city: form.city }, balance: form.balance, paymentTerms: form.paymentTerms,
+      name: form.name,
+      contactPerson: form.contact,
+      phone: form.phone,
+      email: form.email,
+      address: {
+        street: form.street,
+        city: form.city,
+        country: form.country,
+      },
+      balance: form.balance,
+      paymentTerms: form.paymentTerms,
     };
-    try {
-      if (editing) await suppliersAPI.update(editing._id, payload);
-      else         await suppliersAPI.create(payload);
-      fetchSuppliers(); setShowPanel(false);
-    } catch { /* ignore */ }
-    finally { setSaving(false); }
-  };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this supplier?')) return;
@@ -1486,12 +1507,44 @@ const SuppliersTab: React.FC = () => {
         </div>
         <div className="detail-body" style={{ overflowY: 'auto' }}>
           <div style={{ padding: '12px 16px' }}>
-            {(['name', 'contact', 'phone', 'city'] as const).map(field => (
+            {(['name', 'contact', 'phone', 'email'] as const).map(field => (
               <div key={field} className="form-group" style={{ marginBottom: 10 }}>
-                <div className="form-label">{field === 'contact' ? 'Contact Person' : field.charAt(0).toUpperCase() + field.slice(1)}{field === 'name' ? ' *' : ''}</div>
-                <input className="form-input" style={{ width: '100%' }} value={(form as any)[field]} onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))} placeholder={field === 'name' ? 'e.g. Al-Karam Textile' : ''} />
+                <div className="form-label">
+                  {field === 'contact' ? 'Contact Person' : field.charAt(0).toUpperCase() + field.slice(1)}
+                  {(field === 'name' || field === 'email') ? ' *' : ''}
+                </div>
+                <input
+                  className="form-input"
+                  style={{ width: '100%' }}
+                  type={field === 'email' ? 'email' : 'text'}
+                  value={(form as any)[field]}
+                  onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+                  placeholder={field === 'name' ? 'e.g. Al-Karam Textile' : field === 'email' ? 'supplier@example.com' : ''}
+                />
               </div>
             ))}
+
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">Street Address *</div>
+              <input
+                className="form-input"
+                style={{ width: '100%' }}
+                value={form.street}
+                onChange={e => setForm(f => ({ ...f, street: e.target.value }))}
+                placeholder="e.g. 123 Main Street"
+              />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <div className="form-label">City</div>
+                <input className="form-input" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} />
+              </div>
+              <div className="form-group">
+                <div className="form-label">Country *</div>
+                <input className="form-input" value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} />
+              </div>
+            </div>
             <div className="form-row">
               <div className="form-group">
                 <div className="form-label">Outstanding Balance (₨)</div>
