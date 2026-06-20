@@ -231,6 +231,13 @@ const StockAdjustPanel: React.FC<StockAdjustPanelProps> = ({
 
   const selectedProduct = products.find(p => p._id === selectedProductId);
 
+  // Auto-select variant if product has only one variant (since dropdown is hidden in that case)
+  useEffect(() => {
+    if (selectedProduct && selectedProduct.variants.length === 1 && !selectedVariantId) {
+      setSelectedVariantId(selectedProduct.variants[0].variantId);
+    }
+  }, [selectedProduct, selectedVariantId]);
+
   // Backend changeType mapping from UI label
   const changeTypeMap: Record<string, string> = {
     'Add Stock':       'Inbound',
@@ -245,6 +252,10 @@ const StockAdjustPanel: React.FC<StockAdjustPanelProps> = ({
     if (!selectedProductId) { setError('Please select a product.'); return; }
     if (!quantity || quantity <= 0) { setError('Quantity must be greater than 0.'); return; }
 
+    // Fallback: if variant wasn't auto-selected for some reason, use the product's first variant
+    const finalVariantId = selectedVariantId || selectedProduct?.variants?.[0]?.variantId;
+    if (!finalVariantId) { setError('This product has no variants to adjust.'); return; }
+
     const backendChangeType = changeTypeMap[changeType] ?? changeType;
     const isNegative = backendChangeType === 'Outbound' || backendChangeType === 'Damaged';
     const finalQty   = isNegative ? -Math.abs(quantity) : Math.abs(quantity);
@@ -253,7 +264,7 @@ const StockAdjustPanel: React.FC<StockAdjustPanelProps> = ({
     try {
       await stockAPI.adjust({
         productId:      selectedProductId,
-        variantId:      selectedVariantId || undefined,
+        variantId:      finalVariantId,
         changeType:     backendChangeType,
         quantityChange: finalQty,
         reason,
@@ -920,13 +931,17 @@ const AdjustmentsTab: React.FC = () => {
   const handleApply = async () => {
     if (!selectedProductId) { setError('Please select a product.'); return; }
     if (!quantity || quantity <= 0) { setError('Quantity must be > 0.'); return; }
+
+    const finalVariantId = selectedVariantId || selectedProduct?.variants?.[0]?.variantId;
+    if (!finalVariantId) { setError('This product has no variants to adjust.'); return; }
+
     const backendChangeType = changeTypeMap[changeType] ?? 'Adjustment';
     const isNeg = backendChangeType === 'Outbound' || backendChangeType === 'Damaged';
     setSaving(true); setError(''); setSuccessMsg('');
     try {
       const res = await stockAPI.adjust({
         productId:      selectedProductId,
-        variantId:      selectedVariantId || undefined,
+        variantId:      finalVariantId,
         changeType:     backendChangeType,
         quantityChange: isNeg ? -Math.abs(quantity) : Math.abs(quantity),
         reason:         notes ? `${reason} — ${notes}` : reason,
