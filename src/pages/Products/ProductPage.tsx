@@ -551,7 +551,7 @@ const ProductPanel: React.FC<ProductPanelProps> = ({
 // TAB: ALL PRODUCTS  (fully dynamic)
 // ═══════════════════════════════════════════════════════════
 
-type ProdFilter = 'all' | 'instock' | 'lowstock' | 'oos';
+type ProdFilter = 'all' | 'instock' | 'lowstock' | 'oos' | 'inactive';
 type SortCol    = 'sku' | 'name' | 'stock' | 'cost' | 'price';
 type SortDir    = 'asc' | 'desc';
 
@@ -581,6 +581,7 @@ const AllProductsTab: React.FC = () => {
     try {
       const params: Record<string, any> = {
         page, limit: PROD_PER_PAGE,
+        isActive: filter === 'inactive' ? false : true,
         ...(search ? { search } : {}),
       };
       // map filter → backend params
@@ -683,9 +684,9 @@ const AllProductsTab: React.FC = () => {
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
               />
             </div>
-            {(['all', 'instock', 'lowstock', 'oos'] as ProdFilter[]).map(f => {
-              const labels: Record<ProdFilter, string> = { all: 'All', instock: 'In Stock', lowstock: 'Low Stock', oos: 'Out of Stock' };
-              const icons:  Record<ProdFilter, string> = { all: '', instock: 'fa-circle-check', lowstock: 'fa-triangle-exclamation', oos: 'fa-circle-xmark' };
+            {(['all', 'instock', 'lowstock', 'oos', 'inactive'] as ProdFilter[]).map(f => {
+              const labels: Record<ProdFilter, string> = { all: 'All', instock: 'In Stock', lowstock: 'Low Stock', oos: 'Out of Stock', inactive: 'Inactive' };
+              const icons:  Record<ProdFilter, string> = { all: '', instock: 'fa-circle-check', lowstock: 'fa-triangle-exclamation', oos: 'fa-circle-xmark', inactive: 'fa-ban' };
               return (
                 <button key={f} className={`t-filter-btn ${filter === f ? 'active' : ''}`} onClick={() => handleFilter(f)}>
                   {icons[f] && <i className={`fa-solid ${icons[f]}`} />} {labels[f]}
