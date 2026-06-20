@@ -308,6 +308,7 @@ const ProductPanel: React.FC<ProductPanelProps> = ({
       if (isNew) {
         await productsAPI.create(payload);
       } else if (product) {
+        // Update main product fields
         await productsAPI.update(product._id, {
           name: payload.name,
           description: payload.description,
@@ -315,6 +316,15 @@ const ProductPanel: React.FC<ProductPanelProps> = ({
           category: payload.category,
           supplier: payload.supplier,
         });
+
+        // Update first variant's price/stock separately (variants have their own endpoint)
+        const firstVariant = product.variants?.[0];
+        if (firstVariant) {
+          await productsAPI.updateVariant(product._id, firstVariant.variantId, {
+            price: parseFloat(priceRef.current?.value ?? '0'),
+            stock: parseInt(stockRef.current?.value ?? '0', 10),
+          });
+        }
       }
       onSaved();
       onClose();
