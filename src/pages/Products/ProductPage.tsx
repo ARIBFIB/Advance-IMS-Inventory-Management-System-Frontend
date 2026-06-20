@@ -3,7 +3,7 @@ import './ProductPage.css';
 import TopLoadingBar from '../../components/ui/TopLoadingBar';
 import { usePageLoading } from '../../hooks/usePageLoading';
 import { useTabLoading } from '../../hooks/useTabLoading';
-import { productsAPI, categoriesAPI, suppliersAPI, stockAPI } from '../../services/api';
+import { productsAPI, categoriesAPI, suppliersAPI, stockAPI, authAPI } from '../../services/api';
 
 // ═══════════════════════════════════════════════════════════
 // TYPES  (aligned with backend response shapes)
@@ -1100,6 +1100,22 @@ const CategoriesTab: React.FC = () => {
   const [saving, setSaving]               = useState(false);
   const [formLabel, setFormLabel]         = useState('New Category');
 
+  // ── Role check (only Administrator can create/edit/delete categories) ──
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [toast, setToast]       = useState<string | null>(null);
+  const isAdmin = userRole === 'Administrator';
+
+  useEffect(() => {
+    authAPI.me()
+      .then(r => setUserRole((r.data as any)?.data?.role ?? null))
+      .catch(() => setUserRole(null));
+  }, []);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3500);
+  };
+
   const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
@@ -1122,6 +1138,10 @@ const CategoriesTab: React.FC = () => {
 
   const handleSave = async () => {
     if (!catName.trim()) return;
+    if (!isAdmin) {
+      showToast("You don't have permission to manage categories. Please contact an Administrator.");
+      return;
+    }
     setSaving(true);
     const payload = { name: catName, description: catDesc, parentCategory: catParent || null };
     try {
@@ -1136,6 +1156,10 @@ const CategoriesTab: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!isAdmin) {
+      showToast("You don't have permission to delete categories. Please contact an Administrator.");
+      return;
+    }
     if (!window.confirm('Delete this category? All products must be reassigned first.')) return;
     await categoriesAPI.delete(id).catch(() => {});
     fetchCategories();
@@ -1145,6 +1169,18 @@ const CategoriesTab: React.FC = () => {
 
   return (
     <div className="grid-2">
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          background: '#1F2937', color: '#fff', padding: '12px 18px',
+          borderRadius: 8, fontSize: 13, fontWeight: 500,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          display: 'flex', alignItems: 'center', gap: 10, maxWidth: 360,
+        }}>
+          <i className="fa-solid fa-circle-exclamation" style={{ color: '#F59E0B' }} />
+          {toast}
+        </div>
+      )}
       <div>
         <div className="card">
           <div className="card-header">
