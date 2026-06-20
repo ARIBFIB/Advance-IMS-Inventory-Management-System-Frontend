@@ -771,7 +771,7 @@ const AlertsTab: React.FC = () => {
   const fetchAlerts = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const res = await stockAPI.getLowStock({ limit: 100 });
+      const res = await stockAPI.getLowStock({ limit: 50 });
       setAlerts(res.data?.data?.lowStockItems ?? []);
     } catch (e: any) {
       setError(e?.response?.data?.message ?? 'Failed to load alerts.');
