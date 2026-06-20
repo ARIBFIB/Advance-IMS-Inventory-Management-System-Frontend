@@ -282,15 +282,22 @@ const ProductPanel: React.FC<ProductPanelProps> = ({
   const handleSave = async () => {
     if (!nameRef.current?.value) { setSaveError('Product name is required.'); return; }
     setSaving(true); setSaveError('');
+
+    // Auto-generate SKU if field is empty (placeholder said "Auto-generated" but it wasn't actually generating one)
+    const enteredSku = skuRef.current?.value?.trim();
+    const finalSku = enteredSku && enteredSku.length > 0
+      ? enteredSku
+      : `SKU-${Date.now()}`;
+
     const payload = {
       name:         nameRef.current?.value ?? '',
-      sku:          skuRef.current?.value  ?? undefined,
+      sku:          finalSku,
       description:  descRef.current?.value ?? '',
       basePrice:    parseFloat(costRef.current?.value  ?? '0'),
       category:     catRef.current?.value  ?? undefined,
       supplier:     supRef.current?.value  ?? undefined,
       variants: [{
-        variantId:         skuRef.current?.value ?? `VAR-${Date.now()}`,
+        variantId:         finalSku,
         attributes:        {},
         price:             parseFloat(priceRef.current?.value ?? '0'),
         stock:             parseInt(stockRef.current?.value   ?? '0', 10),
