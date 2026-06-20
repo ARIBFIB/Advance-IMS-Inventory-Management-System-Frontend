@@ -85,6 +85,7 @@ interface StepCustomerProps {
   phone: string; setPhone: (v: string) => void;
   address: string; setAddress: (v: string) => void;
   city: string; setCity: (v: string) => void;
+  zipCode: string; setZipCode: (v: string) => void;
   channel: string; setChannel: (v: string) => void;
   payment: string; setPayment: (v: string) => void;
   existingCustomerId: string | null; setExistingCustomerId: (id: string | null) => void;
@@ -93,6 +94,7 @@ interface StepCustomerProps {
 const StepCustomer: React.FC<StepCustomerProps> = ({
   customerName, setCustomerName, phone, setPhone,
   address, setAddress, city, setCity,
+  zipCode, setZipCode,
   channel, setChannel, payment, setPayment,
   existingCustomerId, setExistingCustomerId,
 }) => {
@@ -265,6 +267,18 @@ const StepCustomer: React.FC<StepCustomerProps> = ({
           />
         </div>
         <div className="form-group">
+          <div className="form-label">Zip Code *</div>
+          <input
+            className="form-input"
+            value={zipCode}
+            onChange={e => setZipCode(e.target.value)}
+            placeholder="e.g. 44000"
+          />
+        </div>
+      </div>
+
+      <div className="form-row">
+        <div className="form-group">
           <div className="form-label">Payment Type</div>
           <select className="form-select" value={payment} onChange={e => setPayment(e.target.value)}>
             <option value="COD">COD</option>
@@ -273,6 +287,7 @@ const StepCustomer: React.FC<StepCustomerProps> = ({
             <option value="BankTransfer">Bank Transfer</option>
           </select>
         </div>
+        <div className="form-group" />
       </div>
 
       <div className="form-group" style={{ marginBottom: 0 }}>
@@ -647,6 +662,7 @@ const NewOrderPanel: React.FC<NewOrderPanelProps> = ({ isOpen, onClose }) => {
   const [phone,               setPhone]               = useState('');
   const [address,             setAddress]             = useState('');
   const [city,                setCity]                = useState('Lahore');
+  const [zipCode,             setZipCode]             = useState('');
   const [channel,             setChannel]             = useState('WhatsApp');
   const [payment,             setPayment]             = useState('COD');
   const [existingCustomerId,  setExistingCustomerId]  = useState<string | null>(null);
@@ -667,7 +683,7 @@ const NewOrderPanel: React.FC<NewOrderPanelProps> = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen) {
       setStep(1);
-      setCustomerName(''); setPhone(''); setAddress(''); setCity('Lahore');
+      setCustomerName(''); setPhone(''); setAddress(''); setCity('Lahore'); setZipCode('');
       setChannel('WhatsApp'); setPayment('COD'); setExistingCustomerId(null);
       setItems([]);
       setCourier('TCS'); setDeliveryDate(''); setShippingFee(200); setDiscount(0);
@@ -676,7 +692,7 @@ const NewOrderPanel: React.FC<NewOrderPanelProps> = ({ isOpen, onClose }) => {
   }, [isOpen]);
 
   const canNext = () => {
-    if (step === 1) return customerName.trim() && phone.trim() && address.trim();
+    if (step === 1) return customerName.trim() && phone.trim() && address.trim() && zipCode.trim();
     if (step === 2) return items.length > 0;
     return true;
   };
@@ -728,6 +744,7 @@ const NewOrderPanel: React.FC<NewOrderPanelProps> = ({ isOpen, onClose }) => {
           phone,
           street:  address,
           city,
+          zipCode,
           country: 'Pakistan',
         },
         paymentMethod: payment as CreateOrderPayload['paymentMethod'],
@@ -785,6 +802,7 @@ const NewOrderPanel: React.FC<NewOrderPanelProps> = ({ isOpen, onClose }) => {
               phone={phone}               setPhone={setPhone}
               address={address}           setAddress={setAddress}
               city={city}                 setCity={setCity}
+              zipCode={zipCode}           setZipCode={setZipCode}
               channel={channel}           setChannel={setChannel}
               payment={payment}           setPayment={setPayment}
               existingCustomerId={existingCustomerId} setExistingCustomerId={setExistingCustomerId}
