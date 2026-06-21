@@ -45,6 +45,7 @@ const CouriersPage: React.FC = () => {
   const [activePanel, setActivePanel] = useState<NavPanel>('overview');
   const { isLoading, loadingProgress, switchTab } = useTabLoading(setActivePanel, activePanel);
   const [overlay, setOverlay] = useState<OverlayState>({ open: false, title: '', content: null });
+const [editCourier, setEditCourier] = useState<ApiCourier | null>(null);
 
   // Accepts ApiCourier (from backend) — all fields optional except _id & name
   const openCourierOverlay = useCallback((c: ApiCourier) => {
@@ -111,7 +112,7 @@ const CouriersPage: React.FC = () => {
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <button className="c-btn primary" style={{ fontSize: 10 }}>
+            <button className="c-btn primary" style={{ fontSize: 10 }} onClick={() => { setEditCourier(c); closeOverlay(); switchTab('companies'); }}>
               <i className="fa-solid fa-pen" /> Edit
             </button>
             <button className="c-btn" style={{ fontSize: 10 }} onClick={() => { closeOverlay(); switchTab('shipments'); }}>
@@ -201,7 +202,7 @@ const CouriersPage: React.FC = () => {
   const renderPanel = () => {
     switch (activePanel) {
       case 'overview':    return <OverviewPanel    onNav={p => switchTab(p)} onOpenOverlay={openCourierOverlay} />;
-      case 'companies':   return <CompaniesPanel   onOpenOverlay={openCourierOverlay} />;
+      case 'companies':   return <CompaniesPanel onOpenOverlay={openCourierOverlay} initialEdit={editCourier} onEditConsumed={() => setEditCourier(null)} />;
       case 'contacts':    return <ContactsPanel />;
       case 'contracts':   return <ContractsPanel />;
       case 'shipments':   return <ShipmentsPanel />;

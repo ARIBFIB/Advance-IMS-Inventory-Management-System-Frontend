@@ -202,9 +202,11 @@ const CityInput: React.FC<CityInputProps> = ({ value, onChange, placeholder = 'T
 // ── Main Panel ────────────────────────────────────────────
 interface Props {
   onOpenOverlay: (c: ApiCourier) => void;
+  initialEdit?: ApiCourier | null;
+  onEditConsumed?: () => void;
 }
 
-const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
+const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay, initialEdit, onEditConsumed }) => {
   const [innerTab, setInnerTab] = useState('list');
 
   // ── list state ──
@@ -244,6 +246,14 @@ useEffect(() => {
     apiEndpoint:           editTarget.apiEndpoint            ?? '',
   });
 }, [editTarget]);
+
+// initialEdit — triggered from overlay Edit button in CouriersPage
+useEffect(() => {
+  if (!initialEdit) return;
+  setEditTarget(initialEdit);
+  setInnerTab('add');
+  onEditConsumed?.();
+}, [initialEdit]);
 
 
   const fetchCouriers = useCallback(async () => {
