@@ -126,8 +126,19 @@ const [editCourier, setEditCourier] = useState<ApiCourier | null>(null);
                 <i className="fa-solid fa-plug" /> API Log
               </button>
             )}
-            <button className="c-btn" style={{ fontSize: 10, color: 'var(--red)' }}>
-              <i className="fa-solid fa-pause" /> Pause
+            <button
+              className="c-btn"
+              style={{ fontSize: 10, color: status === 'Paused' ? 'var(--green)' : 'var(--red)' }}
+              onClick={async () => {
+                try {
+                  const newStatus = status === 'Paused' ? 'Active' : 'Paused';
+                  await (await import('../../services/api')).couriersAPI.update(c._id, { status: newStatus });
+                  closeOverlay();
+                } catch { alert('Failed to update courier status.'); }
+              }}
+            >
+              <i className={`fa-solid ${status === 'Paused' ? 'fa-play' : 'fa-pause'}`} />
+              {status === 'Paused' ? 'Activate' : 'Pause'}
             </button>
           </div>
         </div>
