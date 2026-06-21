@@ -1,5 +1,5 @@
 // CompaniesPanel.tsx  —  fully dynamic
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ApiCourier, ApiPagination,
   fmt, rColor, courierInitials,
@@ -7,6 +7,199 @@ import {
 } from './shared';
 import { couriersAPI } from '../../services/api';
 
+// ── City Search Hook ──────────────────────────────────────
+interface CityEntry { name: string; countryCode: string; stateCode: string; }
+
+function useCitySearch() {
+  const [allCities, setAllCities] = useState<CityEntry[]>([]);
+  const [loaded, setLoaded]       = useState(false);
+
+  useEffect(() => {
+    import('../../assets/data/all_cities/allCitiesNested.lite.json')
+      .then((mod: any) => {
+        const raw = mod.default ?? mod;
+        const flat: CityEntry[] = [];
+        // Structure: { "Country-CC": { "State-SC": [ { name, countryCode, stateCode } ] } }
+        Object.values(raw).forEach((states: any) => {
+          Object.values(states).forEach((cities: any) => {
+            if (Array.isArray(cities)) {
+              cities.forEach((c: CityEntry) => flat.push(c));
+            }
+          });
+        });
+        setAllCities(flat);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  const search = useCallback(
+    (query: string): CityEntry[] => {
+      if (!query.trim() || query.length < 2) return [];
+      const q = query.toLowerCase();
+      const results: CityEntry[] = [];
+      for (const c of allCities) {
+        if (c.name.toLowerCase().startsWith(q)) results.push(c);
+        if (results.length >= 40) break;
+      }
+      // secondary pass — contains match
+      if (results.length < 10) {
+        for (const c of allCities) {
+          if (!results.includes(c) && c.name.toLowerCase().includes(q)) {
+            results.push(c);
+          }
+          if (results.length >= 40) break;
+        }
+      }
+      return results;
+    },
+    [allCities]
+  );
+
+  return { search, loaded };
+}
+
+// ── CityInput Component ───────────────────────────────────
+interface CityInputProps {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+}
+
+const CityInput: React.FC<CityInputProps> = ({ value, onChange, placeholder = 'Type city name...' }) => {
+  const { search, loaded } = useCitySearch();
+  const [query,       setQuery]       = useState(value);
+  const [suggestions, setSuggestions] = useState<CityEntry[]>([]);
+  const [open,        setOpen]        = useState(false);
+  const [highlighted, setHighlighted] = useState(0);
+  const listRef   = useRef<HTMLUListElement>(null);
+  const inputRef  = useRef<HTMLInputElement>(null);
+  const wrapRef   = useRef<HTMLDivElement>(null);
+
+  // sync external value → internal query
+  useEffect(() => { setQuery(value); }, [value]);
+
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const q = e.target.value;
+    setQuery(q);
+    onChange(q);           // keep form value in sync while typing
+    if (q.length >= 2) {
+      setSuggestions(search(q));
+      setOpen(true);
+      setHighlighted(0);
+    } else {
+      setSuggestions([]);
+      setOpen(false);
+    }
+  };
+
+  const pick = (city: CityEntry) => {
+    setQuery(city.name);
+    onChange(city.name);
+    setSuggestions([]);
+    setOpen(false);
+  };
+
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (!open) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlighted(h => Math.min(h + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlighted(h => Math.max(h - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (suggestions[highlighted]) pick(suggestions[highlighted]);
+    } else if (e.key === 'Escape') {
+      setOpen(false);
+    }
+  };
+
+  // scroll highlighted item into view
+  useEffect(() => {
+    if (!listRef.current) return;
+    const el = listRef.current.children[highlighted] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: 'nearest' });
+  }, [highlighted]);
+
+  // close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative' }}>
+      <input
+        ref={inputRef}
+        className="c-form-input"
+        placeholder={loaded ? placeholder : 'Loading cities...'}
+        disabled={!loaded}
+        value={query}
+        onChange={handleInput}
+        onKeyDown={handleKey}
+        onFocus={() => { if (query.length >= 2 && suggestions.length) setOpen(true); }}
+        autoComplete="off"
+      />
+
+      {/* Dropdown */}
+      {open && suggestions.length > 0 && (
+        <ul
+          ref={listRef}
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 3px)',
+            left: 0,
+            right: 0,
+            maxHeight: 220,
+            overflowY: 'auto',
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            zIndex: 999,
+            margin: 0,
+            padding: 0,
+            listStyle: 'none',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+          }}
+        >
+          {suggestions.map((c, i) => (
+            <li
+              key={`${c.name}-${c.countryCode}-${c.stateCode}-${i}`}
+              onMouseDown={() => pick(c)}    // mousedown fires before blur
+              style={{
+                padding: '6px 11px',
+                fontSize: 11,
+                cursor: 'pointer',
+                background: i === highlighted ? 'var(--accent)' : 'transparent',
+                color: i === highlighted ? '#fff' : 'var(--text-primary)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+              onMouseEnter={() => setHighlighted(i)}
+            >
+              <span style={{ fontWeight: i === highlighted ? 600 : 400 }}>{c.name}</span>
+              <span style={{
+                fontSize: 9,
+                opacity: 0.7,
+                color: i === highlighted ? '#ffffffcc' : 'var(--text-muted)',
+              }}>
+                {c.countryCode} · {c.stateCode}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+// ── Main Panel ────────────────────────────────────────────
 interface Props {
   onOpenOverlay: (c: ApiCourier) => void;
 }
@@ -15,22 +208,22 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
   const [innerTab, setInnerTab] = useState('list');
 
   // ── list state ──
-  const [couriers,   setCouriers]   = useState<ApiCourier[]>([]);
-  const [pagination, setPagination] = useState<ApiPagination>({ currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 10 });
-  const [loading,    setLoading]    = useState(false);
-  const [error,      setError]      = useState('');
-  const [search,     setSearch]     = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [page, setPage] = useState(1);
+  const [couriers,      setCouriers]      = useState<ApiCourier[]>([]);
+  const [pagination,    setPagination]    = useState<ApiPagination>({ currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 10 });
+  const [loading,       setLoading]       = useState(false);
+  const [error,         setError]         = useState('');
+  const [search,        setSearch]        = useState('');
+  const [statusFilter,  setStatusFilter]  = useState('');
+  const [page,          setPage]          = useState(1);
   const PER_PAGE = 10;
 
-  // ── form state (add courier) ──
+  // ── form state ──
   const [form, setForm] = useState({
     name: '', contactPerson: '', email: '', phone: '', city: '',
     baseRate: '', codPct: '', codDays: '', coverage: 'Nationwide',
     apiIntegrationEnabled: false, apiKey: '', apiEndpoint: '',
   });
-  const [saving, setSaving]   = useState(false);
+  const [saving,  setSaving]  = useState(false);
   const [saveErr, setSaveErr] = useState('');
 
   const fetchCouriers = useCallback(async () => {
@@ -39,15 +232,13 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
       const params: Record<string, any> = { page, limit: PER_PAGE };
       if (search)       params.search = search;
       if (statusFilter) params.status = statusFilter;
-      const res = await couriersAPI.getAll(params);
+      const res  = await couriersAPI.getAll(params);
       const data = res.data?.data;
       setCouriers(data?.couriers ?? []);
       setPagination(data?.pagination ?? { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: PER_PAGE });
     } catch (e: any) {
       setError(e?.response?.data?.message ?? 'Failed to load couriers.');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, [page, search, statusFilter]);
 
   useEffect(() => { if (innerTab === 'list') fetchCouriers(); }, [fetchCouriers, innerTab]);
@@ -57,18 +248,20 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
     setSaving(true); setSaveErr('');
     try {
       await couriersAPI.create({
-        name: form.name, contactPerson: form.contactPerson || undefined,
-        email: form.email || undefined, phone: form.phone || undefined,
-        serviceRegions: form.city ? [form.city] : undefined,
+        name:                  form.name,
+        contactPerson:         form.contactPerson  || undefined,
+        email:                 form.email          || undefined,
+        phone:                 form.phone          || undefined,
+        serviceRegions:        form.city           ? [form.city] : undefined,
         apiIntegrationEnabled: form.apiIntegrationEnabled,
-        apiKey: form.apiKey || undefined, apiEndpoint: form.apiEndpoint || undefined,
+        apiKey:                form.apiKey         || undefined,
+        apiEndpoint:           form.apiEndpoint    || undefined,
       });
-      setInnerTab('list'); fetchCouriers();
+      setInnerTab('list');
+      fetchCouriers();
     } catch (e: any) {
       setSaveErr(e?.response?.data?.message ?? 'Failed to save courier.');
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async (id: string) => {
@@ -78,16 +271,14 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
   };
 
   const handleTestConnection = async (id: string) => {
-    try {
-      await couriersAPI.testConnection(id);
-      alert('Connection test passed!');
-    } catch { alert('Connection test failed.'); }
+    try   { await couriersAPI.testConnection(id); alert('Connection test passed!'); }
+    catch { alert('Connection test failed.'); }
   };
 
   const handleSync = async (id: string) => {
     try {
       const res = await couriersAPI.sync(id);
-      const r = res.data?.syncResult;
+      const r   = res.data?.syncResult;
       alert(`Sync complete: ${r?.syncedOrders ?? 0} orders synced, ${r?.failedUpdates ?? 0} failed.`);
     } catch { alert('Sync failed.'); }
   };
@@ -96,10 +287,9 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
   const start = (currentPage - 1) * PER_PAGE + 1;
   const end   = Math.min(currentPage * PER_PAGE, totalItems);
 
-  // stats derived from loaded data
-  const active    = couriers.filter(c => c.status === 'Active').length;
-  const paused    = couriers.filter(c => c.status === 'Paused').length;
-  const apiEnabled = couriers.filter(c => c.apiIntegrationEnabled).length;
+  const active           = couriers.filter(c => c.status === 'Active').length;
+  const paused           = couriers.filter(c => c.status === 'Paused').length;
+  const apiEnabled       = couriers.filter(c => c.apiIntegrationEnabled).length;
   const totalOutstanding = couriers.reduce((a, c) => a + (c.outstanding ?? 0), 0);
 
   return (
@@ -111,9 +301,9 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
 
       <InnerTabs
         tabs={[
-          { id: 'list',  label: 'All Companies'    },
-          { id: 'add',   label: 'Add Company'      },
-          { id: 'api',   label: 'API Credentials'  },
+          { id: 'list', label: 'All Companies'   },
+          { id: 'add',  label: 'Add Company'     },
+          { id: 'api',  label: 'API Credentials' },
         ]}
         active={innerTab}
         onChange={t => { setInnerTab(t); if (t === 'list') fetchCouriers(); }}
@@ -184,7 +374,7 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
                     </td></tr>
                   ) : couriers.length === 0 ? (
                     <tr><td colSpan={10}><EmptyState icon="fa-building" title="No couriers found" desc="Add your first courier partner." /></td></tr>
-                  ) : couriers.map((c, i) => {
+                  ) : couriers.map((c) => {
                     const rate = c.successRate ?? parseFloat(c.completionRate ?? '0');
                     return (
                       <tr key={c._id} onClick={() => onOpenOverlay(c)} style={{ cursor: 'pointer' }}>
@@ -246,45 +436,84 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
               </div>
             )}
             <div className="c-form-row">
-              <div className="c-form-group"><div className="c-form-label">Company Name *</div>
-                <input className="c-form-input" placeholder="e.g. TCS Express" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
-              <div className="c-form-group"><div className="c-form-label">Contact Person</div>
-                <input className="c-form-input" placeholder="Account manager name" value={form.contactPerson} onChange={e => setForm(f => ({ ...f, contactPerson: e.target.value }))} /></div>
+              <div className="c-form-group">
+                <div className="c-form-label">Company Name *</div>
+                <input className="c-form-input" placeholder="e.g. TCS Express" value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div className="c-form-group">
+                <div className="c-form-label">Contact Person</div>
+                <input className="c-form-input" placeholder="Account manager name" value={form.contactPerson}
+                  onChange={e => setForm(f => ({ ...f, contactPerson: e.target.value }))} />
+              </div>
             </div>
+
             <div className="c-form-row">
-              <div className="c-form-group"><div className="c-form-label">Email</div>
-                <input className="c-form-input" type="email" placeholder="ops@courier.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-              <div className="c-form-group"><div className="c-form-label">Phone</div>
-                <input className="c-form-input" placeholder="03XX-XXXXXXX" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
+              <div className="c-form-group">
+                <div className="c-form-label">Email</div>
+                <input className="c-form-input" type="email" placeholder="ops@courier.com" value={form.email}
+                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+              </div>
+              <div className="c-form-group">
+                <div className="c-form-label">Phone</div>
+                <input className="c-form-input" placeholder="03XX-XXXXXXX" value={form.phone}
+                  onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
+              </div>
             </div>
+
             <div className="c-form-row">
-              <div className="c-form-group"><div className="c-form-label">City / HQ</div>
-                <input className="c-form-input" placeholder="Lahore" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} /></div>
-              <div className="c-form-group"><div className="c-form-label">Coverage Type</div>
-                <select className="c-form-select" value={form.coverage} onChange={e => setForm(f => ({ ...f, coverage: e.target.value }))}>
-                  <option>Nationwide</option><option>Regional</option><option>City Only</option>
+              {/* ── CITY DROPDOWN ── */}
+              <div className="c-form-group">
+                <div className="c-form-label">City / HQ</div>
+                <CityInput
+                  value={form.city}
+                  onChange={val => setForm(f => ({ ...f, city: val }))}
+                  placeholder="Type city name..."
+                />
+              </div>
+              <div className="c-form-group">
+                <div className="c-form-label">Coverage Type</div>
+                <select className="c-form-select" value={form.coverage}
+                  onChange={e => setForm(f => ({ ...f, coverage: e.target.value }))}>
+                  <option>Nationwide</option>
+                  <option>Regional</option>
+                  <option>City Only</option>
                 </select>
               </div>
             </div>
+
             <div className="c-form-row">
-              <div className="c-form-group"><div className="c-form-label">API Integration</div>
-                <select className="c-form-select" value={form.apiIntegrationEnabled ? 'yes' : 'no'} onChange={e => setForm(f => ({ ...f, apiIntegrationEnabled: e.target.value === 'yes' }))}>
-                  <option value="no">No — Manual only</option><option value="yes">Yes — API connected</option>
+              <div className="c-form-group">
+                <div className="c-form-label">API Integration</div>
+                <select className="c-form-select"
+                  value={form.apiIntegrationEnabled ? 'yes' : 'no'}
+                  onChange={e => setForm(f => ({ ...f, apiIntegrationEnabled: e.target.value === 'yes' }))}>
+                  <option value="no">No — Manual only</option>
+                  <option value="yes">Yes — API connected</option>
                 </select>
               </div>
             </div>
+
             {form.apiIntegrationEnabled && (
               <div className="c-form-row">
-                <div className="c-form-group"><div className="c-form-label">API Key</div>
-                  <input className="c-form-input" placeholder="your-api-key" value={form.apiKey} onChange={e => setForm(f => ({ ...f, apiKey: e.target.value }))} /></div>
-                <div className="c-form-group"><div className="c-form-label">API Endpoint</div>
-                  <input className="c-form-input" placeholder="https://api.courier.com/v1" value={form.apiEndpoint} onChange={e => setForm(f => ({ ...f, apiEndpoint: e.target.value }))} /></div>
+                <div className="c-form-group">
+                  <div className="c-form-label">API Key</div>
+                  <input className="c-form-input" placeholder="your-api-key" value={form.apiKey}
+                    onChange={e => setForm(f => ({ ...f, apiKey: e.target.value }))} />
+                </div>
+                <div className="c-form-group">
+                  <div className="c-form-label">API Endpoint</div>
+                  <input className="c-form-input" placeholder="https://api.courier.com/v1" value={form.apiEndpoint}
+                    onChange={e => setForm(f => ({ ...f, apiEndpoint: e.target.value }))} />
+                </div>
               </div>
             )}
+
             <hr />
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="c-btn primary" onClick={handleSave} disabled={saving}>
-                <i className={`fa-solid ${saving ? 'fa-spinner fa-spin' : 'fa-check'}`} /> {saving ? 'Saving…' : 'Save Courier'}
+                <i className={`fa-solid ${saving ? 'fa-spinner fa-spin' : 'fa-check'}`} />
+                {saving ? 'Saving…' : 'Save Courier'}
               </button>
               <button className="c-btn" onClick={() => setInnerTab('list')}>Cancel</button>
             </div>
@@ -300,9 +529,13 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
             API credentials are encrypted at rest. Keys are never displayed in full after saving.
           </div>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}><i className="fa-solid fa-spinner fa-spin" /></div>
+            <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>
+              <i className="fa-solid fa-spinner fa-spin" />
+            </div>
           ) : couriers.filter(c => c.apiIntegrationEnabled).length === 0 ? (
-            <div className="card"><div className="card-body"><EmptyState icon="fa-plug" title="No API Couriers" desc="Enable API integration when adding a courier." /></div></div>
+            <div className="card"><div className="card-body">
+              <EmptyState icon="fa-plug" title="No API Couriers" desc="Enable API integration when adding a courier." />
+            </div></div>
           ) : couriers.filter(c => c.apiIntegrationEnabled).map(a => (
             <div className="card" style={{ marginBottom: 10 }} key={a._id}>
               <div className="card-header">
