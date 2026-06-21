@@ -911,17 +911,22 @@ const AdjustmentsTab: React.FC = () => {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+
+    // Fetch products independently — must not fail silently if history call fails
     try {
-      const [prodRes, histRes] = await Promise.all([
-        productsAPI.getAll({ limit: 200 }),
-        stockAPI.getHistory({ limit: 10, changeType: 'Adjustment,Inbound,Outbound,Damaged,Return' }),
-      ]);
+      const prodRes = await productsAPI.getAll({ limit: 200 });
       setProducts((prodRes.data?.data?.products ?? []).map((p: any) => ({
         _id: p._id, name: p.name, sku: p.sku, variants: p.variants ?? [],
       })));
+    } catch { /* ignore */ }
+
+    // Fetch history separately (non-fatal if it fails)
+    try {
+      const histRes = await stockAPI.getHistory({ limit: 10 });
       setHistory(histRes.data?.data?.history ?? []);
     } catch { /* ignore */ }
-    finally { setLoading(false); }
+
+    setLoading(false);
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
