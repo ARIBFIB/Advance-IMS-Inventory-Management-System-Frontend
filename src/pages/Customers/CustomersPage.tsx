@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './CustomersPage.css';
 import TopLoadingBar from '../../components/ui/TopLoadingBar';
 import { useTabLoading } from '../../hooks/useTabLoading';
-import { customersAPI } from '../../services/api';
+import { customersAPI, authAPI } from '../../services/api';
+import CitySearchInput from '../../components/shared/CitySearchInput';
 
 // ═══════════════════════════════════════════════════════════
 // TYPES  (aligned with backend response)
@@ -186,6 +187,24 @@ const CustomerPanel: React.FC<CustomerPanelProps> = ({ open, customer, onClose, 
   const [saving, setSaving]   = useState(false);
   const [error,  setError]    = useState('');
 
+  // ── Role check ──
+  // Anonymize: Administrator only. Mark VIP (segment update): Administrator | Accounts.
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [toast, setToast]       = useState<string | null>(null);
+  const isAdmin          = userRole === 'Administrator';
+  const canUpdateSegment = userRole === 'Administrator' || userRole === 'Accounts';
+
+  useEffect(() => {
+    authAPI.me()
+      .then(r => setUserRole((r.data as any)?.data?.role ?? null))
+      .catch(() => setUserRole(null));
+  }, []);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3500);
+  };
+
   // form fields
   const [firstName, setFirstName] = useState('');
   const [lastName,  setLastName]  = useState('');
@@ -237,9 +256,13 @@ const CustomerPanel: React.FC<CustomerPanelProps> = ({ open, customer, onClose, 
     try {
       if (customer) {
         await customersAPI.update(customer._id, payload);
-        // update segment separately if changed
+        // update segment separately if changed (Administrator | Accounts only)
         if (segment !== customer.segment) {
-          await customersAPI.updateSegment(customer._id, segment, 'Manual override');
+          if (!canUpdateSegment) {
+            showToast("You don't have permission to change customer segments. Please contact an Administrator.");
+          } else {
+            await customersAPI.updateSegment(customer._id, segment, 'Manual override');
+          }
         }
       } else {
         await customersAPI.create(payload);
@@ -254,6 +277,10 @@ const CustomerPanel: React.FC<CustomerPanelProps> = ({ open, customer, onClose, 
 
   const handleMarkVip = async () => {
     if (!customer) return;
+    if (!canUpdateSegment) {
+      showToast("You don't have permission to mark customers as VIP. Please contact an Administrator.");
+      return;
+    }
     try {
       await customersAPI.updateSegment(customer._id, 'VIP', 'Marked as VIP manually');
       onSaved(); onClose();
@@ -261,7 +288,12 @@ const CustomerPanel: React.FC<CustomerPanelProps> = ({ open, customer, onClose, 
   };
 
   const handleDelete = async () => {
-    if (!customer || !window.confirm('Anonymize this customer? This cannot be undone.')) return;
+    if (!customer) return;
+    if (!isAdmin) {
+      showToast("You don't have permission to anonymize customers. Please contact an Administrator.");
+      return;
+    }
+    if (!window.confirm('Anonymize this customer? This cannot be undone.')) return;
     try {
       await customersAPI.delete(customer._id);
       onSaved(); onClose();
@@ -272,6 +304,18 @@ const CustomerPanel: React.FC<CustomerPanelProps> = ({ open, customer, onClose, 
 
   return (
     <>
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          background: '#1F2937', color: '#fff', padding: '12px 18px',
+          borderRadius: 8, fontSize: 13, fontWeight: 500,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          display: 'flex', alignItems: 'center', gap: 10, maxWidth: 360,
+        }}>
+          <i className="fa-solid fa-circle-exclamation" style={{ color: '#F59E0B' }} />
+          {toast}
+        </div>
+      )}
       <div className={`prod-backdrop ${open ? 'open' : ''}`} onClick={onClose} />
       <div className={`prod-detail-panel ${open ? 'open' : ''}`}>
         <div className="detail-header">
@@ -339,7 +383,11 @@ const CustomerPanel: React.FC<CustomerPanelProps> = ({ open, customer, onClose, 
                 <div className="form-row">
                   <div className="form-group">
                     <div className="form-label">City</div>
-                    <input className="form-input" value={city} onChange={e => setCity(e.target.value)} placeholder="e.g. Lahore" />
+                    <CitySearchInput
+                      value={city}
+                      onChange={setCity}
+                      placeholder="Search city..."
+                    />
                   </div>
                   <div className="form-group">
                     <div className="form-label">Source</div>
@@ -438,6 +486,23 @@ const AllCustomersTab: React.FC = () => {
   const [showPanel,     setShowPanel]     = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<ApiCustomer | null>(null);
 
+  // ── Role check (for table-row quick actions: Mark as VIP, Anonymize) ──
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [toast, setToast]       = useState<string | null>(null);
+  const isAdmin          = userRole === 'Administrator';
+  const canUpdateSegment = userRole === 'Administrator' || userRole === 'Accounts';
+
+  useEffect(() => {
+    authAPI.me()
+      .then(r => setUserRole((r.data as any)?.data?.role ?? null))
+      .catch(() => setUserRole(null));
+  }, []);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3500);
+  };
+
   const fetchCustomers = useCallback(async () => {
     setLoading(true); setError('');
     try {
@@ -486,6 +551,18 @@ const AllCustomersTab: React.FC = () => {
 
   return (
     <>
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          background: '#1F2937', color: '#fff', padding: '12px 18px',
+          borderRadius: 8, fontSize: 13, fontWeight: 500,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          display: 'flex', alignItems: 'center', gap: 10, maxWidth: 360,
+        }}>
+          <i className="fa-solid fa-circle-exclamation" style={{ color: '#F59E0B' }} />
+          {toast}
+        </div>
+      )}
       {/* Stat Cards */}
       <div className="stats-row" style={{ marginBottom: 14 }}>
         <div className="stat-card">
@@ -591,11 +668,19 @@ const AllCustomersTab: React.FC = () => {
                       { label: 'Edit Customer',  icon: 'fa-pen',          onClick: () => openPanel(c) },
                       { label: 'View Orders',    icon: 'fa-bag-shopping', onClick: () => { setEditingCustomer(c); setShowPanel(true); } },
                       { label: 'Mark as VIP',    icon: 'fa-crown',        onClick: async () => {
+                        if (!canUpdateSegment) {
+                          showToast("You don't have permission to mark customers as VIP. Please contact an Administrator.");
+                          return;
+                        }
                         await customersAPI.updateSegment(c._id, 'VIP', 'Marked as VIP').catch(() => {});
                         fetchCustomers();
                       }},
                       { label: '---', icon: '', onClick: () => {} },
                       { label: 'Anonymize',      icon: 'fa-user-slash',   danger: true, onClick: async () => {
+                        if (!isAdmin) {
+                          showToast("You don't have permission to anonymize customers. Please contact an Administrator.");
+                          return;
+                        }
                         if (window.confirm('Anonymize this customer? This cannot be undone.')) {
                           await customersAPI.delete(c._id).catch(() => {});
                           fetchCustomers();
