@@ -204,9 +204,10 @@ interface Props {
   onOpenOverlay: (c: ApiCourier) => void;
   initialEdit?: ApiCourier | null;
   onEditConsumed?: () => void;
+  refreshTrigger?: number;   // 👈 NEW
 }
 
-const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay, initialEdit, onEditConsumed }) => {
+const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay, initialEdit, onEditConsumed, refreshTrigger }) => {
   const [innerTab, setInnerTab] = useState('list');
 
   // ── list state ──
@@ -273,7 +274,13 @@ useEffect(() => {
     } finally { setLoading(false); }
   }, [page, search, statusFilter]);
 
-  useEffect(() => { if (innerTab === 'list') fetchCouriers(); }, [fetchCouriers, innerTab]);
+useEffect(() => { if (innerTab === 'list') fetchCouriers(); }, [fetchCouriers, innerTab]);
+
+// Auto-refresh when overlay closes (refreshTrigger changes)
+useEffect(() => {
+  if (refreshTrigger === undefined || refreshTrigger === 0) return;
+  if (innerTab === 'list') fetchCouriers();
+}, [refreshTrigger]);   // 👈 NEW
 
   const handleSave = async () => {
     if (!form.name.trim()) { setSaveErr('Courier name is required.'); return; }

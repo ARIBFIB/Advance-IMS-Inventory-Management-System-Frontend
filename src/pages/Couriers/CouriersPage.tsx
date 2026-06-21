@@ -46,7 +46,8 @@ const CouriersPage: React.FC = () => {
   const { isLoading, loadingProgress, switchTab } = useTabLoading(setActivePanel, activePanel);
 const [overlay, setOverlay] = useState<OverlayState>({ open: false, title: '', content: null });
 const [editCourier, setEditCourier] = useState<ApiCourier | null>(null);
-const [pauseLoading, setPauseLoading] = useState(false);   // 👈 NEW
+const [pauseLoading, setPauseLoading] = useState(false);
+const [refreshTrigger, setRefreshTrigger] = useState(0);   // 👈 NEW
 
   // Accepts ApiCourier (from backend) — all fields optional except _id & name
   const openCourierOverlay = useCallback((c: ApiCourier) => {
@@ -158,7 +159,10 @@ const [pauseLoading, setPauseLoading] = useState(false);   // 👈 NEW
     });
   }, [switchTab]);
 
-  const closeOverlay = () => setOverlay(v => ({ ...v, open: false }));
+const closeOverlay = () => {
+  setOverlay(v => ({ ...v, open: false }));
+  setRefreshTrigger(t => t + 1);   // 👈 NEW — tells CompaniesPanel to refresh
+};
 
   // ── NAV STRUCTURE ──────────────────────────────────────
   type NavEntry = {
@@ -225,7 +229,7 @@ const [pauseLoading, setPauseLoading] = useState(false);   // 👈 NEW
   const renderPanel = () => {
     switch (activePanel) {
       case 'overview':    return <OverviewPanel    onNav={p => switchTab(p)} onOpenOverlay={openCourierOverlay} />;
-      case 'companies':   return <CompaniesPanel onOpenOverlay={openCourierOverlay} initialEdit={editCourier} onEditConsumed={() => setEditCourier(null)} />;
+      case 'companies':   return <CompaniesPanel onOpenOverlay={openCourierOverlay} initialEdit={editCourier} onEditConsumed={() => setEditCourier(null)} refreshTrigger={refreshTrigger} />;
       case 'contacts':    return <ContactsPanel />;
       case 'contracts':   return <ContractsPanel />;
       case 'shipments':   return <ShipmentsPanel />;
