@@ -131,14 +131,16 @@ const [editCourier, setEditCourier] = useState<ApiCourier | null>(null);
   className="c-btn"
   style={{ fontSize: 10, color: status === 'Paused' ? 'var(--green)' : 'var(--red)' }}
   onClick={async () => {
-    try {
-      const newStatus = status === 'Paused' ? 'Active' : 'Paused';
-      const { couriersAPI } = await import('../../services/api');
-      await couriersAPI.update(c._id, { status: newStatus });
-      // Re-open overlay with updated courier object
-      openCourierOverlay({ ...c, status: newStatus });
-    } catch { alert('Failed to update courier status.'); }
-  }}
+  try {
+    const newStatus = status === 'Paused' ? 'Active' : 'Paused';
+    const { couriersAPI } = await import('../../services/api');
+    await couriersAPI.update(c._id, { status: newStatus });
+    // Fresh fetch from backend
+    const fresh = await couriersAPI.getById(c._id);
+    const updated = fresh.data?.data ?? { ...c, status: newStatus };
+    openCourierOverlay(updated);
+  } catch { alert('Failed to update courier status.'); }
+}}
 >
   <i className={`fa-solid ${status === 'Paused' ? 'fa-play' : 'fa-pause'}`} />
   {status === 'Paused' ? 'Activate' : 'Pause'}
