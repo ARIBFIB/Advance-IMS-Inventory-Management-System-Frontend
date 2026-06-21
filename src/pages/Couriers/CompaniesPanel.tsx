@@ -225,6 +225,8 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
   });
   const [saving,  setSaving]  = useState(false);
   const [saveErr, setSaveErr] = useState('');
+  const [editTarget, setEditTarget] = useState<ApiCourier | null>(null);
+
 
   const fetchCouriers = useCallback(async () => {
     setLoading(true); setError('');
@@ -246,17 +248,23 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
   const handleSave = async () => {
     if (!form.name.trim()) { setSaveErr('Courier name is required.'); return; }
     setSaving(true); setSaveErr('');
+    const payload = {
+      name:                  form.name,
+      contactPerson:         form.contactPerson  || undefined,
+      email:                 form.email          || undefined,
+      phone:                 form.phone          || undefined,
+      serviceRegions:        form.city           ? [form.city] : undefined,
+      apiIntegrationEnabled: form.apiIntegrationEnabled,
+      apiKey:                form.apiKey         || undefined,
+      apiEndpoint:           form.apiEndpoint    || undefined,
+    };
     try {
-      await couriersAPI.create({
-        name:                  form.name,
-        contactPerson:         form.contactPerson  || undefined,
-        email:                 form.email          || undefined,
-        phone:                 form.phone          || undefined,
-        serviceRegions:        form.city           ? [form.city] : undefined,
-        apiIntegrationEnabled: form.apiIntegrationEnabled,
-        apiKey:                form.apiKey         || undefined,
-        apiEndpoint:           form.apiEndpoint    || undefined,
-      });
+      if (editTarget) {
+        await couriersAPI.update(editTarget._id, payload);
+      } else {
+        await couriersAPI.create(payload);
+      }
+      setEditTarget(null);
       setInnerTab('list');
       fetchCouriers();
     } catch (e: any) {
@@ -396,7 +404,10 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
                         <td><strong style={{ color: (c.outstanding ?? 0) > 0 ? 'var(--red)' : 'var(--green)' }}>{fmt(c.outstanding ?? 0)}</strong></td>
                         <td><Badge label={c.status ?? 'Active'} /></td>
                         <td onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 3 }}>
-                          <button className="c-btn" style={{ height: 24, fontSize: 9.5 }} onClick={() => onOpenOverlay(c)}><i className="fa-solid fa-eye" /></button>
+                          <button className="c-btn" style={{ height: 24, fontSize: 9.5 }} title="View" onClick={() => onOpenOverlay(c)}><i className="fa-solid fa-eye" /></button>
+                          <button className="c-btn" style={{ height: 24, fontSize: 9.5 }} title="Edit" onClick={() => { setEditTarget(c); setForm({ name: c.name, contactPerson: c.contactPerson ?? '', email: c.email ?? '', phone: c.phone ?? '', city: c.serviceRegions?.[0] ?? '', baseRate: '', codPct: '', codDays: '', coverage: c.coverage ?? 'Nationwide', apiIntegrationEnabled: c.apiIntegrationEnabled ?? false, apiKey: '', apiEndpoint: '', }); setInnerTab('add'); }}>
+                            <i className="fa-solid fa-pen" />
+                          </button>
                           {c.apiIntegrationEnabled && (
                             <button className="c-btn" style={{ height: 24, fontSize: 9.5 }} title="Test API" onClick={() => handleTestConnection(c._id)}>
                               <i className="fa-solid fa-plug" />
@@ -427,8 +438,10 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
       {innerTab === 'add' && (
         <div className="card">
           <div className="card-header">
-            <div className="card-title"><i className="fa-solid fa-plus-circle" /> Add New Courier Company</div>
-          </div>
+<div className="card-title">
+  <i className={`fa-solid ${editTarget ? 'fa-pen' : 'fa-plus-circle'}`} />
+  {editTarget ? `Edit — ${editTarget.name}` : 'Add New Courier Company'}
+</div>          </div>
           <div className="card-body">
             {saveErr && (
               <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10, padding: '6px 10px', background: 'var(--red-bg)', borderRadius: 6 }}>
@@ -513,10 +526,9 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="c-btn primary" onClick={handleSave} disabled={saving}>
                 <i className={`fa-solid ${saving ? 'fa-spinner fa-spin' : 'fa-check'}`} />
-                {saving ? 'Saving…' : 'Save Courier'}
+                {saving ? 'Saving…' : editTarget ? 'Update Courier' : 'Save Courier'}
               </button>
-              <button className="c-btn" onClick={() => setInnerTab('list')}>Cancel</button>
-            </div>
+<button className="c-btn" onClick={() => { setEditTarget(null); setInnerTab('list'); }}>Cancel</button>            </div>
           </div>
         </div>
       )}
