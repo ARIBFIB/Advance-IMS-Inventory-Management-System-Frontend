@@ -46,11 +46,10 @@ const CouriersPage: React.FC = () => {
   const { isLoading, loadingProgress, switchTab } = useTabLoading(setActivePanel, activePanel);
 const [overlay, setOverlay] = useState<OverlayState>({ open: false, title: '', content: null });
 const [editCourier, setEditCourier] = useState<ApiCourier | null>(null);
-const [overlayData, setOverlayData] = useState<ApiCourier | null>(null);
 
   // Accepts ApiCourier (from backend) — all fields optional except _id & name
   const openCourierOverlay = useCallback((c: ApiCourier) => {
-  const currentStatus = c.status ?? 'Active';
+  
     // Resolve display fields — handle both API shape and static shape merged via shared.tsx
     const code        = c.code ?? c.name.slice(0, 3).toUpperCase();
     const coverage    = c.coverage ?? c.serviceRegions?.join(', ') ?? '—';
@@ -148,7 +147,7 @@ const [overlayData, setOverlayData] = useState<ApiCourier | null>(null);
         </div>
       ),
     });
-  }, []);
+  }, [switchTab]);
 
   const closeOverlay = () => setOverlay(v => ({ ...v, open: false }));
 
