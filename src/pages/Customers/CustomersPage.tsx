@@ -512,7 +512,11 @@ const AllCustomersTab: React.FC = () => {
       if (filter === 'inactive') params.segment  = 'Inactive';
       const res = await customersAPI.getAll(params);
       const data = res.data?.data;
-      setCustomers(data?.customers ?? []);
+      // Filter out anonymized customers (backend doesn't support a status filter, so we filter client-side)
+      const visibleCustomers = (data?.customers ?? []).filter(
+        (c: ApiCustomer) => !c.email?.includes('@anonymized.local')
+      );
+      setCustomers(visibleCustomers);
       setPagination(data?.pagination ?? { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: CUSTOMERS_PER_PAGE });
     } catch (e: any) {
       setError(e?.response?.data?.message ?? 'Failed to load customers.');
