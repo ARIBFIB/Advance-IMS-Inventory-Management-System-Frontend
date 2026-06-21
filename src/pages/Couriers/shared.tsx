@@ -25,6 +25,7 @@ export interface ApiCourier {
   phone?: string;
   apiIntegrationEnabled?: boolean;
   apiStatus?: 'live' | 'test' | 'disabled';
+  apiEndpoint?: string;
   serviceRegions?: string[];
   activeShipments?: number;
   inTransit?: number;

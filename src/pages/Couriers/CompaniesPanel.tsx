@@ -227,6 +227,24 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
   const [saveErr, setSaveErr] = useState('');
   const [editTarget, setEditTarget] = useState<ApiCourier | null>(null);
 
+useEffect(() => {
+  if (!editTarget) return;
+  setForm({
+    name:                  editTarget.name,
+    contactPerson:         editTarget.contactPerson         ?? '',
+    email:                 editTarget.email                 ?? '',
+    phone:                 editTarget.phone                 ?? '',
+    city:                  editTarget.serviceRegions?.[0]   ?? '',
+    baseRate:              String(editTarget.baseRate        ?? ''),
+    codPct:                String(editTarget.codPct          ?? ''),
+    codDays:               String(editTarget.codDays         ?? ''),
+    coverage:              editTarget.coverage               ?? 'Nationwide',
+    apiIntegrationEnabled: editTarget.apiIntegrationEnabled  ?? false,
+    apiKey:                '',
+    apiEndpoint:           editTarget.apiEndpoint            ?? '',
+  });
+}, [editTarget]);
+
 
   const fetchCouriers = useCallback(async () => {
     setLoading(true); setError('');
@@ -405,7 +423,7 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay }) => {
                         <td><Badge label={c.status ?? 'Active'} /></td>
                         <td onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 3 }}>
                           <button className="c-btn" style={{ height: 24, fontSize: 9.5 }} title="View" onClick={() => onOpenOverlay(c)}><i className="fa-solid fa-eye" /></button>
-                          <button className="c-btn" style={{ height: 24, fontSize: 9.5 }} title="Edit" onClick={() => { setEditTarget(c); setForm({ name: c.name, contactPerson: c.contactPerson ?? '', email: c.email ?? '', phone: c.phone ?? '', city: c.serviceRegions?.[0] ?? '', baseRate: '', codPct: '', codDays: '', coverage: c.coverage ?? 'Nationwide', apiIntegrationEnabled: c.apiIntegrationEnabled ?? false, apiKey: '', apiEndpoint: '', }); setInnerTab('add'); }}>
+                          <button className="c-btn" style={{ height: 24, fontSize: 9.5 }} title="Edit" onClick={() => { setEditTarget(c); setInnerTab('add'); }}>
                             <i className="fa-solid fa-pen" />
                           </button>
                           {c.apiIntegrationEnabled && (
