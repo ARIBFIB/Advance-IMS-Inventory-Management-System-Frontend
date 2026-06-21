@@ -46,6 +46,7 @@ const CouriersPage: React.FC = () => {
   const { isLoading, loadingProgress, switchTab } = useTabLoading(setActivePanel, activePanel);
 const [overlay, setOverlay] = useState<OverlayState>({ open: false, title: '', content: null });
 const [editCourier, setEditCourier] = useState<ApiCourier | null>(null);
+const [pauseLoading, setPauseLoading] = useState(false);   // 👈 NEW
 
   // Accepts ApiCourier (from backend) — all fields optional except _id & name
   const openCourierOverlay = useCallback((c: ApiCourier) => {
@@ -128,23 +129,29 @@ const [editCourier, setEditCourier] = useState<ApiCourier | null>(null);
               </button>
             )}
             <button
-  className="c-btn"
-  style={{ fontSize: 10, color: status === 'Paused' ? 'var(--green)' : 'var(--red)' }}
-  onClick={async () => {
-  try {
-    const newStatus = status === 'Paused' ? 'Active' : 'Paused';
-    const { couriersAPI } = await import('../../services/api');
-    await couriersAPI.update(c._id, { status: newStatus });
-    // Fresh fetch from backend
-    const fresh = await couriersAPI.getById(c._id);
-    const updated = fresh.data?.data ?? { ...c, status: newStatus };
-    openCourierOverlay(updated);
-  } catch { alert('Failed to update courier status.'); }
-}}
->
-  <i className={`fa-solid ${status === 'Paused' ? 'fa-play' : 'fa-pause'}`} />
-  {status === 'Paused' ? 'Activate' : 'Pause'}
-</button>
+              className="c-btn"
+              style={{ fontSize: 10, color: status === 'Paused' ? 'var(--green)' : 'var(--red)' }}
+              disabled={pauseLoading}
+              onClick={async () => {
+                setPauseLoading(true);
+                try {
+                  const newStatus = status === 'Paused' ? 'Active' : 'Paused';
+                  const { couriersAPI } = await import('../../services/api');
+                  await couriersAPI.update(c._id, { status: newStatus });
+                  // Fresh fetch from backend
+                  const fresh = await couriersAPI.getById(c._id);
+                  const updated = fresh.data?.data ?? { ...c, status: newStatus };
+                  openCourierOverlay(updated);
+                } catch {
+                  alert('Failed to update courier status.');
+                } finally {
+                  setPauseLoading(false);
+                }
+              }}
+            >
+              <i className={`fa-solid ${pauseLoading ? 'fa-spinner fa-spin' : status === 'Paused' ? 'fa-play' : 'fa-pause'}`} />
+              {pauseLoading ? 'Updating…' : status === 'Paused' ? 'Activate' : 'Pause'}
+            </button>
           </div>
         </div>
       ),

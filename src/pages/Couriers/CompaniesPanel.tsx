@@ -221,10 +221,11 @@ const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay, initialEdit, onEditCon
 
   // ── form state ──
   const [form, setForm] = useState({
-    name: '', contactPerson: '', email: '', phone: '', city: '',
-    baseRate: '', codPct: '', codDays: '', coverage: 'Nationwide',
-    apiIntegrationEnabled: false, apiKey: '', apiEndpoint: '',
-  });
+  name: '', contactPerson: '', email: '', phone: '', city: '',
+  baseRate: '', codPct: '', codDays: '', coverage: 'Nationwide',
+  apiIntegrationEnabled: false, apiKey: '', apiEndpoint: '',
+  status: 'Active',   // 👈 NEW
+});
   const [saving,  setSaving]  = useState(false);
   const [saveErr, setSaveErr] = useState('');
   const [editTarget, setEditTarget] = useState<ApiCourier | null>(null);
@@ -244,6 +245,7 @@ useEffect(() => {
     apiIntegrationEnabled: editTarget.apiIntegrationEnabled  ?? false,
     apiKey:                '',
     apiEndpoint:           editTarget.apiEndpoint            ?? '',
+    status:                editTarget.status                 ?? 'Active',   // 👈 NEW
   });
 }, [editTarget]);
 
@@ -277,15 +279,16 @@ useEffect(() => {
     if (!form.name.trim()) { setSaveErr('Courier name is required.'); return; }
     setSaving(true); setSaveErr('');
     const payload = {
-      name:                  form.name,
-      contactPerson:         form.contactPerson  || undefined,
-      email:                 form.email          || undefined,
-      phone:                 form.phone          || undefined,
-      serviceRegions:        form.city           ? [form.city] : undefined,
-      apiIntegrationEnabled: form.apiIntegrationEnabled,
-      apiKey:                form.apiKey         || undefined,
-      apiEndpoint:           form.apiEndpoint    || undefined,
-    };
+  name:                  form.name,
+  contactPerson:         form.contactPerson  || undefined,
+  email:                 form.email          || undefined,
+  phone:                 form.phone          || undefined,
+  serviceRegions:        form.city           ? [form.city] : undefined,
+  apiIntegrationEnabled: form.apiIntegrationEnabled,
+  apiKey:                form.apiKey         || undefined,
+  apiEndpoint:           form.apiEndpoint    || undefined,
+  status:                form.status         || undefined,   // 👈 NEW
+};
     try {
       if (editTarget) {
         await couriersAPI.update(editTarget._id, payload);
