@@ -6,6 +6,12 @@ import { useOrders } from '../../hooks/useOrders';
 import { useOrderDetail } from '../../hooks/useOrderDetail';
 import { mapApiOrderToRow, mapApiOrdersToRows, computeOrderStats } from '../../utils/orderMappers';
 import type { OrderRow } from '../../utils/orderMappers';
+import PendingTab   from './PendingTab';
+import ConfirmedTab from './ConfirmedTab';
+import PackedTab    from './PackedTab';
+import ShippedTab   from './ShippedTab';
+import DeliveredTab from './DeliveredTab';
+import ReturnsTab   from './ReturnsTab';
 
 // ── Types ──────────────────────────────────────────────────
 type OrderTab = 'all' | 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'returns' | 'settings';
@@ -933,12 +939,12 @@ const OrdersPage: React.FC = () => {
       ) : (
         <>
           {activeTab === 'all'       && <AllOrdersTab />}
-          {activeTab === 'pending'   && <PlaceholderTab icon="fa-clock"        title="Pending Orders"   desc="Filter by status=Pending coming soon." />}
-          {activeTab === 'confirmed' && <PlaceholderTab icon="fa-circle-check" title="Confirmed Orders"  desc="Filter by status=Confirmed coming soon." />}
-          {activeTab === 'packed'    && <PlaceholderTab icon="fa-box"          title="Packed Orders"     desc="Orders marked as packed and ready for dispatch." />}
-          {activeTab === 'shipped'   && <PlaceholderTab icon="fa-truck"        title="Shipped Orders"    desc="Tracking updates appear here for dispatched orders." />}
-          {activeTab === 'delivered' && <PlaceholderTab icon="fa-circle-check" title="Delivered Orders"  desc="Completed deliveries with COD confirmation status." />}
-          {activeTab === 'returns'   && <PlaceholderTab icon="fa-rotate-left"  title="Returns & Refunds" desc="Manage returned orders and refund requests." />}
+          {activeTab === 'pending'   && <PendingTab />}
+          {activeTab === 'confirmed' && <ConfirmedTab />}
+          {activeTab === 'packed'    && <PackedTab />}
+          {activeTab === 'shipped'   && <ShippedTab />}
+          {activeTab === 'delivered' && <DeliveredTab />}
+          {activeTab === 'returns'   && <ReturnsTab />}
           {activeTab === 'settings'  && <SettingsTab />}
         </>
       )}
