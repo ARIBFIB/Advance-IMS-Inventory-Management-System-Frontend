@@ -89,7 +89,7 @@ const CreateShipmentDrawer: React.FC<CreateShipmentDrawerProps> = ({ open, onClo
       await couriersAPI.assignToOrder(form.courierId, {
         orderId:             selectedOrder._id,
         serviceType:         'Standard',
-        codAmount:           form.codAmount ? Number(form.codAmount) : undefined,
+          codAmount:           form.codAmount ? Number(form.codAmount) : undefined,
         weight:              form.weight    ? Number(form.weight)    : undefined,
         dispatchDate:        form.dispatchDate || undefined,
         specialInstructions: form.notes    || undefined,

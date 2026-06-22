@@ -425,10 +425,13 @@ export const couriersAPI = {
   testConnection: (id: string)               => api.post(`/couriers/${id}/test-connection`),
   sync:           (id: string)               => api.post(`/couriers/${id}/sync`),
   assignToOrder:  (id: string, data: {
-    orderId: string;
-    serviceType?: 'Standard' | 'Express' | 'Same Day';
-    specialInstructions?: string;
-  }) => api.post(`/couriers/${id}/assign`, data),
+  orderId: string;
+  serviceType?: 'Standard' | 'Express' | 'Same Day';
+  specialInstructions?: string;
+  codAmount?: number;
+  weight?: number;
+  dispatchDate?: string;
+}) => api.post(`/couriers/${id}/assign`, data),
   getPerformance: (params?: object) => api.get('/couriers/analytics/performance', { params }),
 };
 
