@@ -38,7 +38,7 @@ const BulkAssignDrawer: React.FC<BulkDrawerProps> = ({ open, onClose, selected, 
     try {
       await Promise.all(selected.map(s =>
         couriersAPI.assignToOrder(selectedCourierId, {
-          orderId: s.orderId ?? s.orderReference ?? s._id,
+          orderId: s.order ?? s._id,
           serviceType: 'Standard',
           specialInstructions: notes || undefined,
         }).catch(() => {})
@@ -168,7 +168,7 @@ const PendingPanel: React.FC = () => {
     setDispatching(s._id);
     try {
       await couriersAPI.assignToOrder(courierId, {
-        orderId: s.orderId ?? s.orderReference ?? s._id,
+        orderId: s.order ?? s._id,
         serviceType: 'Standard',
       });
       fetchData();

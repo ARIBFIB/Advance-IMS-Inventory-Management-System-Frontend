@@ -54,6 +54,7 @@ export interface ApiShipment {
   _id: string;
   orderReference?: string;
   orderId?: string;
+  order?: string;
   trackingNumber?: string;
   currentStatus: string;
   courierName?: string;
