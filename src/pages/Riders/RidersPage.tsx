@@ -163,32 +163,32 @@ const RidersPage: React.FC = () => {
         { panel: 'failed-del', icon: 'fa-circle-xmark',     label: 'Failed / RTO',      badge: 3            },
       ],
     },
-    {
-      heading: 'Tracking',
-      items: [
-        { panel: 'livemap', icon: 'fa-location-dot', label: 'Live Map'      },
-        { panel: 'routes',  icon: 'fa-route',        label: 'Route History' },
-      ],
-    },
-    {
-      heading: 'Analytics',
-      items: [
-        { panel: 'performance', icon: 'fa-chart-bar',         label: 'Performance'    },
-        { panel: 'earnings',    icon: 'fa-coins',             label: 'Earnings & Pay' },
-        { panel: 'reports',     icon: 'fa-file-chart-column', label: 'Reports'        },
-      ],
-    },
-    {
-      heading: 'Integrations',
-      items: [{ panel: 'integrations', icon: 'fa-plug', label: 'App Integrations' }],
-    },
-    {
-      heading: 'Configuration',
-      items: [
-        { panel: 'settings', icon: 'fa-gear', label: 'Settings'        },
-        { panel: 'zones',    icon: 'fa-map',  label: 'Delivery Zones'  },
-      ],
-    },
+    // {
+    //   heading: 'Tracking',
+    //   items: [
+    //     { panel: 'livemap', icon: 'fa-location-dot', label: 'Live Map'      },
+    //     { panel: 'routes',  icon: 'fa-route',        label: 'Route History' },
+    //   ],
+    // },
+    // {
+    //   heading: 'Analytics',
+    //   items: [
+    //     { panel: 'performance', icon: 'fa-chart-bar',         label: 'Performance'    },
+    //     { panel: 'earnings',    icon: 'fa-coins',             label: 'Earnings & Pay' },
+    //     { panel: 'reports',     icon: 'fa-file-chart-column', label: 'Reports'        },
+    //   ],
+    // },
+    // {
+    //   heading: 'Integrations',
+    //   items: [{ panel: 'integrations', icon: 'fa-plug', label: 'App Integrations' }],
+    // },
+    // {
+    //   heading: 'Configuration',
+    //   items: [
+    //     { panel: 'settings', icon: 'fa-gear', label: 'Settings'        },
+    //     { panel: 'zones',    icon: 'fa-map',  label: 'Delivery Zones'  },
+    //   ],
+    // },
   ];
 
   // ── Panel renderer ────────────────────────────────────
