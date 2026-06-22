@@ -561,6 +561,17 @@ export const courierContactsAPI = {
 };
 
 // ─────────────────────────────────────────────────────────
+// COURIER CONTRACTS  (/api/courier-contracts)
+// ─────────────────────────────────────────────────────────
+export const courierContractsAPI = {
+  getAll:  (params?: object)          => api.get('/courier-contracts', { params }),
+  getById: (id: string)               => api.get(`/courier-contracts/${id}`),
+  create:  (data: object)             => api.post('/courier-contracts', data),
+  update:  (id: string, data: object) => api.put(`/courier-contracts/${id}`, data),
+  delete:  (id: string)               => api.delete(`/courier-contracts/${id}`),
+};
+
+// ─────────────────────────────────────────────────────────
 // 20. TRACKING MORE  (/api/trackingmore)
 // ─────────────────────────────────────────────────────────
 export const trackingAPI = {

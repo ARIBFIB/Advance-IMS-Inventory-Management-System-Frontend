@@ -200,29 +200,29 @@ const closeOverlay = () => {
         { panel: 'failed',    icon: 'fa-circle-xmark',  label: 'Failed Delivery',  badge: 4                },
       ],
     },
-    {
-      heading: 'Tracking',
-      items: [
-        { panel: 'tracking', icon: 'fa-location-dot', label: 'Live Tracking' },
-        { panel: 'apilog',   icon: 'fa-plug',         label: 'API Sync Log'  },
-      ],
-    },
-    {
-      heading: 'Analytics',
-      items: [
-        { panel: 'performance', icon: 'fa-chart-bar',         label: 'Performance'        },
-        { panel: 'cod',         icon: 'fa-coins',             label: 'COD Reconciliation' },
-        { panel: 'reports',     icon: 'fa-file-chart-column', label: 'Reports'            },
-      ],
-    },
-    {
-      heading: 'Configuration',
-      items: [
-        { panel: 'settings', icon: 'fa-gear',    label: 'Settings'         },
-        { panel: 'rules',    icon: 'fa-sitemap', label: 'Assignment Rules' },
-        { panel: 'zones',    icon: 'fa-map',     label: 'Zones & Coverage' },
-      ],
-    },
+    // {
+    //   heading: 'Tracking',
+    //   items: [
+    //     { panel: 'tracking', icon: 'fa-location-dot', label: 'Live Tracking' },
+    //     { panel: 'apilog',   icon: 'fa-plug',         label: 'API Sync Log'  },
+    //   ],
+    // },
+    // {
+    //   heading: 'Analytics',
+    //   items: [
+    //     { panel: 'performance', icon: 'fa-chart-bar',         label: 'Performance'        },
+    //     { panel: 'cod',         icon: 'fa-coins',             label: 'COD Reconciliation' },
+    //     { panel: 'reports',     icon: 'fa-file-chart-column', label: 'Reports'            },
+    //   ],
+    // },
+    // {
+    //   heading: 'Configuration',
+    //   items: [
+    //     { panel: 'settings', icon: 'fa-gear',    label: 'Settings'         },
+    //     { panel: 'rules',    icon: 'fa-sitemap', label: 'Assignment Rules' },
+    //     { panel: 'zones',    icon: 'fa-map',     label: 'Zones & Coverage' },
+    //   ],
+    // },
   ];
 
   // ── PANEL ROUTER ──────────────────────────────────────
