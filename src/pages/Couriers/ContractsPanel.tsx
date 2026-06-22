@@ -76,7 +76,7 @@ const ContractsPanel: React.FC = () => {
     setSaving(true); setSaveMsg('');
     try {
       await courierContractsAPI.create({
-        courier:           form.courier,
+        courierId:         form.courier,
         contractNumber:    form.ref,
         ref:               form.ref,
         startDate:         form.startDate || undefined,
