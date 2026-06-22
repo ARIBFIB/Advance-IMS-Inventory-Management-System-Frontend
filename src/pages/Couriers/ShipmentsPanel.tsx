@@ -120,10 +120,10 @@ const CreateShipmentDrawer: React.FC<CreateShipmentDrawerProps> = ({ open, onClo
 
         <div className="drawer-body">
           {error && (
-            <div style={{ color: 'var(--red)', fontSize: 12, padding: '6px 10px', background: 'var(--red-bg)', borderRadius: 6 }}>
-              <i className="fa-solid fa-circle-exclamation" /> {error}
-            </div>
-          )}
+  <div style={{ color: 'var(--red)', fontSize: 12, padding: '6px 10px', background: 'var(--red-bg)', borderRadius: 6 }}>
+    <i className="fa-solid fa-circle-exclamation" /> {error}
+  </div>
+)}
 
           {/* ── Order Search ── */}
           <div className="drawer-section-title">Order</div>
