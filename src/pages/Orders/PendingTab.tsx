@@ -251,28 +251,36 @@ const PendingTab: React.FC = () => {
       />
 
       {/* Stats */}
-      <div className="stats-row" style={{ marginBottom: 14 }}>
-        <div className="stat-card">
-          <div className="stat-card-top"><div className="stat-label">Pending Orders</div><div className="stat-icon" style={{ background: 'var(--yellow-bg)' }}><i className="fa-solid fa-clock ic-yellow" /></div></div>
-          <div className="stat-value">{loading ? '—' : totalItems}</div>
-          <div className="stat-trend neutral">Awaiting confirmation</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-top"><div className="stat-label">This Page</div><div className="stat-icon" style={{ background: '#FFF5EE' }}><i className="fa-solid fa-layer-group ic-orange" /></div></div>
-          <div className="stat-value">{loading ? '—' : orders.length}</div>
-          <div className="stat-trend neutral">Showing {start}–{end}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-top"><div className="stat-label">COD Orders</div><div className="stat-icon" style={{ background: 'var(--blue-bg)' }}><i className="fa-solid fa-money-bills" style={{ color: 'var(--blue)' }} /></div></div>
-          <div className="stat-value">{loading ? '—' : orders.filter(o => o.paymentMethod === 'COD').length}</div>
-          <div className="stat-trend neutral">This page</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-top"><div className="stat-label">Total Value</div><div className="stat-icon" style={{ background: 'var(--green-bg)' }}><i className="fa-solid fa-coins ic-green" /></div></div>
-          <div className="stat-value">{loading ? '—' : fmt(orders.reduce((s, o) => s + o.totalAmount, 0))}</div>
-          <div className="stat-trend up">This page</div>
-        </div>
+      <div style={{
+  display: 'flex', alignItems: 'center', gap: 0,
+  background: 'var(--bg)', border: '1px solid var(--border)',
+  borderRadius: 10, marginBottom: 14, overflow: 'hidden',
+}}>
+  {[
+    { icon: 'fa-clock', color: '#d97706', bg: '#fef3c7', label: 'Pending', value: loading ? '—' : totalItems, sub: 'total orders' },
+    { icon: 'fa-layer-group', color: '#6366f1', bg: '#ede9fe', label: 'This Page', value: loading ? '—' : orders.length, sub: `${start}–${end}` },
+    { icon: 'fa-money-bills', color: '#0891b2', bg: '#e0f2fe', label: 'COD', value: loading ? '—' : orders.filter(o => o.paymentMethod === 'COD').length, sub: 'cash on delivery' },
+    { icon: 'fa-coins', color: '#16a34a', bg: '#dcfce7', label: 'Total Value', value: loading ? '—' : fmt(orders.reduce((s, o) => s + o.totalAmount, 0)), sub: 'this page' },
+  ].map((item, i, arr) => (
+    <div key={item.label} style={{
+      flex: 1, display: 'flex', alignItems: 'center', gap: 12,
+      padding: '12px 18px',
+      borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+        background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <i className={`fa-solid ${item.icon}`} style={{ color: item.color, fontSize: 14 }} />
       </div>
+      <div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px' }}>{item.label}</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', lineHeight: 1.2 }}>{item.value}</div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{item.sub}</div>
+      </div>
+    </div>
+  ))}
+</div>
 
       {error && (
         <div style={{ background: '#FEF2F2', border: '1px solid var(--red)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 8 }}>
