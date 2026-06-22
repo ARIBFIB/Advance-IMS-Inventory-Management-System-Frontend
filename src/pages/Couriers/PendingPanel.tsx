@@ -251,7 +251,7 @@ const PendingPanel: React.FC = () => {
                   <td style={{ fontSize: 10 }}>{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '—'}</td>
                   <td><Badge label={s.currentStatus} /></td>
                   <td>
-                    <select className="c-form-select" style={{ height: 24, fontSize: 10, minWidth: 130 }}
+                    <select data-id={s._id} className="c-form-select" style={{ height: 24, fontSize: 10, minWidth: 130 }}
                       defaultValue=""
                       onChange={e => e.target.value && handleDispatchOne(s, e.target.value)}>
                       <option value="">— Assign —</option>
