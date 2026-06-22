@@ -11,6 +11,9 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, currentPath }) => {
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const [userName, setUserName] = React.useState<string>('');
+  const [userRole, setUserRole] = React.useState<string>('');
+  const [initials, setInitials] = React.useState<string>('');
 
   const navItems = [
     { path: '/dashboard', icon: 'fa-gauge-high',     label: 'Dashboard' },
@@ -29,7 +32,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, currentPath }) => {
     // { path: '/audit',     icon: 'fa-file-alt',       label: 'Audit Logs' },
   ];
 
-  const handleLogout = async () => {
+  React.useEffect(() => {
+  authAPI.me()
+    .then(res => {
+      const user = res.data?.data;
+      if (user) {
+        const full = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim();
+        setUserName(full || user.username || 'User');
+        setUserRole(user.role ?? '');
+        const parts = (full || user.username || 'U').split(' ');
+        setInitials(parts.map((w: string) => w[0]).join('').slice(0, 2).toUpperCase());
+      }
+    })
+    .catch(() => {});
+}, []);
+
+const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
       const refreshToken = tokenHelper.getRefresh();
@@ -92,10 +110,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, currentPath }) => {
       <div style={{ padding: '10px', borderTop: '1px solid #1F2937' }}>
         {/* User info */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px' }}>
-          <div style={{ width: '28px', height: '28px', background: '#FF6A00', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 600 }}>AK</div>
+          <div style={{ width: '28px', height: '28px', background: '#FF6A00', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 600 }}>{initials || '—'}</div>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 500, color: '#E5E7EB' }}>Admin Khan</div>
-            <div style={{ fontSize: '9.5px', color: '#6B7280' }}>Administrator</div>
+            <div style={{ fontSize: '11px', fontWeight: 500, color: '#E5E7EB' }}>{userName || '—'}</div>
+            <div style={{ fontSize: '9.5px', color: '#6B7280' }}>{userRole || '—'}</div>
           </div>
         </div>
 
