@@ -51,10 +51,14 @@ const ContractsPanel: React.FC = () => {
   }, []);
 
   const getCourierName = (c: ApiContract) => {
-    if (typeof c.courier === 'object' && c.courier?.name) return c.courier.name;
+    if (typeof c.courier === 'object' && c.courier !== null && c.courier?.name) {
+      return c.courier.name;
+    }
     if (typeof c.courier === 'string') {
       const found = couriers.find(x => x._id === c.courier);
-      return found ? found.name : c.courier;
+      if (found) return found.name;
+      // ID string as fallback — pata chal jaye ga kya aa rha hai
+      return c.courier || '—';
     }
     return '—';
   };
