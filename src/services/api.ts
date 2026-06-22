@@ -551,6 +551,16 @@ export const integrationsAPI = {
 };
 
 // ─────────────────────────────────────────────────────────
+// COURIER CONTACTS  (/api/courier-contacts)
+// ─────────────────────────────────────────────────────────
+export const courierContactsAPI = {
+  getAll:  (params?: object)          => api.get('/courier-contacts', { params }),
+  create:  (data: object)             => api.post('/courier-contacts', data),
+  update:  (id: string, data: object) => api.put(`/courier-contacts/${id}`, data),
+  delete:  (id: string)               => api.delete(`/courier-contacts/${id}`),
+};
+
+// ─────────────────────────────────────────────────────────
 // 20. TRACKING MORE  (/api/trackingmore)
 // ─────────────────────────────────────────────────────────
 export const trackingAPI = {
