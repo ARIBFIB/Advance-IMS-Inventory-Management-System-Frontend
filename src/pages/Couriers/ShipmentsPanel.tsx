@@ -61,16 +61,16 @@ const CreateShipmentDrawer: React.FC<CreateShipmentDrawerProps> = ({ open, onClo
   }, [open]);
 
   // Search orders from API
-  const searchOrders = (q: string) => {
+  const searchOrders = (q: string, force = false) => {
     setOrderSearch(q);
     setSelectedOrder(null);
     if (searchTimeout) clearTimeout(searchTimeout);
-    if (!q.trim()) { setOrderResults([]); return; }
+    if (!q.trim() && !force) { setOrderResults([]); return; }
     setSearching(true);
     const t = setTimeout(async () => {
       try {
         const { ordersAPI } = await import('../../services/api');
-        const res = await ordersAPI.getAll({ search: q, limit: 8 });
+        const res = await ordersAPI.getAll({ search: q || '', limit: 8 });
         setOrderResults(res.data?.data?.orders ?? []);
       } catch { setOrderResults([]); }
       finally { setSearching(false); }
@@ -163,6 +163,7 @@ const CreateShipmentDrawer: React.FC<CreateShipmentDrawerProps> = ({ open, onClo
                     placeholder="Order ID ya customer name search karo..."
                     value={orderSearch}
                     onChange={e => searchOrders(e.target.value)}
+                    onFocus={() => searchOrders(orderSearch, true)}
                     style={{ width: '100%' }}
                   />
                 </div>
