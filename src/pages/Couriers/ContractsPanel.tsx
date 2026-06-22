@@ -27,6 +27,7 @@ const ContractsPanel: React.FC = () => {
   const [saving,     setSaving]     = useState(false);
   const [saveMsg,    setSaveMsg]    = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedContract, setSelectedContract] = useState<ApiContract | null>(null);
 
   const [form, setForm] = useState({
     courier: '', ref: '', startDate: '', endDate: '',
@@ -226,9 +227,13 @@ const ContractsPanel: React.FC = () => {
                         </td>
                         <td><Badge label={c.status ?? 'Active'} /></td>
                         <td>
-                          <button className="c-btn" style={{ height: 23, fontSize: 9.5 }}>
-                            <i className="fa-solid fa-eye" />
-                          </button>
+                          <button
+  className="c-btn"
+  style={{ height: 23, fontSize: 9.5 }}
+  onClick={() => setSelectedContract(c)}
+>
+  <i className="fa-solid fa-eye" />
+</button>
                           <button
                             className="c-btn"
                             style={{ height: 23, fontSize: 9.5, marginLeft: 3, color: 'var(--red)' }}
@@ -349,6 +354,131 @@ const ContractsPanel: React.FC = () => {
           </div>
         </div>
       )}
+      {selectedContract && (
+  <div
+    style={{
+      position: 'fixed', top: 0, right: 0, height: '100vh', width: 420,
+      background: 'var(--card-bg)', boxShadow: '-4px 0 24px rgba(0,0,0,0.18)',
+      zIndex: 1000, display: 'flex', flexDirection: 'column',
+      borderLeft: '1px solid var(--border)',
+    }}
+  >
+    {/* Header */}
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '16px 20px', borderBottom: '1px solid var(--border)',
+    }}>
+      <div>
+        <div style={{ fontWeight: 700, fontSize: 14 }}>Contract Details</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+          {getRef(selectedContract)}
+        </div>
+      </div>
+      <button
+        className="c-btn"
+        style={{ width: 28, height: 28, padding: 0, fontSize: 13 }}
+        onClick={() => setSelectedContract(null)}
+      >
+        <i className="fa-solid fa-xmark" />
+      </button>
+    </div>
+
+    {/* Body */}
+    <div style={{ padding: '20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* Courier Info */}
+      <div style={{ background: 'var(--bg)', borderRadius: 8, padding: '12px 14px' }}>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Courier</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="row-avatar" style={{ background: 'var(--primary-bg)', fontSize: 9, width: 32, height: 32 }}>
+            {getCourierName(selectedContract).slice(0, 3).toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 13 }}>{getCourierName(selectedContract)}</div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Courier Partner</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contract Dates */}
+      <div style={{ background: 'var(--bg)', borderRadius: 8, padding: '12px 14px' }}>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Contract Period</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Start Date</div>
+            <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>{fmtDate(selectedContract.startDate)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>End Date</div>
+            <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>
+              {fmtDate(selectedContract.endDate)}
+              {(() => {
+                const d = daysUntilExpiry(selectedContract.endDate);
+                return d !== null && d > 0 && d <= 60
+                  ? <span style={{ marginLeft: 4, fontSize: 9, color: 'var(--yellow)' }}>({d}d left)</span>
+                  : null;
+              })()}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* SLA & Terms */}
+      <div style={{ background: 'var(--bg)', borderRadius: 8, padding: '12px 14px' }}>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>SLA & Terms</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>SLA</div>
+            <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>{selectedContract.sla ?? '—'} days</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Penalty/Day</div>
+            <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>₨{selectedContract.penalty ?? '—'}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>COD Settlement</div>
+            <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>{selectedContract.codDays ?? '—'} days</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Auto-Renew</div>
+            <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2, color: (selectedContract.autoRenew === true || selectedContract.autoRenew === 'Yes') ? 'var(--green)' : 'var(--text-muted)' }}>
+              {(selectedContract.autoRenew === true || selectedContract.autoRenew === 'Yes')
+                ? <><i className="fa-solid fa-check" /> Yes</>
+                : 'No'}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Renewal Notice</div>
+            <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>{selectedContract.renewalNoticeDays ?? '—'} days</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Status</div>
+            <div style={{ marginTop: 2 }}><Badge label={selectedContract.status ?? 'Active'} /></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    {/* Footer */}
+    <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
+      <button
+        className="c-btn"
+        style={{ flex: 1, color: 'var(--red)', fontSize: 11 }}
+        onClick={() => { handleDelete(selectedContract._id); setSelectedContract(null); }}
+      >
+        <i className="fa-solid fa-trash" /> Delete
+      </button>
+      <button
+        className="c-btn"
+        style={{ flex: 1, fontSize: 11 }}
+        onClick={() => setSelectedContract(null)}
+      >
+        Close
+      </button>
+    </div>
+  </div>
+)}
     </>
   );
 };
