@@ -33,29 +33,78 @@ interface CreateShipmentDrawerProps {
 
 const CreateShipmentDrawer: React.FC<CreateShipmentDrawerProps> = ({ open, onClose, onCreated, couriers }) => {
   const [form, setForm] = useState({
-    orderId: '', customerName: '', city: '', phone: '',
     courierId: '', dispatchDate: '', weight: '',
     codAmount: '', notes: '',
   });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
 
+  // ── Order Search ──
+  const [orderSearch,   setOrderSearch]   = useState('');
+  const [orderResults,  setOrderResults]  = useState<any[]>([]);
+  const [searching,     setSearching]     = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reset on close
+  useEffect(() => {
+    if (!open) {
+      setForm({ courierId: '', dispatchDate: '', weight: '', codAmount: '', notes: '' });
+      setOrderSearch(''); setOrderResults([]); setSelectedOrder(null); setError('');
+    }
+  }, [open]);
+
+  // Search orders from API
+  const searchOrders = (q: string) => {
+    setOrderSearch(q);
+    setSelectedOrder(null);
+    if (searchTimeout) clearTimeout(searchTimeout);
+    if (!q.trim()) { setOrderResults([]); return; }
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const { ordersAPI } = await import('../../services/api');
+        const res = await ordersAPI.getAll({ search: q, limit: 8 });
+        setOrderResults(res.data?.data?.orders ?? []);
+      } catch { setOrderResults([]); }
+      finally { setSearching(false); }
+    }, 350);
+    setSearchTimeout(t);
+  };
+
+  // Order select karne pe customer info auto-fill
+  const selectOrder = (order: any) => {
+    setSelectedOrder(order);
+    setOrderResults([]);
+    setOrderSearch('');
+  };
+
   const handleCreate = async () => {
-    if (!form.courierId || !form.orderId.trim()) { setError('Order ID and Courier are required.'); return; }
+    if (!form.courierId || !selectedOrder) {
+      setError('Order aur Courier dono required hain.');
+      return;
+    }
     setSaving(true); setError('');
     try {
       await couriersAPI.assignToOrder(form.courierId, {
-        orderId: form.orderId.trim(),
-        serviceType: 'Standard',
-        specialInstructions: form.notes || undefined,
+        orderId:             selectedOrder._id,
+        serviceType:         'Standard',
+        codAmount:           form.codAmount ? Number(form.codAmount) : undefined,
+        weight:              form.weight    ? Number(form.weight)    : undefined,
+        dispatchDate:        form.dispatchDate || undefined,
+        specialInstructions: form.notes    || undefined,
       });
-      setForm({ orderId: '', customerName: '', city: '', phone: '', courierId: '', dispatchDate: '', weight: '', codAmount: '', notes: '' });
-      onCreated();
-      onClose();
+      setForm({ courierId: '', dispatchDate: '', weight: '', codAmount: '', notes: '' });
+      setSelectedOrder(null); setOrderSearch('');
+      onCreated(); onClose();
     } catch (e: any) {
       setError(e?.response?.data?.message ?? 'Failed to create shipment.');
     } finally { setSaving(false); }
   };
+
+  // Helper — order se city nikalo
+  const getOrderCity = (o: any) =>
+    o?.shippingAddress?.city ?? o?.customer?.address?.city ?? '—';
 
   return (
     <>
@@ -63,41 +112,114 @@ const CreateShipmentDrawer: React.FC<CreateShipmentDrawerProps> = ({ open, onClo
       <div className={`drawer-overlay ${open ? 'open' : ''}`} onClick={onClose} />
       <div className={`drawer ${open ? 'open' : ''}`}>
         <div className="drawer-header">
-          <div className="drawer-header-title"><i className="fa-solid fa-truck-fast" style={{ color: 'var(--accent)' }} /> Create Shipment</div>
+          <div className="drawer-header-title">
+            <i className="fa-solid fa-truck-fast" style={{ color: 'var(--accent)' }} /> Create Shipment
+          </div>
           <button className="drawer-close" onClick={onClose}><i className="fa-solid fa-xmark" /></button>
         </div>
+
         <div className="drawer-body">
           {error && (
             <div style={{ color: 'var(--red)', fontSize: 12, padding: '6px 10px', background: 'var(--red-bg)', borderRadius: 6 }}>
               <i className="fa-solid fa-circle-exclamation" /> {error}
             </div>
           )}
-          <div className="drawer-section-title">Order Information</div>
-          <div className="c-form-row">
-            <div className="c-form-group">
-              <div className="c-form-label">Order ID *</div>
-              <input className="c-form-input" placeholder="ORD-XXXX" value={form.orderId} onChange={e => setForm(f => ({ ...f, orderId: e.target.value }))} />
-            </div>
-            <div className="c-form-group">
-              <div className="c-form-label">Customer Name</div>
-              <input className="c-form-input" placeholder="Full name" value={form.customerName} onChange={e => setForm(f => ({ ...f, customerName: e.target.value }))} />
-            </div>
+
+          {/* ── Order Search ── */}
+          <div className="drawer-section-title">Order</div>
+          <div style={{ position: 'relative' }}>
+            {selectedOrder ? (
+              /* Selected order card */
+              <div style={{
+                padding: '10px 12px', background: 'var(--green-bg)',
+                border: '1px solid var(--green)', borderRadius: 6,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)' }}>
+                    <i className="fa-solid fa-circle-check" /> {selectedOrder.orderId}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                    {selectedOrder.shippingAddress?.name ?? selectedOrder.customer?.fullName ?? '—'} ·{' '}
+                    {selectedOrder.shippingAddress?.phone ?? '—'} ·{' '}
+                    {getOrderCity(selectedOrder)}
+                  </div>
+                </div>
+                <button
+                  className="c-btn"
+                  style={{ height: 22, fontSize: 9, padding: '0 8px' }}
+                  onClick={() => { setSelectedOrder(null); setOrderSearch(''); }}
+                >
+                  ✕ Change
+                </button>
+              </div>
+            ) : (
+              /* Search input */
+              <>
+                <div className="c-search" style={{ width: '100%' }}>
+                  <i className={`fa-solid ${searching ? 'fa-spinner fa-spin' : 'fa-magnifying-glass'}`} />
+                  <input
+                    placeholder="Order ID ya customer name search karo..."
+                    value={orderSearch}
+                    onChange={e => searchOrders(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                {orderResults.length > 0 && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0,
+                    background: 'var(--card-bg)', border: '1px solid var(--border)',
+                    borderRadius: 6, zIndex: 10, maxHeight: 200, overflowY: 'auto',
+                    boxShadow: '0 4px 12px rgba(0,0,0,.1)', marginTop: 2,
+                  }}>
+                    {orderResults.map(o => (
+                      <div
+                        key={o._id}
+                        style={{
+                          padding: '8px 12px', cursor: 'pointer', fontSize: 11,
+                          borderBottom: '1px solid var(--border)',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = '')}
+                        onClick={() => selectOrder(o)}
+                      >
+                        <div style={{ fontWeight: 700 }}>{o.orderId}</div>
+                        <div style={{ color: 'var(--text-muted)', marginTop: 1 }}>
+                          {o.shippingAddress?.name ?? o.customer?.fullName ?? '—'} ·{' '}
+                          {o.shippingAddress?.phone ?? '—'} ·{' '}
+                          {getOrderCity(o)} ·{' '}
+                          <span style={{
+                            color: o.orderStatus === 'Packed' ? 'var(--green)' : 'var(--yellow)',
+                            fontWeight: 600,
+                          }}>
+                            {o.orderStatus}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {orderSearch.length >= 2 && !searching && orderResults.length === 0 && (
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, padding: '0 4px' }}>
+                    No orders found
+                  </div>
+                )}
+              </>
+            )}
           </div>
-          <div className="c-form-row">
-            <div className="c-form-group">
-              <div className="c-form-label">City</div>
-              <CitySearchInput value={form.city} onChange={val => setForm(f => ({ ...f, city: val }))} placeholder="Search city..." />
-            </div>
-            <div className="c-form-group">
-              <div className="c-form-label">Phone</div>
-              <input className="c-form-input" placeholder="03XX-XXXXXXX" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
-            </div>
-          </div>
-          <div className="drawer-section-title">Courier & Dispatch</div>
+
+          {/* ── Courier & Dispatch ── */}
+          <div className="drawer-section-title" style={{ marginTop: 4 }}>Courier & Dispatch</div>
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">Courier *</div>
-              <select className="c-form-select" value={form.courierId} onChange={e => setForm(f => ({ ...f, courierId: e.target.value }))}>
+              <select
+                className="c-form-select"
+                value={form.courierId}
+                onChange={e => setForm(f => ({ ...f, courierId: e.target.value }))}
+              >
                 <option value="">— Select —</option>
                 {couriers.filter(c => c.status !== 'Inactive').map(c => (
                   <option key={c._id} value={c._id}>{c.name}</option>
@@ -106,27 +228,51 @@ const CreateShipmentDrawer: React.FC<CreateShipmentDrawerProps> = ({ open, onClo
             </div>
             <div className="c-form-group">
               <div className="c-form-label">Dispatch Date</div>
-              <input className="c-form-input" type="date" value={form.dispatchDate} onChange={e => setForm(f => ({ ...f, dispatchDate: e.target.value }))} />
+              <input
+                className="c-form-input" type="date"
+                value={form.dispatchDate}
+                onChange={e => setForm(f => ({ ...f, dispatchDate: e.target.value }))}
+              />
             </div>
           </div>
+
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">Weight (kg)</div>
-              <input className="c-form-input" type="number" placeholder="0.5" value={form.weight} onChange={e => setForm(f => ({ ...f, weight: e.target.value }))} />
+              <input
+                className="c-form-input" type="number" placeholder="0.5"
+                value={form.weight}
+                onChange={e => setForm(f => ({ ...f, weight: e.target.value }))}
+              />
             </div>
             <div className="c-form-group">
               <div className="c-form-label">COD Amount (₨)</div>
-              <input className="c-form-input" type="number" placeholder="0" value={form.codAmount} onChange={e => setForm(f => ({ ...f, codAmount: e.target.value }))} />
+              <input
+                className="c-form-input" type="number" placeholder="0"
+                value={form.codAmount}
+                onChange={e => setForm(f => ({ ...f, codAmount: e.target.value }))}
+              />
             </div>
           </div>
+
+          {/* ── Notes ── */}
           <div className="drawer-section-title">Notes</div>
-          <textarea className="c-form-input" rows={3} placeholder="Special handling instructions…"
+          <textarea
+            className="c-form-input" rows={3}
+            placeholder="Special handling instructions…"
             style={{ resize: 'vertical', fontFamily: 'inherit', height: 72 }}
-            value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+            value={form.notes}
+            onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+          />
         </div>
+
         <div className="drawer-footer">
-          <button className="c-btn primary" style={{ flex: 1 }} onClick={handleCreate} disabled={saving}>
-            <i className={`fa-solid ${saving ? 'fa-spinner fa-spin' : 'fa-check'}`} /> {saving ? 'Creating…' : 'Create Shipment'}
+          <button
+            className="c-btn primary" style={{ flex: 1 }}
+            onClick={handleCreate} disabled={saving}
+          >
+            <i className={`fa-solid ${saving ? 'fa-spinner fa-spin' : 'fa-check'}`} />
+            {saving ? 'Creating…' : 'Create Shipment'}
           </button>
           <button className="c-btn" onClick={onClose}>Cancel</button>
         </div>
