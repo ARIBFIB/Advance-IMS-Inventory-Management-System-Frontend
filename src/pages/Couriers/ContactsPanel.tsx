@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { CONTACTS, ApiCourier, EmptyState } from './shared';
 import { couriersAPI } from '../../services/api';
+import CitySearchInput from '../../components/shared/CitySearchInput';
 
 const ContactsPanel: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -210,8 +211,11 @@ const ContactsPanel: React.FC = () => {
 
           <div className="c-form-group" style={{ marginBottom: 12 }}>
             <div className="c-form-label">City</div>
-            <input className="c-form-input" style={{ width: '100%' }} placeholder="e.g. Lahore"
-              value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} />
+            <CitySearchInput
+              value={form.city}
+              onChange={val => setForm(f => ({ ...f, city: val }))}
+              placeholder="Search city..."
+            />
           </div>
 
           <div className="c-form-group" style={{ marginBottom: 12 }}>
