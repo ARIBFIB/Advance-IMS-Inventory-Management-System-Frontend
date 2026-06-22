@@ -22,6 +22,10 @@ const drawerStyles = `
   .drawer-body{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
   .drawer-footer{padding:14px 20px;border-top:1px solid var(--border-color,#e5e7eb);display:flex;gap:8px;flex-shrink:0;background:var(--card-bg,#fff)}
   .drawer-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted,#888);margin-top:4px}
+  .toast{position:fixed;bottom:24px;right:24px;z-index:999;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);animation:slideIn .3s ease}
+  .toast.error{background:#fee2e2;color:#dc2626;border:1px solid #fca5a5}
+  .toast.success{background:#dcfce7;color:#16a34a;border:1px solid #86efac}
+  @keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 `;
 
 interface CreateShipmentDrawerProps {
@@ -29,9 +33,11 @@ interface CreateShipmentDrawerProps {
   onClose: () => void;
   onCreated: () => void;
   couriers: ApiCourier[];
+  onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
-const CreateShipmentDrawer: React.FC<CreateShipmentDrawerProps> = ({ open, onClose, onCreated, couriers }) => {
+const CreateShipmentDrawer: React.FC<CreateShipmentDrawerProps> = ({ open, onClose, onCreated, couriers, onToast }) => {
+
   const [form, setForm] = useState({
     courierId: '', dispatchDate: '', weight: '',
     codAmount: '', notes: '',
@@ -98,7 +104,7 @@ const CreateShipmentDrawer: React.FC<CreateShipmentDrawerProps> = ({ open, onClo
       setSelectedOrder(null); setOrderSearch('');
       onCreated(); onClose();
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? 'Failed to create shipment.');
+      onToast(e?.response?.data?.message ?? 'Failed to create shipment.', 'error');
     } finally { setSaving(false); }
   };
 
@@ -119,11 +125,6 @@ const CreateShipmentDrawer: React.FC<CreateShipmentDrawerProps> = ({ open, onClo
         </div>
 
         <div className="drawer-body">
-          {error && (
-  <div style={{ color: 'var(--red)', fontSize: 12, padding: '6px 10px', background: 'var(--red-bg)', borderRadius: 6 }}>
-    <i className="fa-solid fa-circle-exclamation" /> {error}
-  </div>
-)}
 
           {/* ── Order Search ── */}
           <div className="drawer-section-title">Order</div>
@@ -368,6 +369,13 @@ const ShipmentsPanel: React.FC = () => {
     delivered: 'delivered', returns: 'returned', failed: 'failed',
   };
 
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (msg: string, type: 'success' | 'error') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
   const fetchShipments = useCallback(async () => {
     setLoading(true); setError('');
     try {
@@ -399,6 +407,12 @@ const ShipmentsPanel: React.FC = () => {
 
   return (
     <>
+      {toast && (
+        <div className={`toast ${toast.type}`}>
+          <i className={`fa-solid ${toast.type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'}`} />
+          {toast.msg}
+        </div>
+      )}
       {statusModal && (
         <StatusUpdateModal
           shipmentId={statusModal.id}
@@ -407,7 +421,8 @@ const ShipmentsPanel: React.FC = () => {
           onUpdated={fetchShipments}
         />
       )}
-      <CreateShipmentDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onCreated={fetchShipments} couriers={couriers} />
+      <CreateShipmentDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} onCreated={fetchShipments} couriers={couriers} onToast={showToast} />
+
 
       <div className="panel-heading">All Shipments</div>
       <div className="panel-desc">Complete list of all courier shipments. Filter by status, search by tracking number or order.</div>
