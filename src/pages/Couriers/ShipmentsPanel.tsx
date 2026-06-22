@@ -6,6 +6,8 @@ import {
   Badge, CPagination, EmptyState, TableSkeleton,
 } from './shared';
 import { shipmentsAPI, couriersAPI } from '../../services/api';
+import CitySearchInput from '../../components/shared/CitySearchInput';
+import citiesData from '../../assets/data/all_cities/allCitiesNested.lite.json';
 
 /* ─── Drawer styles ─────────────────────────────────────────────────── */
 const drawerStyles = `
@@ -84,7 +86,7 @@ const CreateShipmentDrawer: React.FC<CreateShipmentDrawerProps> = ({ open, onClo
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">City</div>
-              <input className="c-form-input" placeholder="e.g. Karachi" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} />
+              <CitySearchInput value={form.city} onChange={val => setForm(f => ({ ...f, city: val }))} placeholder="Search city..." />
             </div>
             <div className="c-form-group">
               <div className="c-form-label">Phone</div>
