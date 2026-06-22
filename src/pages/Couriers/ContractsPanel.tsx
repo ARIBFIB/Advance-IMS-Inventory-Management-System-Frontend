@@ -1,52 +1,121 @@
 // ContractsPanel.tsx — live courier dropdown + static contracts table
 import React, { useState, useEffect } from 'react';
-import { CONTRACTS, ApiCourier, Badge, InnerTabs, EmptyState } from './shared';
-import { couriersAPI } from '../../services/api';
+import { ApiCourier, Badge, InnerTabs, EmptyState } from './shared';
+import { couriersAPI, courierContractsAPI } from '../../services/api';
+
+interface ApiContract {
+  _id: string;
+  courier: string | { _id: string; name: string };
+  ref?: string;
+  contractNumber?: string;
+  startDate?: string;
+  endDate?: string;
+  sla?: number;
+  penalty?: number;
+  codDays?: number;
+  autoRenew?: boolean | string;
+  renewalNoticeDays?: number;
+  status?: string;
+}
 
 const ContractsPanel: React.FC = () => {
-  const [innerTab, setInnerTab] = useState('active');
-  const [couriers, setCouriers] = useState<ApiCourier[]>([]);
-  const [search,   setSearch]   = useState('');
-  const [saving,   setSaving]   = useState(false);
-  const [saveMsg,  setSaveMsg]  = useState('');
+  const [innerTab,   setInnerTab]   = useState('active');
+  const [couriers,   setCouriers]   = useState<ApiCourier[]>([]);
+  const [contracts,  setContracts]  = useState<ApiContract[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [search,     setSearch]     = useState('');
+  const [saving,     setSaving]     = useState(false);
+  const [saveMsg,    setSaveMsg]    = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Form state for new contract
   const [form, setForm] = useState({
     courier: '', ref: '', startDate: '', endDate: '',
     sla: '3', penalty: '50', codDays: '7',
     autoRenew: 'Yes', renewalNotice: '30',
   });
 
+  const fetchContracts = () => {
+    setLoading(true);
+    courierContractsAPI.getAll({ limit: 100 })
+      .then(r => setContracts(r.data?.data?.contracts ?? r.data?.data ?? []))
+      .catch(() => setContracts([]))
+      .finally(() => setLoading(false));
+  };
+
   useEffect(() => {
     couriersAPI.getAll({ limit: 50 })
       .then(r => setCouriers(r.data?.data?.couriers ?? []))
       .catch(() => {});
+    fetchContracts();
   }, []);
 
-  const courierNames = couriers.length > 0
-    ? couriers.map(c => c.name)
-    : CONTRACTS.map(c => c.courier);
+  const getCourierName = (c: ApiContract) => {
+    if (typeof c.courier === 'object' && c.courier?.name) return c.courier.name;
+    if (typeof c.courier === 'string') {
+      const found = couriers.find(x => x._id === c.courier);
+      return found ? found.name : c.courier;
+    }
+    return '—';
+  };
 
-  const filteredContracts = CONTRACTS.filter(c => {
+  const getRef = (c: ApiContract) => c.ref ?? c.contractNumber ?? '—';
+
+  const filteredContracts = contracts.filter(c => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return c.courier.toLowerCase().includes(q) || c.ref.toLowerCase().includes(q);
+    return getCourierName(c).toLowerCase().includes(q) ||
+           getRef(c).toLowerCase().includes(q);
   });
 
   const handleSave = async () => {
-    if (!form.courier || !form.ref.trim()) { setSaveMsg('Courier and Contract # are required.'); return; }
+    if (!form.courier || !form.ref.trim()) {
+      setSaveMsg('Courier and Contract # are required.');
+      return;
+    }
     setSaving(true); setSaveMsg('');
-    await new Promise(r => setTimeout(r, 700)); // No backend endpoint — simulate
-    setSaving(false);
-    setSaveMsg('Contract saved successfully.');
-    setTimeout(() => { setSaveMsg(''); setInnerTab('active'); }, 1200);
+    try {
+      await courierContractsAPI.create({
+        courier:           form.courier,
+        contractNumber:    form.ref,
+        ref:               form.ref,
+        startDate:         form.startDate || undefined,
+        endDate:           form.endDate   || undefined,
+        sla:               Number(form.sla),
+        penalty:           Number(form.penalty),
+        codDays:           Number(form.codDays),
+        autoRenew:         form.autoRenew === 'Yes',
+        renewalNoticeDays: Number(form.renewalNotice),
+      });
+      setSaveMsg('Contract saved successfully.');
+      fetchContracts();
+      setForm({ courier: '', ref: '', startDate: '', endDate: '', sla: '3', penalty: '50', codDays: '7', autoRenew: 'Yes', renewalNotice: '30' });
+      setTimeout(() => { setSaveMsg(''); setInnerTab('active'); }, 1200);
+    } catch {
+      setSaveMsg('Failed to save contract. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  // Days until expiry
-  const daysUntilExpiry = (endDate: string) => {
-    const diff = Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000);
-    return diff;
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this contract?')) return;
+    setDeletingId(id);
+    try {
+      await courierContractsAPI.delete(id);
+      setContracts(prev => prev.filter(c => c._id !== id));
+    } catch {
+      alert('Failed to delete contract.');
+    } finally {
+      setDeletingId(null);
+    }
   };
+
+  const daysUntilExpiry = (endDate?: string) => {
+    if (!endDate) return null;
+    return Math.ceil((new Date(endDate).getTime() - Date.now()) / 86400000);
+  };
+
+  const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
   return (
     <>
@@ -77,9 +146,10 @@ const ContractsPanel: React.FC = () => {
       {innerTab === 'active' && (
         <>
           {/* Expiry warnings */}
-          {CONTRACTS.some(c => {
-            const d = daysUntilExpiry(c.end.split(' ').reverse().join('-'));
-            return d > 0 && d <= 60;
+          {/* Expiry warnings */}
+          {contracts.some(c => {
+            const d = daysUntilExpiry(c.endDate);
+            return d !== null && d > 0 && d <= 60;
           }) && (
             <div className="alert-strip warn">
               <i className="fa-solid fa-triangle-exclamation" />
@@ -117,45 +187,63 @@ const ContractsPanel: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredContracts.length === 0 ? (
+                  {loading ? (
+                    <tr><td colSpan={10} style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', fontSize: 12 }}>
+                      <i className="fa-solid fa-spinner fa-spin" /> Loading contracts…
+                    </td></tr>
+                  ) : filteredContracts.length === 0 ? (
                     <tr><td colSpan={10}>
                       <EmptyState icon="fa-file-contract" title="No contracts found" desc="No contracts match your search." />
                     </td></tr>
-                  ) : filteredContracts.map(c => (
-                    <tr key={c.ref}>
-                      <td>
-                        <div className="td-flex">
-                          <div className="row-avatar" style={{ background: 'var(--bg)', fontSize: 8, width: 26, height: 26 }}>
-                            {c.courier.slice(0, 3).toUpperCase()}
+                  ) : filteredContracts.map(c => {
+                    const days = daysUntilExpiry(c.endDate);
+                    const autoRenewVal = c.autoRenew === true || c.autoRenew === 'Yes';
+                    return (
+                      <tr key={c._id}>
+                        <td>
+                          <div className="td-flex">
+                            <div className="row-avatar" style={{ background: 'var(--bg)', fontSize: 8, width: 26, height: 26 }}>
+                              {getCourierName(c).slice(0, 3).toUpperCase()}
+                            </div>
+                            <strong>{getCourierName(c)}</strong>
                           </div>
-                          <strong>{c.courier}</strong>
-                        </div>
-                      </td>
-                      <td><code className="sku">{c.ref}</code></td>
-                      <td style={{ fontSize: 11 }}>{c.start}</td>
-                      <td style={{ fontSize: 11 }}>{c.end}</td>
-                      <td>{c.sla} days</td>
-                      <td>₨{c.penalty}/day</td>
-                      <td>{c.codDays} days</td>
-                      <td>
-                        <span style={{ fontSize: 10.5, color: c.autoRenew === 'Yes' ? 'var(--green)' : 'var(--text-muted)' }}>
-                          {c.autoRenew === 'Yes' ? <><i className="fa-solid fa-check" /> Yes</> : 'No'}
-                        </span>
-                      </td>
-                      <td><Badge label={c.status} /></td>
-                      <td>
-                        <button className="c-btn" style={{ height: 23, fontSize: 9.5 }}>
-                          <i className="fa-solid fa-eye" />
-                        </button>
-                        <button className="c-btn" style={{ height: 23, fontSize: 9.5, marginLeft: 3 }}>
-                          <i className="fa-solid fa-pen" />
-                        </button>
-                        <button className="c-btn" style={{ height: 23, fontSize: 9.5, marginLeft: 3 }}>
-                          <i className="fa-solid fa-download" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td><code className="sku">{getRef(c)}</code></td>
+                        <td style={{ fontSize: 11 }}>{fmtDate(c.startDate)}</td>
+                        <td style={{ fontSize: 11 }}>
+                          {fmtDate(c.endDate)}
+                          {days !== null && days <= 60 && days > 0 && (
+                            <span style={{ marginLeft: 4, fontSize: 9, color: 'var(--yellow)' }}>({days}d left)</span>
+                          )}
+                        </td>
+                        <td>{c.sla ?? '—'} days</td>
+                        <td>₨{c.penalty ?? '—'}/day</td>
+                        <td>{c.codDays ?? '—'} days</td>
+                        <td>
+                          <span style={{ fontSize: 10.5, color: autoRenewVal ? 'var(--green)' : 'var(--text-muted)' }}>
+                            {autoRenewVal ? <><i className="fa-solid fa-check" /> Yes</> : 'No'}
+                          </span>
+                        </td>
+                        <td><Badge label={c.status ?? 'Active'} /></td>
+                        <td>
+                          <button className="c-btn" style={{ height: 23, fontSize: 9.5 }}>
+                            <i className="fa-solid fa-eye" />
+                          </button>
+                          <button
+                            className="c-btn"
+                            style={{ height: 23, fontSize: 9.5, marginLeft: 3, color: 'var(--red)' }}
+                            disabled={deletingId === c._id}
+                            onClick={() => handleDelete(c._id)}
+                          >
+                            {deletingId === c._id
+                              ? <i className="fa-solid fa-spinner fa-spin" />
+                              : <i className="fa-solid fa-trash" />
+                            }
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -194,7 +282,7 @@ const ContractsPanel: React.FC = () => {
                 <div className="c-form-label">Courier Company *</div>
                 <select className="c-form-select" value={form.courier} onChange={e => setForm(f => ({ ...f, courier: e.target.value }))}>
                   <option value="">— Select Courier —</option>
-                  {courierNames.map(n => <option key={n}>{n}</option>)}
+                  {couriers.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                 </select>
               </div>
               <div className="c-form-group">
