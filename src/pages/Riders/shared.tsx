@@ -29,6 +29,7 @@ export type NavPanel =
 // ───────────────────────────────────────────────────────────
 // BACKEND API TYPES
 // ───────────────────────────────────────────────────────────
+// In shared.tsx — replace your existing ApiRider interface with this:
 
 export interface ApiRider {
   _id: string;
@@ -71,9 +72,19 @@ export interface ApiRider {
     accountNumber?: string;
     bankName?: string;
   };
+  // 🔐 Login credentials — only present if set by admin at creation
+  loginCredentials?: {
+    email?: string;
+    password?: string;
+    username?: string;
+    generatedAt?: string;
+    sharedWithRider?: boolean;
+    clearedAt?: string | null;
+  };
   userId?: string;
   createdAt?: string;
 }
+
 
 export interface ApiDelivery {
   _id: string;
