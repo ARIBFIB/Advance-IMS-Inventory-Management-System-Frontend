@@ -440,7 +440,7 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
           { id: "grid", label: "Grid View" },
           { id: "table", label: "Table View" },
           { id: "docs", label: "Documents" },
-          { id: "schedule", label: "Schedules" },
+          // { id: "schedule", label: "Schedules" },
         ]}
         active={innerTab}
         onChange={(t) => {
