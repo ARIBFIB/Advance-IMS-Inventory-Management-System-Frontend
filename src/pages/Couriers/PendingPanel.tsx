@@ -372,7 +372,7 @@ const PendingPanel: React.FC = () => {
               className="c-btn primary"
               onClick={() => {
                 if (selected.size === 0) {
-                  setToast("Pehle koi shipment select karo checkbox se.");
+                  setToast("Please select at least one shipment to proceed.");
                   setTimeout(() => setToast(null), 3000);
                   return;
                 }
