@@ -275,19 +275,33 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
       );
       setTimeout(() => onNav("all"), 3500);
     } catch (e: any) {
-      const msg  = e?.response?.data?.message ?? "";
-      const err  = e?.response?.data?.error   ?? "";
+      const msg    = e?.response?.data?.message ?? "";
+      const err    = e?.response?.data?.error   ?? "";
       const status = e?.response?.status;
 
-      if (status === 409 || err.toLowerCase().includes("email") || msg.toLowerCase().includes("email")) {
-        // Show as field error on email
+      // ── Parse server-side errors[] array and show on fields ──────────────
+      const serverErrors: { field: string; message: string }[] =
+        e?.response?.data?.errors ?? [];
+
+      if (serverErrors.length > 0) {
+        const newFieldErrs: Record<string, string> = {};
+        const newTouched: Record<string, boolean>  = {};
+        serverErrors.forEach(({ field, message }) => {
+          newFieldErrs[field] = message;
+          newTouched[field]   = true;
+        });
+        setFieldErrors((p) => ({ ...p, ...newFieldErrs }));
+        setTouched((p) => ({ ...p, ...newTouched }));
+        const fieldList = serverErrors
+          .map((se) => `${se.field}: ${se.message}`)
+          .join(", ");
+        setSubmitError(`Please fix the following: ${fieldList}`);
+      } else if (status === 409 || err.toLowerCase().includes("email") || msg.toLowerCase().includes("email")) {
         setFieldErrors((p) => ({ ...p, email: "This email is already registered. Use a different email." }));
         setTouched((p) => ({ ...p, email: true }));
         setSubmitError("Email is already registered. Please use a different email address.");
       } else if (msg.toLowerCase().includes("username")) {
-        setSubmitError("Username conflict — please try again (a new unique username will be generated).");
-      } else if (status === 400) {
-        setSubmitError(`Validation error from server: ${msg || "Please check your inputs."}`);
+        setSubmitError("Username conflict — please try again.");
       } else {
         setSubmitError(msg || "Failed to register rider. Please try again.");
       }
@@ -621,10 +635,10 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
                 value={form.paymentMethod}
                 onChange={(e) => set("paymentMethod", e.target.value)}
               >
-                <option>JazzCash</option>
-                <option>EasyPaisa</option>
-                <option>Bank Transfer</option>
-                <option>Cash</option>
+                <option value="JazzCash">JazzCash</option>
+                <option value="EasyPaisa">EasyPaisa</option>
+                <option value="BankTransfer">Bank Transfer</option>
+                <option value="Cash">Cash</option>
               </select>
             </div>
             <div className="c-form-group">
