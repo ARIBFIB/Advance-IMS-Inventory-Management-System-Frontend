@@ -1,4 +1,4 @@
-import { usePageLoading } from './usePageLoading';
+import { usePageLoading } from "./usePageLoading";
 
 /**
  * Drop-in hook for any page with tabs.
@@ -7,10 +7,7 @@ import { usePageLoading } from './usePageLoading';
  *   <TopLoadingBar progress={loadingProgress} isLoading={isLoading} />
  *   onClick={() => switchTab(tab.id)}
  */
-export function useTabLoading<T>(
-  setTab: (tab: T) => void,
-  currentTab?: T 
-) {
+export function useTabLoading<T>(setTab: (tab: T) => void, currentTab?: T) {
   const { isLoading, loadingProgress, startLoading } = usePageLoading();
 
   const switchTab = (newTab: T) => {

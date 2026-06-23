@@ -1,4 +1,4 @@
-export type CourierStatus = 'Active' | 'Inactive' | 'Error';
+export type CourierStatus = "Active" | "Inactive" | "Error";
 
 export interface Courier {
   id: string;

@@ -1,8 +1,17 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import type { ApiOrderListItem } from './types';
-import { Badge, FPagination, InnerTabs, EmptyState, fmt, fmtDate, SkeletonRows, ErrorBanner } from './helpers';
-import { financeOrdersAPI } from '../../services/api';
-import { CODDetailContent } from './OverviewPanel';
+import React, { useEffect, useState, useCallback } from "react";
+import type { ApiOrderListItem } from "./types";
+import {
+  Badge,
+  FPagination,
+  InnerTabs,
+  EmptyState,
+  fmt,
+  fmtDate,
+  SkeletonRows,
+  ErrorBanner,
+} from "./helpers";
+import { financeOrdersAPI } from "../../services/api";
+import { CODDetailContent } from "./OverviewPanel";
 
 const PER_PAGE = 10;
 
@@ -11,40 +20,41 @@ interface Props {
 }
 
 const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
-  const [innerTab, setInnerTab]     = useState('all');
-  const [search, setSearch]         = useState('');
-  const [page, setPage]             = useState(1);
-  const [orders, setOrders]         = useState<ApiOrderListItem[]>([]);
+  const [innerTab, setInnerTab] = useState("all");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [orders, setOrders] = useState<ApiOrderListItem[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState('');
-  const [kpis, setKpis]             = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [kpis, setKpis] = useState<any>(null);
 
   const deliveryStatusFilter: Record<string, string | undefined> = {
-    pending:   'InTransit',
-    collected: 'Delivered',
-    submitted: 'Delivered',
-    all:       undefined,
+    pending: "InTransit",
+    collected: "Delivered",
+    submitted: "Delivered",
+    all: undefined,
   };
 
   const paymentFilter: Record<string, string | undefined> = {
-    pending:   'Pending',
-    collected: 'Pending',
-    submitted: 'Paid',
-    all:       undefined,
+    pending: "Pending",
+    collected: "Pending",
+    submitted: "Paid",
+    all: undefined,
   };
 
   const load = useCallback(async (tab: string, pg: number) => {
     setLoading(true);
-    setError('');
+    setError("");
     try {
       const params: any = {
         page: pg,
         limit: PER_PAGE,
       };
-      if (deliveryStatusFilter[tab]) params.deliveryStatus = deliveryStatusFilter[tab];
-      if (paymentFilter[tab])        params.paymentStatus  = paymentFilter[tab];
+      if (deliveryStatusFilter[tab])
+        params.deliveryStatus = deliveryStatusFilter[tab];
+      if (paymentFilter[tab]) params.paymentStatus = paymentFilter[tab];
 
       const res = await financeOrdersAPI.getCODOrders(params);
       const data = res.data.data;
@@ -52,7 +62,7 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
       setTotalItems(data.pagination?.totalItems ?? 0);
       setTotalPages(data.pagination?.totalPages ?? 1);
     } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to load COD orders.');
+      setError(e?.response?.data?.message || "Failed to load COD orders.");
     } finally {
       setLoading(false);
     }
@@ -60,10 +70,11 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
 
   // Load summary KPIs once
   useEffect(() => {
-    import('../../services/api').then(m =>
-      m.financialAnalyticsAPI.getFinancial({})
-        .then(r => setKpis(r.data.data.kpis))
-        .catch(() => null)
+    import("../../services/api").then((m) =>
+      m.financialAnalyticsAPI
+        .getFinancial({})
+        .then((r) => setKpis(r.data.data.kpis))
+        .catch(() => null),
     );
   }, []);
 
@@ -72,34 +83,45 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
   }, [innerTab, page, load]);
 
   const filteredBySearch = search
-    ? orders.filter(o =>
-        o.orderId.toLowerCase().includes(search.toLowerCase()) ||
-        o.customer.fullName.toLowerCase().includes(search.toLowerCase())
+    ? orders.filter(
+        (o) =>
+          o.orderId.toLowerCase().includes(search.toLowerCase()) ||
+          o.customer.fullName.toLowerCase().includes(search.toLowerCase()),
       )
     : orders;
 
   const start = (page - 1) * PER_PAGE + 1;
-  const end   = Math.min(page * PER_PAGE, totalItems);
+  const end = Math.min(page * PER_PAGE, totalItems);
 
-  const handleTabChange = (id: string) => { setInnerTab(id); setPage(1); };
+  const handleTabChange = (id: string) => {
+    setInnerTab(id);
+    setPage(1);
+  };
 
   return (
     <>
       <div className="panel-heading">COD Tracking</div>
       <div className="panel-desc">
-        Monitor cash-on-delivery collections per order and per rider. Submit collections to accounts and reconcile pending amounts.
+        Monitor cash-on-delivery collections per order and per rider. Submit
+        collections to accounts and reconcile pending amounts.
       </div>
 
-      {error && <ErrorBanner message={error} onRetry={() => load(innerTab, page)} />}
+      {error && (
+        <ErrorBanner message={error} onRetry={() => load(innerTab, page)} />
+      )}
 
       {kpis && Number(kpis.codPending.amount) > 0 && (
         <div className="alert-strip warn">
           <i className="fa-solid fa-coins" />
           <div>
-            <strong>{kpis.codPending.count} orders</strong> holding a combined{' '}
-            <strong>{fmt(Number(kpis.codPending.amount))}</strong> in uncollected COD cash.
+            <strong>{kpis.codPending.count} orders</strong> holding a combined{" "}
+            <strong>{fmt(Number(kpis.codPending.amount))}</strong> in
+            uncollected COD cash.
           </div>
-          <button className="f-btn primary" style={{ marginLeft: 'auto', fontSize: 9.5 }}>
+          <button
+            className="f-btn primary"
+            style={{ marginLeft: "auto", fontSize: 9.5 }}
+          >
             <i className="fa-solid fa-check-double" /> Bulk Submit
           </button>
         </div>
@@ -108,36 +130,39 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
       <div className="mini-stats">
         <div className="mini-stat">
           <div className="ms-label">Total COD Orders</div>
-          <div className="ms-value">{loading ? '…' : totalItems}</div>
+          <div className="ms-value">{loading ? "…" : totalItems}</div>
         </div>
         <div className="mini-stat">
           <div className="ms-label">COD Collected</div>
-          <div className="ms-value" style={{ color: 'var(--green)' }}>
-            {kpis ? fmt(Number(kpis.codCollected.amount)) : '…'}
+          <div className="ms-value" style={{ color: "var(--green)" }}>
+            {kpis ? fmt(Number(kpis.codCollected.amount)) : "…"}
           </div>
-          <div className="ms-trend up"><i className="fa-solid fa-circle-check" /> {kpis?.codCollected.count ?? '—'} orders</div>
+          <div className="ms-trend up">
+            <i className="fa-solid fa-circle-check" />{" "}
+            {kpis?.codCollected.count ?? "—"} orders
+          </div>
         </div>
         <div className="mini-stat">
           <div className="ms-label">Pending Collection</div>
-          <div className="ms-value" style={{ color: 'var(--accent)' }}>
-            {kpis ? fmt(Number(kpis.codPending.amount)) : '…'}
+          <div className="ms-value" style={{ color: "var(--accent)" }}>
+            {kpis ? fmt(Number(kpis.codPending.amount)) : "…"}
           </div>
-          <div className="ms-trend">{kpis?.codPending.count ?? '—'} orders</div>
+          <div className="ms-trend">{kpis?.codPending.count ?? "—"} orders</div>
         </div>
         <div className="mini-stat">
           <div className="ms-label">Net COD Revenue</div>
-          <div className="ms-value" style={{ color: 'var(--blue)' }}>
-            {kpis ? fmt(Number(kpis.totalRevenue)) : '…'}
+          <div className="ms-value" style={{ color: "var(--blue)" }}>
+            {kpis ? fmt(Number(kpis.totalRevenue)) : "…"}
           </div>
         </div>
       </div>
 
       <InnerTabs
         tabs={[
-          { id: 'all',       label: 'All Orders' },
-          { id: 'pending',   label: 'Pending' },
-          { id: 'collected', label: 'Collected' },
-          { id: 'submitted', label: 'Submitted' },
+          { id: "all", label: "All Orders" },
+          { id: "pending", label: "Pending" },
+          { id: "collected", label: "Collected" },
+          { id: "submitted", label: "Submitted" },
         ]}
         active={innerTab}
         onChange={handleTabChange}
@@ -151,14 +176,20 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
               <input
                 placeholder="Search order or customer…"
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <button className="f-btn"><i className="fa-solid fa-calendar" /> Date</button>
+            <button className="f-btn">
+              <i className="fa-solid fa-calendar" /> Date
+            </button>
           </div>
           <div className="f-toolbar-right">
-            <button className="f-btn"><i className="fa-solid fa-file-export" /> Export</button>
-            <button className="f-btn primary"><i className="fa-solid fa-check-double" /> Bulk Submit</button>
+            <button className="f-btn">
+              <i className="fa-solid fa-file-export" /> Export
+            </button>
+            <button className="f-btn primary">
+              <i className="fa-solid fa-check-double" /> Bulk Submit
+            </button>
           </div>
         </div>
 
@@ -166,44 +197,89 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
           <table>
             <thead>
               <tr>
-                <th><input type="checkbox" /></th>
-                <th>Order ID</th><th>Customer</th>
-                <th>Amount</th><th>Date</th>
-                <th>Delivery</th><th>Payment</th><th>Actions</th>
+                <th>
+                  <input type="checkbox" />
+                </th>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Delivery</th>
+                <th>Payment</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <SkeletonRows cols={8} rows={6} />
               ) : filteredBySearch.length === 0 ? (
-                <tr><td colSpan={8}><EmptyState icon="fa-coins" title="No COD orders" desc="No orders match the current filter." /></td></tr>
-              ) : filteredBySearch.map(c => (
-                <tr key={c._id} onClick={() => onOpenOverlay(`${c.orderId} — COD Detail`, <CODDetailContent c={c} />)}>
-                  <td onClick={e => e.stopPropagation()}><input type="checkbox" /></td>
-                  <td><code className="ref">{c.orderId}</code></td>
-                  <td>{c.customer.fullName}</td>
-                  <td><strong>{fmt(c.totalAmount)}</strong></td>
-                  <td style={{ fontSize: 10 }}>{fmtDate(c.createdAt)}</td>
-                  <td><Badge label={c.deliveryStatus || 'Pending'} /></td>
-                  <td><Badge label={c.paymentStatus} /></td>
-                  <td onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 3 }}>
-                    {c.paymentStatus === 'Pending' && c.deliveryStatus === 'Delivered' && (
-                      <button
-                        className="f-btn primary" style={{ height: 22, fontSize: 9.5 }}
-                        onClick={async () => {
-                          await financeOrdersAPI.updatePaymentStatus(c._id, 'Paid');
-                          load(innerTab, page);
-                        }}
-                      >
-                        <i className="fa-solid fa-check" /> Submit
-                      </button>
-                    )}
-                    <button className="f-btn" style={{ height: 22, fontSize: 9.5 }}>
-                      <i className="fa-solid fa-eye" />
-                    </button>
+                <tr>
+                  <td colSpan={8}>
+                    <EmptyState
+                      icon="fa-coins"
+                      title="No COD orders"
+                      desc="No orders match the current filter."
+                    />
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredBySearch.map((c) => (
+                  <tr
+                    key={c._id}
+                    onClick={() =>
+                      onOpenOverlay(
+                        `${c.orderId} — COD Detail`,
+                        <CODDetailContent c={c} />,
+                      )
+                    }
+                  >
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" />
+                    </td>
+                    <td>
+                      <code className="ref">{c.orderId}</code>
+                    </td>
+                    <td>{c.customer.fullName}</td>
+                    <td>
+                      <strong>{fmt(c.totalAmount)}</strong>
+                    </td>
+                    <td style={{ fontSize: 10 }}>{fmtDate(c.createdAt)}</td>
+                    <td>
+                      <Badge label={c.deliveryStatus || "Pending"} />
+                    </td>
+                    <td>
+                      <Badge label={c.paymentStatus} />
+                    </td>
+                    <td
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ display: "flex", gap: 3 }}
+                    >
+                      {c.paymentStatus === "Pending" &&
+                        c.deliveryStatus === "Delivered" && (
+                          <button
+                            className="f-btn primary"
+                            style={{ height: 22, fontSize: 9.5 }}
+                            onClick={async () => {
+                              await financeOrdersAPI.updatePaymentStatus(
+                                c._id,
+                                "Paid",
+                              );
+                              load(innerTab, page);
+                            }}
+                          >
+                            <i className="fa-solid fa-check" /> Submit
+                          </button>
+                        )}
+                      <button
+                        className="f-btn"
+                        style={{ height: 22, fontSize: 9.5 }}
+                      >
+                        <i className="fa-solid fa-eye" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

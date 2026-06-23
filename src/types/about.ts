@@ -2,7 +2,7 @@ export interface StatItem {
   value: string;
   label: string;
   trend?: {
-    direction: 'up' | 'down' | 'neutral';
+    direction: "up" | "down" | "neutral";
     text: string;
   };
 }
@@ -35,7 +35,7 @@ export interface TeamMember {
   role: string;
   avatarColor: string;
   links: {
-    platform: 'linkedin' | 'github' | 'email' | 'dribbble';
+    platform: "linkedin" | "github" | "email" | "dribbble";
     url: string;
   }[];
 }

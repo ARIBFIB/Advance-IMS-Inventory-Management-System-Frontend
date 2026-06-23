@@ -1,48 +1,61 @@
-import React, { useState, useEffect } from 'react';
-import type { NavPanel, ExpenseCategoryName, ApiExpense } from './types';
-import { fmt, fmtDate, ErrorBanner } from './helpers';
-import { expensesAPI } from '../../services/api';
+import React, { useState, useEffect } from "react";
+import type { NavPanel, ExpenseCategoryName, ApiExpense } from "./types";
+import { fmt, fmtDate, ErrorBanner } from "./helpers";
+import { expensesAPI } from "../../services/api";
 
 interface Props {
   onNav: (p: NavPanel) => void;
 }
 
 const CATEGORIES: ExpenseCategoryName[] = [
-  'Shipping', 'Marketing', 'Utilities', 'Salaries', 'Supplies', 'Software', 'Other',
+  "Shipping",
+  "Marketing",
+  "Utilities",
+  "Salaries",
+  "Supplies",
+  "Software",
+  "Other",
 ];
 
 const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
-  const [description, setDescription] = useState('');
-  const [category, setCategory]       = useState<ExpenseCategoryName>('Supplies');
-  const [amount, setAmount]           = useState('');
-  const [date, setDate]               = useState(new Date().toISOString().slice(0, 10));
-  const [saving, setSaving]           = useState(false);
-  const [error, setError]             = useState('');
-  const [success, setSuccess]         = useState(false);
-  const [recent, setRecent]           = useState<ApiExpense[]>([]);
-  const [summary, setSummary]         = useState<any>(null);
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<ExpenseCategoryName>("Supplies");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [recent, setRecent] = useState<ApiExpense[]>([]);
+  const [summary, setSummary] = useState<any>(null);
 
   useEffect(() => {
-    expensesAPI.getAll({ limit: 4, status: 'Active' })
-      .then(r => setRecent(r.data.data?.expenses || []))
+    expensesAPI
+      .getAll({ limit: 4, status: "Active" })
+      .then((r) => setRecent(r.data.data?.expenses || []))
       .catch(() => null);
-    expensesAPI.getAnalytics({ groupBy: 'category' })
-      .then(r => setSummary(r.data.data))
+    expensesAPI
+      .getAnalytics({ groupBy: "category" })
+      .then((r) => setSummary(r.data.data))
       .catch(() => null);
   }, [success]);
 
   const handleSubmit = async () => {
     if (!description || !amount || !date) return;
     setSaving(true);
-    setError('');
+    setError("");
     setSuccess(false);
     try {
-      await expensesAPI.create({ description, category, amount: Number(amount), date });
+      await expensesAPI.create({
+        description,
+        category,
+        amount: Number(amount),
+        date,
+      });
       setSuccess(true);
-      setDescription('');
-      setAmount('');
+      setDescription("");
+      setAmount("");
     } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to save expense.');
+      setError(e?.response?.data?.message || "Failed to save expense.");
     } finally {
       setSaving(false);
     }
@@ -55,7 +68,8 @@ const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
     <>
       <div className="panel-heading">Log Expense</div>
       <div className="panel-desc">
-        Record a new business expense. Provide category, amount, and payment method for accurate financial tracking.
+        Record a new business expense. Provide category, amount, and payment
+        method for accurate financial tracking.
       </div>
 
       {error && <ErrorBanner message={error} />}
@@ -63,18 +77,26 @@ const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
         <div className="alert-strip success" style={{ marginBottom: 14 }}>
           <i className="fa-solid fa-circle-check" />
           <div>Expense saved successfully.</div>
-          <button className="f-btn" style={{ marginLeft: 'auto', fontSize: 9.5 }} onClick={() => onNav('expenses')}>
+          <button
+            className="f-btn"
+            style={{ marginLeft: "auto", fontSize: 9.5 }}
+            onClick={() => onNav("expenses")}
+          >
             View All
           </button>
         </div>
       )}
 
-      <div className="detail-grid-2" style={{ alignItems: 'start' }}>
+      <div className="detail-grid-2" style={{ alignItems: "start" }}>
         {/* Form */}
         <div className="card" style={{ marginBottom: 0 }}>
           <div className="card-header">
             <div className="card-title">
-              <i className="fa-solid fa-circle-plus" style={{ color: 'var(--accent)' }} /> New Expense Entry
+              <i
+                className="fa-solid fa-circle-plus"
+                style={{ color: "var(--accent)" }}
+              />{" "}
+              New Expense Entry
             </div>
           </div>
           <div className="card-body">
@@ -85,7 +107,7 @@ const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
                   className="f-form-input"
                   placeholder="e.g. Petrol for delivery riders — May Week 2"
                   value={description}
-                  onChange={e => setDescription(e.target.value)}
+                  onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
             </div>
@@ -95,9 +117,13 @@ const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
                 <select
                   className="f-form-select"
                   value={category}
-                  onChange={e => setCategory(e.target.value as ExpenseCategoryName)}
+                  onChange={(e) =>
+                    setCategory(e.target.value as ExpenseCategoryName)
+                  }
                 >
-                  {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  {CATEGORIES.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
                 </select>
               </div>
               <div className="f-form-group">
@@ -107,7 +133,7 @@ const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
                   type="number"
                   placeholder="0"
                   value={amount}
-                  onChange={e => setAmount(e.target.value)}
+                  onChange={(e) => setAmount(e.target.value)}
                 />
               </div>
             </div>
@@ -118,16 +144,23 @@ const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
                   className="f-form-input"
                   type="date"
                   value={date}
-                  onChange={e => setDate(e.target.value)}
+                  onChange={(e) => setDate(e.target.value)}
                 />
               </div>
             </div>
             <hr />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="f-btn primary" onClick={handleSubmit} disabled={saving || !description || !amount}>
-                <i className="fa-solid fa-check" /> {saving ? 'Saving…' : 'Save Expense'}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                className="f-btn primary"
+                onClick={handleSubmit}
+                disabled={saving || !description || !amount}
+              >
+                <i className="fa-solid fa-check" />{" "}
+                {saving ? "Saving…" : "Save Expense"}
               </button>
-              <button className="f-btn" onClick={() => onNav('expenses')}>Cancel</button>
+              <button className="f-btn" onClick={() => onNav("expenses")}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -137,39 +170,71 @@ const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
           <div className="summary-box">
             <div className="summary-box-title">Category Breakdown</div>
             {catBreakdown.length === 0 ? (
-              <div style={{ fontSize: 10.5, color: 'var(--text-muted)', padding: '6px 0' }}>Loading…</div>
-            ) : catBreakdown.map((c: any) => (
-              <div className="summary-row" key={c.category}>
-                <span>{c.category}</span>
-                <span style={{ fontWeight: 600 }}>{fmt(Number(c.total))}</span>
+              <div
+                style={{
+                  fontSize: 10.5,
+                  color: "var(--text-muted)",
+                  padding: "6px 0",
+                }}
+              >
+                Loading…
               </div>
-            ))}
+            ) : (
+              catBreakdown.map((c: any) => (
+                <div className="summary-row" key={c.category}>
+                  <span>{c.category}</span>
+                  <span style={{ fontWeight: 600 }}>
+                    {fmt(Number(c.total))}
+                  </span>
+                </div>
+              ))
+            )}
             {kpis && (
               <div className="summary-row total">
                 <span>Total</span>
-                <span className="summary-val" style={{ color: 'var(--red)' }}>{fmt(Number(kpis.totalAmount))}</span>
+                <span className="summary-val" style={{ color: "var(--red)" }}>
+                  {fmt(Number(kpis.totalAmount))}
+                </span>
               </div>
             )}
           </div>
 
           <div className="card" style={{ marginBottom: 0 }}>
             <div className="card-header">
-              <div className="card-title"><i className="fa-solid fa-clock-rotate-left" /> Recent Entries</div>
+              <div className="card-title">
+                <i className="fa-solid fa-clock-rotate-left" /> Recent Entries
+              </div>
             </div>
-            <div className="card-body" style={{ padding: '6px 14px' }}>
+            <div className="card-body" style={{ padding: "6px 14px" }}>
               {recent.length === 0 ? (
-                <div style={{ fontSize: 10.5, color: 'var(--text-muted)', padding: '8px 0' }}>No recent entries.</div>
-              ) : recent.map(e => (
-                <div className="list-item" key={e._id}>
-                  <div className="list-content">
-                    <div className="list-title" style={{ fontSize: 10.5 }}>{e.description}</div>
-                    <div className="list-meta">{e.category} · {fmtDate(e.date)}</div>
-                  </div>
-                  <div className="list-right">
-                    <strong style={{ color: 'var(--red)', fontSize: 11 }}>{fmt(e.amount)}</strong>
-                  </div>
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    color: "var(--text-muted)",
+                    padding: "8px 0",
+                  }}
+                >
+                  No recent entries.
                 </div>
-              ))}
+              ) : (
+                recent.map((e) => (
+                  <div className="list-item" key={e._id}>
+                    <div className="list-content">
+                      <div className="list-title" style={{ fontSize: 10.5 }}>
+                        {e.description}
+                      </div>
+                      <div className="list-meta">
+                        {e.category} · {fmtDate(e.date)}
+                      </div>
+                    </div>
+                    <div className="list-right">
+                      <strong style={{ color: "var(--red)", fontSize: 11 }}>
+                        {fmt(e.amount)}
+                      </strong>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

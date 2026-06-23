@@ -1,17 +1,25 @@
-import React from 'react';
+import React from "react";
 
 interface BadgeProps {
-  variant?: 'green' | 'red' | 'yellow' | 'blue' | 'gray' | 'orange' | 'purple' | 'teal';
+  variant?:
+    | "green"
+    | "red"
+    | "yellow"
+    | "blue"
+    | "gray"
+    | "orange"
+    | "purple"
+    | "teal";
   children: React.ReactNode;
   icon?: string;
   className?: string;
 }
 
 export const Badge: React.FC<BadgeProps> = ({
-  variant = 'gray',
+  variant = "gray",
   children,
   icon,
-  className = '',
+  className = "",
 }) => {
   return (
     <span className={`badge ${variant} ${className}`.trim()}>

@@ -1,31 +1,34 @@
-import { useEffect, useRef } from "react"
-import * as THREE from "three"
+import { useEffect, useRef } from "react";
+import * as THREE from "three";
 
 interface ShaderAnimationProps {
-  className?: string
-  style?: React.CSSProperties
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-export function ShaderAnimation({ className = "w-full h-full", style }: ShaderAnimationProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
+export function ShaderAnimation({
+  className = "w-full h-full",
+  style,
+}: ShaderAnimationProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<{
-    camera: THREE.Camera
-    scene: THREE.Scene
-    renderer: THREE.WebGLRenderer
-    uniforms: any
-    animationId: number
-  } | null>(null)
+    camera: THREE.Camera;
+    scene: THREE.Scene;
+    renderer: THREE.WebGLRenderer;
+    uniforms: any;
+    animationId: number;
+  } | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return
+    if (!containerRef.current) return;
 
-    const container = containerRef.current
+    const container = containerRef.current;
 
     const vertexShader = `
       void main() {
         gl_Position = vec4( position, 1.0 );
       }
-    `
+    `;
 
     const fragmentShader = `
       #define TWO_PI 6.2831853072
@@ -49,52 +52,52 @@ export function ShaderAnimation({ className = "w-full h-full", style }: ShaderAn
         
         gl_FragColor = vec4(color[0],color[1],color[2],1.0);
       }
-    `
+    `;
 
-    const camera = new THREE.Camera()
-    camera.position.z = 1
+    const camera = new THREE.Camera();
+    camera.position.z = 1;
 
-    const scene = new THREE.Scene()
-    const geometry = new THREE.PlaneGeometry(2, 2)
+    const scene = new THREE.Scene();
+    const geometry = new THREE.PlaneGeometry(2, 2);
 
     const uniforms = {
       time: { type: "f", value: 1.0 },
       resolution: { type: "v2", value: new THREE.Vector2() },
-    }
+    };
 
     const material = new THREE.ShaderMaterial({
       uniforms: uniforms,
       vertexShader: vertexShader,
       fragmentShader: fragmentShader,
-    })
+    });
 
-    const mesh = new THREE.Mesh(geometry, material)
-    scene.add(mesh)
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-    renderer.setPixelRatio(window.devicePixelRatio)
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
 
-    container.appendChild(renderer.domElement)
+    container.appendChild(renderer.domElement);
 
     const onWindowResize = () => {
-      const width = container.clientWidth
-      const height = container.clientHeight
-      renderer.setSize(width, height)
-      uniforms.resolution.value.x = renderer.domElement.width
-      uniforms.resolution.value.y = renderer.domElement.height
-    }
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      renderer.setSize(width, height);
+      uniforms.resolution.value.x = renderer.domElement.width;
+      uniforms.resolution.value.y = renderer.domElement.height;
+    };
 
-    onWindowResize()
-    window.addEventListener("resize", onWindowResize, false)
+    onWindowResize();
+    window.addEventListener("resize", onWindowResize, false);
 
     const animate = () => {
-      const animationId = requestAnimationFrame(animate)
-      uniforms.time.value += 0.05
-      renderer.render(scene, camera)
+      const animationId = requestAnimationFrame(animate);
+      uniforms.time.value += 0.05;
+      renderer.render(scene, camera);
       if (sceneRef.current) {
-        sceneRef.current.animationId = animationId
+        sceneRef.current.animationId = animationId;
       }
-    }
+    };
 
     sceneRef.current = {
       camera,
@@ -102,23 +105,23 @@ export function ShaderAnimation({ className = "w-full h-full", style }: ShaderAn
       renderer,
       uniforms,
       animationId: 0,
-    }
+    };
 
-    animate()
+    animate();
 
     return () => {
-      window.removeEventListener("resize", onWindowResize)
+      window.removeEventListener("resize", onWindowResize);
       if (sceneRef.current) {
-        cancelAnimationFrame(sceneRef.current.animationId)
+        cancelAnimationFrame(sceneRef.current.animationId);
         if (container && sceneRef.current.renderer.domElement) {
-          container.removeChild(sceneRef.current.renderer.domElement)
+          container.removeChild(sceneRef.current.renderer.domElement);
         }
-        sceneRef.current.renderer.dispose()
-        geometry.dispose()
-        material.dispose()
+        sceneRef.current.renderer.dispose();
+        geometry.dispose();
+        material.dispose();
       }
-    }
-  }, [])
+    };
+  }, []);
 
   return (
     <div
@@ -126,5 +129,5 @@ export function ShaderAnimation({ className = "w-full h-full", style }: ShaderAn
       className={className}
       style={{ background: "transparent", overflow: "hidden", ...style }}
     />
-  )
+  );
 }

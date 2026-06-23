@@ -1,10 +1,14 @@
-import React from 'react';
+import React from "react";
 
 // ═══════════════════════════════════════════════════════════
 // EMPTY STATE
 // ═══════════════════════════════════════════════════════════
 
-const ComingSoon: React.FC<{ icon: string; title: string; desc: string }> = ({ icon, title, desc }) => (
+const ComingSoon: React.FC<{ icon: string; title: string; desc: string }> = ({
+  icon,
+  title,
+  desc,
+}) => (
   <div className="empty-state">
     <i className={`fa-solid ${icon}`} />
     <h4>{title}</h4>
@@ -22,8 +26,9 @@ const IPWhitelistPanel: React.FC = () => {
       {/* Info Banner */}
       <div className="alert-strip info">
         <i className="fa-solid fa-circle-info" />
-        IP whitelisting is not yet connected to a backend endpoint. Entries added here will not be
-        persisted or enforced until the security API is available.
+        IP whitelisting is not yet connected to a backend endpoint. Entries
+        added here will not be persisted or enforced until the security API is
+        available.
       </div>
 
       <div className="detail-grid-2">
@@ -31,8 +36,18 @@ const IPWhitelistPanel: React.FC = () => {
         <div>
           <div className="card">
             <div className="card-header">
-              <div className="card-title"><i className="fa-solid fa-list-check" /> Whitelisted IPs</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '10.5px', color: 'var(--text-muted)' }}>
+              <div className="card-title">
+                <i className="fa-solid fa-list-check" /> Whitelisted IPs
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: "10.5px",
+                  color: "var(--text-muted)",
+                }}
+              >
                 Enforce Whitelist
                 <label className="toggle-switch">
                   <input type="checkbox" disabled />
@@ -54,7 +69,10 @@ const IPWhitelistPanel: React.FC = () => {
         <div>
           <div className="card">
             <div className="card-header">
-              <div className="card-title"><i className="fa-solid fa-plus-circle ic-orange" /> Add IP / Range</div>
+              <div className="card-title">
+                <i className="fa-solid fa-plus-circle ic-orange" /> Add IP /
+                Range
+              </div>
             </div>
             <div className="card-body">
               <div className="form-row single">
@@ -86,7 +104,13 @@ const IPWhitelistPanel: React.FC = () => {
                   </select>
                 </div>
               </div>
-              <hr style={{ border: 'none', borderTop: '1px solid var(--divider)', margin: '12px 0' }} />
+              <hr
+                style={{
+                  border: "none",
+                  borderTop: "1px solid var(--divider)",
+                  margin: "12px 0",
+                }}
+              />
               <button className="t-btn primary" disabled>
                 <i className="fa-solid fa-plus" /> Add to Whitelist
               </button>
@@ -96,18 +120,23 @@ const IPWhitelistPanel: React.FC = () => {
           {/* Format Guide — kept, purely informational */}
           <div className="card" style={{ marginTop: 14 }}>
             <div className="card-header">
-              <div className="card-title"><i className="fa-solid fa-circle-info ic-blue" /> IP Format Guide</div>
+              <div className="card-title">
+                <i className="fa-solid fa-circle-info ic-blue" /> IP Format
+                Guide
+              </div>
             </div>
             <div className="card-body">
               {[
-                ['Single IP',       '203.55.11.10'],
-                ['IP Range (CIDR)', '192.168.1.0/24'],
-                ['Subnet Mask',     '10.0.0.0/8'],
-                ['Wildcard Range',  '192.168.1.*'],
+                ["Single IP", "203.55.11.10"],
+                ["IP Range (CIDR)", "192.168.1.0/24"],
+                ["Subnet Mask", "10.0.0.0/8"],
+                ["Wildcard Range", "192.168.1.*"],
               ].map(([k, v]) => (
                 <div className="detail-row" key={k}>
                   <div className="detail-key">{k}</div>
-                  <div className="detail-val"><code className="ref">{v}</code></div>
+                  <div className="detail-val">
+                    <code className="ref">{v}</code>
+                  </div>
                 </div>
               ))}
             </div>

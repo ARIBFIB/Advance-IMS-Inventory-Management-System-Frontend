@@ -6,18 +6,18 @@ export interface Customer {
   phone: string;
   email?: string;
   address: string;
-  city?: string;                  // ✅ add this
-  segment: 'Regular' | 'VIP' | 'Occasional' | 'New' | 'Inactive';
+  city?: string; // ✅ add this
+  segment: "Regular" | "VIP" | "Occasional" | "New" | "Inactive";
   totalOrders: number;
-  totalSpend?: number;            // ✅ add this (your mock uses totalSpend)
-  totalSpent?: number;            // keep optional for backward compat
+  totalSpend?: number; // ✅ add this (your mock uses totalSpend)
+  totalSpent?: number; // keep optional for backward compat
   totalSpendAmount?: number;
-  averageOrderValue?: number;     // ✅ make optional
-  lastOrder?: string;             // ✅ add this (your mock uses lastOrder)
-  lastOrderDate?: string;         // keep optional
+  averageOrderValue?: number; // ✅ make optional
+  lastOrder?: string; // ✅ add this (your mock uses lastOrder)
+  lastOrderDate?: string; // keep optional
   createdAt: string;
-  updatedAt?: string;             // ✅ make optional
-  status?: 'Active' | 'Inactive' | 'Suspended' | 'Blocked';
+  updatedAt?: string; // ✅ make optional
+  status?: "Active" | "Inactive" | "Suspended" | "Blocked";
   notes?: string;
   tags?: string[];
   preferredCourier?: string;
@@ -33,11 +33,11 @@ export interface CustomerSummary {
   name: string;
   phone: string;
   city: string;
-  segment: Customer['segment'];
+  segment: Customer["segment"];
   totalOrders: number;
   totalSpent: number;
   lastOrderDate?: string;
-  status: Customer['status'];
+  status: Customer["status"];
 }
 
 export interface CreateCustomerInput {
@@ -52,7 +52,7 @@ export interface CreateCustomerInput {
     postalCode: string;
     country: string;
   };
-  segment?: Customer['segment'];
+  segment?: Customer["segment"];
   notes?: string;
   tags?: string[];
   isWhatsAppOptIn?: boolean;
@@ -61,14 +61,14 @@ export interface CreateCustomerInput {
 
 export interface UpdateCustomerInput extends Partial<CreateCustomerInput> {
   id: string;
-  status?: Customer['status'];
+  status?: Customer["status"];
   loyaltyPoints?: number;
 }
 
 export interface CustomerFilter {
   search?: string;
-  segment?: Customer['segment'][];
-  status?: Customer['status'][];
+  segment?: Customer["segment"][];
+  status?: Customer["status"][];
   city?: string;
   minOrders?: number;
   maxOrders?: number;
@@ -81,8 +81,8 @@ export interface CustomerFilter {
 
 export interface CustomerStats {
   total: number;
-  bySegment: Record<Customer['segment'], number>;
-  byStatus: Record<NonNullable<Customer['status']>, number>;
+  bySegment: Record<Customer["segment"], number>;
+  byStatus: Record<NonNullable<Customer["status"]>, number>;
   avgOrdersPerCustomer: number;
   avgSpentPerCustomer: number;
   newThisMonth: number;

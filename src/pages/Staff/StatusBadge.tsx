@@ -2,9 +2,9 @@
 // StatusBadge.tsx — Active / Inactive / Suspended badge
 // ═══════════════════════════════════════════════════════════
 
-import React from 'react';
-import { ApiStatus } from './staff.types';
-import { statusBadgeClass, statusDotClass } from './staffData';
+import React from "react";
+import { ApiStatus } from "./staff.types";
+import { statusBadgeClass, statusDotClass } from "./staffData";
 
 interface Props {
   status: ApiStatus;

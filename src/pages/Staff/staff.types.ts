@@ -4,26 +4,26 @@
 
 // ── API Role values (exact strings the backend accepts) ───
 export type ApiRole =
-  | 'Administrator'
-  | 'OperationsManager'
-  | 'InventoryManager'
-  | 'SalesOperator'
-  | 'Accounts'
-  | 'CourierHandler'
-  | 'Rider';
+  | "Administrator"
+  | "OperationsManager"
+  | "InventoryManager"
+  | "SalesOperator"
+  | "Accounts"
+  | "CourierHandler"
+  | "Rider";
 
 // ── Display-friendly label map ────────────────────────────
 export const ROLE_LABELS: Record<ApiRole, string> = {
-  Administrator:    'Administrator',
-  OperationsManager:'Ops Manager',
-  InventoryManager: 'Inventory Manager',
-  SalesOperator:    'Sales Operator',
-  Accounts:         'Accounts',
-  CourierHandler:   'Courier Handler',
-  Rider:            'Rider',
+  Administrator: "Administrator",
+  OperationsManager: "Ops Manager",
+  InventoryManager: "Inventory Manager",
+  SalesOperator: "Sales Operator",
+  Accounts: "Accounts",
+  CourierHandler: "Courier Handler",
+  Rider: "Rider",
 };
 
-export type ApiStatus = 'Active' | 'Inactive' | 'Suspended';
+export type ApiStatus = "Active" | "Inactive" | "Suspended";
 
 // ── Raw user object returned by GET /api/users & GET /api/users/:id ──
 export interface ApiUser {
@@ -108,12 +108,17 @@ export interface UpdateUserPayload {
 }
 
 // ── UI tab / filter types (unchanged) ─────────────────────
-export type StaffTab      = 'members' | 'roles' | 'performance' | 'activity' | 'integrations';
-export type StaffFilter   = 'all' | 'active' | 'offline' | 'suspended';
-export type StaffPanelTab = 'profile' | 'permissions' | 'tasks' | 'activity';
-export type PerfPeriod    = 'month' | 'week' | 'all';
-export type AccessLevel   = 'Full' | 'High' | 'Medium' | 'Limited' | 'Minimal';
-export type Severity      = 'Info' | 'Warning' | 'Critical';
+export type StaffTab =
+  | "members"
+  | "roles"
+  | "performance"
+  | "activity"
+  | "integrations";
+export type StaffFilter = "all" | "active" | "offline" | "suspended";
+export type StaffPanelTab = "profile" | "permissions" | "tasks" | "activity";
+export type PerfPeriod = "month" | "week" | "all";
+export type AccessLevel = "Full" | "High" | "Medium" | "Limited" | "Minimal";
+export type Severity = "Info" | "Warning" | "Critical";
 
 // ── Legacy StaffMember shape (used by UI, derived from ApiUser) ──
 export interface StaffMember {
@@ -121,7 +126,7 @@ export interface StaffMember {
   name: string;
   email: string;
   phone: string;
-  role: string;          // display label
+  role: string; // display label
   apiRole: ApiRole;
   dept: string;
   status: ApiStatus;

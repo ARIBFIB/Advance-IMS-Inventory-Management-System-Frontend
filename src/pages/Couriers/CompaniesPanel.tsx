@@ -1,21 +1,35 @@
 // CompaniesPanel.tsx  —  fully dynamic
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
-  ApiCourier, ApiPagination,
-  fmt, rColor, courierInitials,
-  Badge, PerfBar, StarRating, CPagination, InnerTabs, EmptyState, TableSkeleton, ToggleSwitch,
-} from './shared';
-import { couriersAPI } from '../../services/api';
+  ApiCourier,
+  ApiPagination,
+  fmt,
+  rColor,
+  courierInitials,
+  Badge,
+  PerfBar,
+  StarRating,
+  CPagination,
+  InnerTabs,
+  EmptyState,
+  TableSkeleton,
+  ToggleSwitch,
+} from "./shared";
+import { couriersAPI } from "../../services/api";
 
 // ── City Search Hook ──────────────────────────────────────
-interface CityEntry { name: string; countryCode: string; stateCode: string; }
+interface CityEntry {
+  name: string;
+  countryCode: string;
+  stateCode: string;
+}
 
 function useCitySearch() {
   const [allCities, setAllCities] = useState<CityEntry[]>([]);
-  const [loaded, setLoaded]       = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    import('../../assets/data/all_cities/allCitiesNested.lite.json')
+    import("../../assets/data/all_cities/allCitiesNested.lite.json")
       .then((mod: any) => {
         const raw = mod.default ?? mod;
         const flat: CityEntry[] = [];
@@ -53,7 +67,7 @@ function useCitySearch() {
       }
       return results;
     },
-    [allCities]
+    [allCities],
   );
 
   return { search, loaded };
@@ -66,23 +80,29 @@ interface CityInputProps {
   placeholder?: string;
 }
 
-const CityInput: React.FC<CityInputProps> = ({ value, onChange, placeholder = 'Type city name...' }) => {
+const CityInput: React.FC<CityInputProps> = ({
+  value,
+  onChange,
+  placeholder = "Type city name...",
+}) => {
   const { search, loaded } = useCitySearch();
-  const [query,       setQuery]       = useState(value);
+  const [query, setQuery] = useState(value);
   const [suggestions, setSuggestions] = useState<CityEntry[]>([]);
-  const [open,        setOpen]        = useState(false);
+  const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
-  const listRef   = useRef<HTMLUListElement>(null);
-  const inputRef  = useRef<HTMLInputElement>(null);
-  const wrapRef   = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
   // sync external value → internal query
-  useEffect(() => { setQuery(value); }, [value]);
+  useEffect(() => {
+    setQuery(value);
+  }, [value]);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const q = e.target.value;
     setQuery(q);
-    onChange(q);           // keep form value in sync while typing
+    onChange(q); // keep form value in sync while typing
     if (q.length >= 2) {
       setSuggestions(search(q));
       setOpen(true);
@@ -102,16 +122,16 @@ const CityInput: React.FC<CityInputProps> = ({ value, onChange, placeholder = 'T
 
   const handleKey = (e: React.KeyboardEvent) => {
     if (!open) return;
-    if (e.key === 'ArrowDown') {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
-      setHighlighted(h => Math.min(h + 1, suggestions.length - 1));
-    } else if (e.key === 'ArrowUp') {
+      setHighlighted((h) => Math.min(h + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setHighlighted(h => Math.max(h - 1, 0));
-    } else if (e.key === 'Enter') {
+      setHighlighted((h) => Math.max(h - 1, 0));
+    } else if (e.key === "Enter") {
       e.preventDefault();
       if (suggestions[highlighted]) pick(suggestions[highlighted]);
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       setOpen(false);
     }
   };
@@ -120,29 +140,32 @@ const CityInput: React.FC<CityInputProps> = ({ value, onChange, placeholder = 'T
   useEffect(() => {
     if (!listRef.current) return;
     const el = listRef.current.children[highlighted] as HTMLElement | undefined;
-    el?.scrollIntoView({ block: 'nearest' });
+    el?.scrollIntoView({ block: "nearest" });
   }, [highlighted]);
 
   // close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node))
+        setOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative' }}>
+    <div ref={wrapRef} style={{ position: "relative" }}>
       <input
         ref={inputRef}
         className="c-form-input"
-        placeholder={loaded ? placeholder : 'Loading cities...'}
+        placeholder={loaded ? placeholder : "Loading cities..."}
         disabled={!loaded}
         value={query}
         onChange={handleInput}
         onKeyDown={handleKey}
-        onFocus={() => { if (query.length >= 2 && suggestions.length) setOpen(true); }}
+        onFocus={() => {
+          if (query.length >= 2 && suggestions.length) setOpen(true);
+        }}
         autoComplete="off"
       />
 
@@ -151,44 +174,48 @@ const CityInput: React.FC<CityInputProps> = ({ value, onChange, placeholder = 'T
         <ul
           ref={listRef}
           style={{
-            position: 'absolute',
-            top: 'calc(100% + 3px)',
+            position: "absolute",
+            top: "calc(100% + 3px)",
             left: 0,
             right: 0,
             maxHeight: 220,
-            overflowY: 'auto',
-            background: 'var(--card)',
-            border: '1px solid var(--border)',
+            overflowY: "auto",
+            background: "var(--card)",
+            border: "1px solid var(--border)",
             borderRadius: 6,
             zIndex: 999,
             margin: 0,
             padding: 0,
-            listStyle: 'none',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+            listStyle: "none",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
           }}
         >
           {suggestions.map((c, i) => (
             <li
               key={`${c.name}-${c.countryCode}-${c.stateCode}-${i}`}
-              onMouseDown={() => pick(c)}    // mousedown fires before blur
+              onMouseDown={() => pick(c)} // mousedown fires before blur
               style={{
-                padding: '6px 11px',
+                padding: "6px 11px",
                 fontSize: 11,
-                cursor: 'pointer',
-                background: i === highlighted ? 'var(--accent)' : 'transparent',
-                color: i === highlighted ? '#fff' : 'var(--text-primary)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
+                cursor: "pointer",
+                background: i === highlighted ? "var(--accent)" : "transparent",
+                color: i === highlighted ? "#fff" : "var(--text-primary)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
               onMouseEnter={() => setHighlighted(i)}
             >
-              <span style={{ fontWeight: i === highlighted ? 600 : 400 }}>{c.name}</span>
-              <span style={{
-                fontSize: 9,
-                opacity: 0.7,
-                color: i === highlighted ? '#ffffffcc' : 'var(--text-muted)',
-              }}>
+              <span style={{ fontWeight: i === highlighted ? 600 : 400 }}>
+                {c.name}
+              </span>
+              <span
+                style={{
+                  fontSize: 9,
+                  opacity: 0.7,
+                  color: i === highlighted ? "#ffffffcc" : "var(--text-muted)",
+                }}
+              >
                 {c.countryCode} · {c.stateCode}
               </span>
             </li>
@@ -204,98 +231,132 @@ interface Props {
   onOpenOverlay: (c: ApiCourier) => void;
   initialEdit?: ApiCourier | null;
   onEditConsumed?: () => void;
-  refreshTrigger?: number;   // 👈 NEW
+  refreshTrigger?: number; // 👈 NEW
 }
 
-const CompaniesPanel: React.FC<Props> = ({ onOpenOverlay, initialEdit, onEditConsumed, refreshTrigger }) => {
-  const [innerTab, setInnerTab] = useState('list');
+const CompaniesPanel: React.FC<Props> = ({
+  onOpenOverlay,
+  initialEdit,
+  onEditConsumed,
+  refreshTrigger,
+}) => {
+  const [innerTab, setInnerTab] = useState("list");
 
   // ── list state ──
-  const [couriers,      setCouriers]      = useState<ApiCourier[]>([]);
-  const [pagination,    setPagination]    = useState<ApiPagination>({ currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 10 });
-  const [loading,       setLoading]       = useState(false);
-  const [error,         setError]         = useState('');
-  const [search,        setSearch]        = useState('');
-  const [statusFilter,  setStatusFilter]  = useState('');
-  const [page,          setPage]          = useState(1);
+  const [couriers, setCouriers] = useState<ApiCourier[]>([]);
+  const [pagination, setPagination] = useState<ApiPagination>({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 10,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [page, setPage] = useState(1);
   const PER_PAGE = 10;
 
   // ── form state ──
   const [form, setForm] = useState({
-  name: '', contactPerson: '', email: '', phone: '', city: '',
-  baseRate: '', codPct: '', codDays: '', coverage: 'Nationwide',
-  apiIntegrationEnabled: false, apiKey: '', apiEndpoint: '',
-  status: 'Active',   // 👈 NEW
-});
-  const [saving,  setSaving]  = useState(false);
-  const [saveErr, setSaveErr] = useState('');
+    name: "",
+    contactPerson: "",
+    email: "",
+    phone: "",
+    city: "",
+    baseRate: "",
+    codPct: "",
+    codDays: "",
+    coverage: "Nationwide",
+    apiIntegrationEnabled: false,
+    apiKey: "",
+    apiEndpoint: "",
+    status: "Active", // 👈 NEW
+  });
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState("");
   const [editTarget, setEditTarget] = useState<ApiCourier | null>(null);
 
-useEffect(() => {
-  if (!editTarget) return;
-  setForm({
-    name:                  editTarget.name,
-    contactPerson:         editTarget.contactPerson         ?? '',
-    email:                 editTarget.email                 ?? '',
-    phone:                 editTarget.phone                 ?? '',
-    city:                  editTarget.serviceRegions?.[0]   ?? '',
-    baseRate:              String(editTarget.baseRate        ?? ''),
-    codPct:                String(editTarget.codPct          ?? ''),
-    codDays:               String(editTarget.codDays         ?? ''),
-    coverage:              editTarget.coverage               ?? 'Nationwide',
-    apiIntegrationEnabled: editTarget.apiIntegrationEnabled  ?? false,
-    apiKey:                '',
-    apiEndpoint:           editTarget.apiEndpoint            ?? '',
-    status:                editTarget.status                 ?? 'Active',   // 👈 NEW
-  });
-}, [editTarget]);
+  useEffect(() => {
+    if (!editTarget) return;
+    setForm({
+      name: editTarget.name,
+      contactPerson: editTarget.contactPerson ?? "",
+      email: editTarget.email ?? "",
+      phone: editTarget.phone ?? "",
+      city: editTarget.serviceRegions?.[0] ?? "",
+      baseRate: String(editTarget.baseRate ?? ""),
+      codPct: String(editTarget.codPct ?? ""),
+      codDays: String(editTarget.codDays ?? ""),
+      coverage: editTarget.coverage ?? "Nationwide",
+      apiIntegrationEnabled: editTarget.apiIntegrationEnabled ?? false,
+      apiKey: "",
+      apiEndpoint: editTarget.apiEndpoint ?? "",
+      status: editTarget.status ?? "Active", // 👈 NEW
+    });
+  }, [editTarget]);
 
-// initialEdit — triggered from overlay Edit button in CouriersPage
-useEffect(() => {
-  if (!initialEdit) return;
-  setEditTarget(initialEdit);
-  setInnerTab('add');
-  onEditConsumed?.();
-}, [initialEdit]);
-
+  // initialEdit — triggered from overlay Edit button in CouriersPage
+  useEffect(() => {
+    if (!initialEdit) return;
+    setEditTarget(initialEdit);
+    setInnerTab("add");
+    onEditConsumed?.();
+  }, [initialEdit]);
 
   const fetchCouriers = useCallback(async () => {
-    setLoading(true); setError('');
+    setLoading(true);
+    setError("");
     try {
       const params: Record<string, any> = { page, limit: PER_PAGE };
-      if (search)       params.search = search;
+      if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
-      const res  = await couriersAPI.getAll(params);
+      const res = await couriersAPI.getAll(params);
       const data = res.data?.data;
       setCouriers(data?.couriers ?? []);
-      setPagination(data?.pagination ?? { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: PER_PAGE });
+      setPagination(
+        data?.pagination ?? {
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: 0,
+          itemsPerPage: PER_PAGE,
+        },
+      );
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? 'Failed to load couriers.');
-    } finally { setLoading(false); }
+      setError(e?.response?.data?.message ?? "Failed to load couriers.");
+    } finally {
+      setLoading(false);
+    }
   }, [page, search, statusFilter]);
 
-useEffect(() => { if (innerTab === 'list') fetchCouriers(); }, [fetchCouriers, innerTab]);
+  useEffect(() => {
+    if (innerTab === "list") fetchCouriers();
+  }, [fetchCouriers, innerTab]);
 
-// Auto-refresh when overlay closes (refreshTrigger changes)
-useEffect(() => {
-  if (refreshTrigger === undefined || refreshTrigger === 0) return;
-  if (innerTab === 'list') fetchCouriers();
-}, [refreshTrigger]);   // 👈 NEW
+  // Auto-refresh when overlay closes (refreshTrigger changes)
+  useEffect(() => {
+    if (refreshTrigger === undefined || refreshTrigger === 0) return;
+    if (innerTab === "list") fetchCouriers();
+  }, [refreshTrigger]); // 👈 NEW
 
   const handleSave = async () => {
-    if (!form.name.trim()) { setSaveErr('Courier name is required.'); return; }
-    setSaving(true); setSaveErr('');
+    if (!form.name.trim()) {
+      setSaveErr("Courier name is required.");
+      return;
+    }
+    setSaving(true);
+    setSaveErr("");
     const payload = {
-  name:                  form.name,
-  contactPerson:         form.contactPerson  || undefined,
-  email:                 form.email          || undefined,
-  phone:                 form.phone          || undefined,
-  serviceRegions:        form.city           ? [form.city] : undefined,
-  apiIntegrationEnabled: form.apiIntegrationEnabled,
-  apiKey:                form.apiKey         || undefined,
-  apiEndpoint:           form.apiEndpoint    || undefined,
-  status:                form.status         || undefined,   // 👈 NEW
-};
+      name: form.name,
+      contactPerson: form.contactPerson || undefined,
+      email: form.email || undefined,
+      phone: form.phone || undefined,
+      serviceRegions: form.city ? [form.city] : undefined,
+      apiIntegrationEnabled: form.apiIntegrationEnabled,
+      apiKey: form.apiKey || undefined,
+      apiEndpoint: form.apiEndpoint || undefined,
+      status: form.status || undefined, // 👈 NEW
+    };
     try {
       if (editTarget) {
         await couriersAPI.update(editTarget._id, payload);
@@ -303,74 +364,117 @@ useEffect(() => {
         await couriersAPI.create(payload);
       }
       setEditTarget(null);
-      setInnerTab('list');
+      setInnerTab("list");
       fetchCouriers();
     } catch (e: any) {
-      setSaveErr(e?.response?.data?.message ?? 'Failed to save courier.');
-    } finally { setSaving(false); }
+      setSaveErr(e?.response?.data?.message ?? "Failed to save courier.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Deactivate this courier?')) return;
-    await couriersAPI.delete(id, 'Deactivated from courier management').catch(() => {});
+    if (!window.confirm("Deactivate this courier?")) return;
+    await couriersAPI
+      .delete(id, "Deactivated from courier management")
+      .catch(() => {});
     fetchCouriers();
   };
 
   const handleTestConnection = async (id: string) => {
-    try   { await couriersAPI.testConnection(id); alert('Connection test passed!'); }
-    catch { alert('Connection test failed.'); }
+    try {
+      await couriersAPI.testConnection(id);
+      alert("Connection test passed!");
+    } catch {
+      alert("Connection test failed.");
+    }
   };
 
   const handleSync = async (id: string) => {
     try {
       const res = await couriersAPI.sync(id);
-      const r   = res.data?.syncResult;
-      alert(`Sync complete: ${r?.syncedOrders ?? 0} orders synced, ${r?.failedUpdates ?? 0} failed.`);
-    } catch { alert('Sync failed.'); }
+      const r = res.data?.syncResult;
+      alert(
+        `Sync complete: ${r?.syncedOrders ?? 0} orders synced, ${r?.failedUpdates ?? 0} failed.`,
+      );
+    } catch {
+      alert("Sync failed.");
+    }
   };
 
   const { currentPage, totalPages, totalItems } = pagination;
   const start = (currentPage - 1) * PER_PAGE + 1;
-  const end   = Math.min(currentPage * PER_PAGE, totalItems);
+  const end = Math.min(currentPage * PER_PAGE, totalItems);
 
-  const active           = couriers.filter(c => c.status === 'Active').length;
-  const paused           = couriers.filter(c => c.status === 'Paused').length;
-  const apiEnabled       = couriers.filter(c => c.apiIntegrationEnabled).length;
-  const totalOutstanding = couriers.reduce((a, c) => a + (c.outstanding ?? 0), 0);
+  const active = couriers.filter((c) => c.status === "Active").length;
+  const paused = couriers.filter((c) => c.status === "Paused").length;
+  const apiEnabled = couriers.filter((c) => c.apiIntegrationEnabled).length;
+  const totalOutstanding = couriers.reduce(
+    (a, c) => a + (c.outstanding ?? 0),
+    0,
+  );
 
   return (
     <>
       <div className="panel-heading">Courier Companies</div>
       <div className="panel-desc">
-        View and manage all courier partners — their rates, API credentials, COD outstanding, and performance metrics.
+        View and manage all courier partners — their rates, API credentials, COD
+        outstanding, and performance metrics.
       </div>
 
       <InnerTabs
         tabs={[
-          { id: 'list', label: 'All Companies'   },
-          { id: 'add',  label: 'Add Company'     },
-          { id: 'api',  label: 'API Credentials' },
+          { id: "list", label: "All Companies" },
+          { id: "add", label: "Add Company" },
+          { id: "api", label: "API Credentials" },
         ]}
         active={innerTab}
-        onChange={t => { setInnerTab(t); if (t === 'list') fetchCouriers(); }}
+        onChange={(t) => {
+          setInnerTab(t);
+          if (t === "list") fetchCouriers();
+        }}
       />
 
       {/* ── LIST ── */}
-      {innerTab === 'list' && (
+      {innerTab === "list" && (
         <>
           <div className="mini-stats">
-            <div className="mini-stat"><div className="ms-label">Total Partners</div><div className="ms-value">{totalItems}</div><div className="ms-trend">{active} active · {paused} paused</div></div>
+            <div className="mini-stat">
+              <div className="ms-label">Total Partners</div>
+              <div className="ms-value">{totalItems}</div>
+              <div className="ms-trend">
+                {active} active · {paused} paused
+              </div>
+            </div>
             <div className="mini-stat">
               <div className="ms-label">Avg. Success Rate</div>
               <div className="ms-value">
                 {couriers.length > 0
-                  ? Math.round(couriers.reduce((a, c) => a + (c.successRate ?? parseFloat(c.completionRate ?? '0')), 0) / couriers.length) + '%'
-                  : '—'}
+                  ? Math.round(
+                      couriers.reduce(
+                        (a, c) =>
+                          a +
+                          (c.successRate ??
+                            parseFloat(c.completionRate ?? "0")),
+                        0,
+                      ) / couriers.length,
+                    ) + "%"
+                  : "—"}
               </div>
               <div className="ms-trend up">Live avg.</div>
             </div>
-            <div className="mini-stat"><div className="ms-label">COD Outstanding</div><div className="ms-value">{fmt(totalOutstanding)}</div><div className="ms-trend down">Needs settlement</div></div>
-            <div className="mini-stat"><div className="ms-label">API Connected</div><div className="ms-value">{apiEnabled}</div><div className="ms-trend">{couriers.length - apiEnabled} manual</div></div>
+            <div className="mini-stat">
+              <div className="ms-label">COD Outstanding</div>
+              <div className="ms-value">{fmt(totalOutstanding)}</div>
+              <div className="ms-trend down">Needs settlement</div>
+            </div>
+            <div className="mini-stat">
+              <div className="ms-label">API Connected</div>
+              <div className="ms-value">{apiEnabled}</div>
+              <div className="ms-trend">
+                {couriers.length - apiEnabled} manual
+              </div>
+            </div>
           </div>
 
           <div className="card">
@@ -381,19 +485,33 @@ useEffect(() => {
                   <input
                     placeholder="Search courier..."
                     value={search}
-                    onChange={e => { setSearch(e.target.value); setPage(1); }}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setPage(1);
+                    }}
                   />
                 </div>
-                {(['', 'Active', 'Paused', 'Inactive'] as const).map(f => (
-                  <button key={f} className={`c-btn ${statusFilter === f ? 'active' : ''}`}
-                    onClick={() => { setStatusFilter(f); setPage(1); }}>
-                    {f || 'All'}
+                {(["", "Active", "Paused", "Inactive"] as const).map((f) => (
+                  <button
+                    key={f}
+                    className={`c-btn ${statusFilter === f ? "active" : ""}`}
+                    onClick={() => {
+                      setStatusFilter(f);
+                      setPage(1);
+                    }}
+                  >
+                    {f || "All"}
                   </button>
                 ))}
               </div>
               <div className="c-toolbar-right">
-                <button className="c-btn" onClick={fetchCouriers}><i className="fa-solid fa-rotate" /> Refresh</button>
-                <button className="c-btn primary" onClick={() => setInnerTab('add')}>
+                <button className="c-btn" onClick={fetchCouriers}>
+                  <i className="fa-solid fa-rotate" /> Refresh
+                </button>
+                <button
+                  className="c-btn primary"
+                  onClick={() => setInnerTab("add")}
+                >
                   <i className="fa-solid fa-plus" /> Add Courier
                 </button>
               </div>
@@ -403,112 +521,269 @@ useEffect(() => {
               <table>
                 <thead>
                   <tr>
-                    <th><input type="checkbox" /></th>
-                    <th>Company</th><th>Regions</th><th>API</th>
-                    <th>Active Shipments</th><th>In Transit</th>
-                    <th>Success Rate</th><th>COD Outstanding</th>
-                    <th>Status</th><th>Actions</th>
+                    <th>
+                      <input type="checkbox" />
+                    </th>
+                    <th>Company</th>
+                    <th>Regions</th>
+                    <th>API</th>
+                    <th>Active Shipments</th>
+                    <th>In Transit</th>
+                    <th>Success Rate</th>
+                    <th>COD Outstanding</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <TableSkeleton rows={6} cols={10} />
                   ) : error ? (
-                    <tr><td colSpan={10} style={{ textAlign: 'center', padding: 24, color: 'var(--red)' }}>
-                      <i className="fa-solid fa-circle-exclamation" /> {error}
-                      <button className="c-btn" style={{ marginLeft: 8 }} onClick={fetchCouriers}>Retry</button>
-                    </td></tr>
+                    <tr>
+                      <td
+                        colSpan={10}
+                        style={{
+                          textAlign: "center",
+                          padding: 24,
+                          color: "var(--red)",
+                        }}
+                      >
+                        <i className="fa-solid fa-circle-exclamation" /> {error}
+                        <button
+                          className="c-btn"
+                          style={{ marginLeft: 8 }}
+                          onClick={fetchCouriers}
+                        >
+                          Retry
+                        </button>
+                      </td>
+                    </tr>
                   ) : couriers.length === 0 ? (
-                    <tr><td colSpan={10}><EmptyState icon="fa-building" title="No couriers found" desc="Add your first courier partner." /></td></tr>
-                  ) : couriers.map((c) => {
-                    const rate = c.successRate ?? parseFloat(c.completionRate ?? '0');
-                    return (
-                      <tr key={c._id} onClick={() => onOpenOverlay(c)} style={{ cursor: 'pointer' }}>
-                        <td onClick={e => e.stopPropagation()}><input type="checkbox" /></td>
-                        <td>
-                          <div className="td-flex">
-                            <div className="row-avatar" style={{ background: 'var(--bg)', fontSize: 8 }}>{c.code ?? courierInitials(c.name)}</div>
-                            <div>
-                              <div style={{ fontWeight: 600 }}>{c.name}</div>
-                              <div className="td-sub">{c.phone ?? c.email ?? '—'}</div>
+                    <tr>
+                      <td colSpan={10}>
+                        <EmptyState
+                          icon="fa-building"
+                          title="No couriers found"
+                          desc="Add your first courier partner."
+                        />
+                      </td>
+                    </tr>
+                  ) : (
+                    couriers.map((c) => {
+                      const rate =
+                        c.successRate ?? parseFloat(c.completionRate ?? "0");
+                      return (
+                        <tr
+                          key={c._id}
+                          onClick={() => onOpenOverlay(c)}
+                          style={{ cursor: "pointer" }}
+                        >
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <input type="checkbox" />
+                          </td>
+                          <td>
+                            <div className="td-flex">
+                              <div
+                                className="row-avatar"
+                                style={{ background: "var(--bg)", fontSize: 8 }}
+                              >
+                                {c.code ?? courierInitials(c.name)}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{c.name}</div>
+                                <div className="td-sub">
+                                  {c.phone ?? c.email ?? "—"}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td><span className="tag">{c.serviceRegions?.slice(0, 2).join(', ') ?? c.coverage ?? '—'}</span></td>
-                        <td>{c.apiIntegrationEnabled ? <Badge label={c.apiStatus ?? 'live'} /> : <Badge label="Manual" />}</td>
-                        <td>{c.activeShipments ?? '—'}</td>
-                        <td style={{ color: 'var(--accent)' }}>{c.inTransit ?? '—'}</td>
-                        <td><PerfBar pct={rate} color={rColor(rate)} /></td>
-                        <td><strong style={{ color: (c.outstanding ?? 0) > 0 ? 'var(--red)' : 'var(--green)' }}>{fmt(c.outstanding ?? 0)}</strong></td>
-                        <td><Badge label={c.status ?? 'Active'} /></td>
-                        <td onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 3 }}>
-                          <button className="c-btn" style={{ height: 24, fontSize: 9.5 }} title="View" onClick={() => onOpenOverlay(c)}><i className="fa-solid fa-eye" /></button>
-                          <button className="c-btn" style={{ height: 24, fontSize: 9.5 }} title="Edit" onClick={() => { setEditTarget(c); setInnerTab('add'); }}>
-                            <i className="fa-solid fa-pen" />
-                          </button>
-                          {c.apiIntegrationEnabled && (
-                            <button className="c-btn" style={{ height: 24, fontSize: 9.5 }} title="Test API" onClick={() => handleTestConnection(c._id)}>
-                              <i className="fa-solid fa-plug" />
+                          </td>
+                          <td>
+                            <span className="tag">
+                              {c.serviceRegions?.slice(0, 2).join(", ") ??
+                                c.coverage ??
+                                "—"}
+                            </span>
+                          </td>
+                          <td>
+                            {c.apiIntegrationEnabled ? (
+                              <Badge label={c.apiStatus ?? "live"} />
+                            ) : (
+                              <Badge label="Manual" />
+                            )}
+                          </td>
+                          <td>{c.activeShipments ?? "—"}</td>
+                          <td style={{ color: "var(--accent)" }}>
+                            {c.inTransit ?? "—"}
+                          </td>
+                          <td>
+                            <PerfBar pct={rate} color={rColor(rate)} />
+                          </td>
+                          <td>
+                            <strong
+                              style={{
+                                color:
+                                  (c.outstanding ?? 0) > 0
+                                    ? "var(--red)"
+                                    : "var(--green)",
+                              }}
+                            >
+                              {fmt(c.outstanding ?? 0)}
+                            </strong>
+                          </td>
+                          <td>
+                            <Badge label={c.status ?? "Active"} />
+                          </td>
+                          <td
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ display: "flex", gap: 3 }}
+                          >
+                            <button
+                              className="c-btn"
+                              style={{ height: 24, fontSize: 9.5 }}
+                              title="View"
+                              onClick={() => onOpenOverlay(c)}
+                            >
+                              <i className="fa-solid fa-eye" />
                             </button>
-                          )}
-                          {c.apiIntegrationEnabled && (
-                            <button className="c-btn" style={{ height: 24, fontSize: 9.5 }} title="Sync" onClick={() => handleSync(c._id)}>
-                              <i className="fa-solid fa-rotate" />
+                            <button
+                              className="c-btn"
+                              style={{ height: 24, fontSize: 9.5 }}
+                              title="Edit"
+                              onClick={() => {
+                                setEditTarget(c);
+                                setInnerTab("add");
+                              }}
+                            >
+                              <i className="fa-solid fa-pen" />
                             </button>
-                          )}
-                          <button className="c-btn" style={{ height: 24, fontSize: 9.5, color: 'var(--red)' }} onClick={() => handleDelete(c._id)}>
-                            <i className="fa-solid fa-ban" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                            {c.apiIntegrationEnabled && (
+                              <button
+                                className="c-btn"
+                                style={{ height: 24, fontSize: 9.5 }}
+                                title="Test API"
+                                onClick={() => handleTestConnection(c._id)}
+                              >
+                                <i className="fa-solid fa-plug" />
+                              </button>
+                            )}
+                            {c.apiIntegrationEnabled && (
+                              <button
+                                className="c-btn"
+                                style={{ height: 24, fontSize: 9.5 }}
+                                title="Sync"
+                                onClick={() => handleSync(c._id)}
+                              >
+                                <i className="fa-solid fa-rotate" />
+                              </button>
+                            )}
+                            <button
+                              className="c-btn"
+                              style={{
+                                height: 24,
+                                fontSize: 9.5,
+                                color: "var(--red)",
+                              }}
+                              onClick={() => handleDelete(c._id)}
+                            >
+                              <i className="fa-solid fa-ban" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
 
-            <CPagination current={currentPage} total={totalPages} totalItems={totalItems} start={start} end={end} onChange={setPage} />
+            <CPagination
+              current={currentPage}
+              total={totalPages}
+              totalItems={totalItems}
+              start={start}
+              end={end}
+              onChange={setPage}
+            />
           </div>
         </>
       )}
 
       {/* ── ADD COURIER ── */}
-      {innerTab === 'add' && (
+      {innerTab === "add" && (
         <div className="card">
           <div className="card-header">
-<div className="card-title">
-  <i className={`fa-solid ${editTarget ? 'fa-pen' : 'fa-plus-circle'}`} />
-  {editTarget ? `Edit — ${editTarget.name}` : 'Add New Courier Company'}
-</div>          </div>
+            <div className="card-title">
+              <i
+                className={`fa-solid ${editTarget ? "fa-pen" : "fa-plus-circle"}`}
+              />
+              {editTarget
+                ? `Edit — ${editTarget.name}`
+                : "Add New Courier Company"}
+            </div>{" "}
+          </div>
           <div className="card-body">
             {saveErr && (
-              <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10, padding: '6px 10px', background: 'var(--red-bg)', borderRadius: 6 }}>
+              <div
+                style={{
+                  color: "var(--red)",
+                  fontSize: 12,
+                  marginBottom: 10,
+                  padding: "6px 10px",
+                  background: "var(--red-bg)",
+                  borderRadius: 6,
+                }}
+              >
                 <i className="fa-solid fa-circle-exclamation" /> {saveErr}
               </div>
             )}
             <div className="c-form-row">
               <div className="c-form-group">
                 <div className="c-form-label">Company Name *</div>
-                <input className="c-form-input" placeholder="e.g. TCS Express" value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+                <input
+                  className="c-form-input"
+                  placeholder="e.g. TCS Express"
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, name: e.target.value }))
+                  }
+                />
               </div>
               <div className="c-form-group">
                 <div className="c-form-label">Contact Person</div>
-                <input className="c-form-input" placeholder="Account manager name" value={form.contactPerson}
-                  onChange={e => setForm(f => ({ ...f, contactPerson: e.target.value }))} />
+                <input
+                  className="c-form-input"
+                  placeholder="Account manager name"
+                  value={form.contactPerson}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, contactPerson: e.target.value }))
+                  }
+                />
               </div>
             </div>
 
             <div className="c-form-row">
               <div className="c-form-group">
                 <div className="c-form-label">Email</div>
-                <input className="c-form-input" type="email" placeholder="ops@courier.com" value={form.email}
-                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+                <input
+                  className="c-form-input"
+                  type="email"
+                  placeholder="ops@courier.com"
+                  value={form.email}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, email: e.target.value }))
+                  }
+                />
               </div>
               <div className="c-form-group">
                 <div className="c-form-label">Phone</div>
-                <input className="c-form-input" placeholder="03XX-XXXXXXX" value={form.phone}
-                  onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
+                <input
+                  className="c-form-input"
+                  placeholder="03XX-XXXXXXX"
+                  value={form.phone}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, phone: e.target.value }))
+                  }
+                />
               </div>
             </div>
 
@@ -518,14 +793,19 @@ useEffect(() => {
                 <div className="c-form-label">City / HQ</div>
                 <CityInput
                   value={form.city}
-                  onChange={val => setForm(f => ({ ...f, city: val }))}
+                  onChange={(val) => setForm((f) => ({ ...f, city: val }))}
                   placeholder="Type city name..."
                 />
               </div>
               <div className="c-form-group">
                 <div className="c-form-label">Coverage Type</div>
-                <select className="c-form-select" value={form.coverage}
-                  onChange={e => setForm(f => ({ ...f, coverage: e.target.value }))}>
+                <select
+                  className="c-form-select"
+                  value={form.coverage}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, coverage: e.target.value }))
+                  }
+                >
                   <option>Nationwide</option>
                   <option>Regional</option>
                   <option>City Only</option>
@@ -536,9 +816,16 @@ useEffect(() => {
             <div className="c-form-row">
               <div className="c-form-group">
                 <div className="c-form-label">API Integration</div>
-                <select className="c-form-select"
-                  value={form.apiIntegrationEnabled ? 'yes' : 'no'}
-                  onChange={e => setForm(f => ({ ...f, apiIntegrationEnabled: e.target.value === 'yes' }))}>
+                <select
+                  className="c-form-select"
+                  value={form.apiIntegrationEnabled ? "yes" : "no"}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      apiIntegrationEnabled: e.target.value === "yes",
+                    }))
+                  }
+                >
                   <option value="no">No — Manual only</option>
                   <option value="yes">Yes — API connected</option>
                 </select>
@@ -549,64 +836,145 @@ useEffect(() => {
               <div className="c-form-row">
                 <div className="c-form-group">
                   <div className="c-form-label">API Key</div>
-                  <input className="c-form-input" placeholder="your-api-key" value={form.apiKey}
-                    onChange={e => setForm(f => ({ ...f, apiKey: e.target.value }))} />
+                  <input
+                    className="c-form-input"
+                    placeholder="your-api-key"
+                    value={form.apiKey}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, apiKey: e.target.value }))
+                    }
+                  />
                 </div>
                 <div className="c-form-group">
                   <div className="c-form-label">API Endpoint</div>
-                  <input className="c-form-input" placeholder="https://api.courier.com/v1" value={form.apiEndpoint}
-                    onChange={e => setForm(f => ({ ...f, apiEndpoint: e.target.value }))} />
+                  <input
+                    className="c-form-input"
+                    placeholder="https://api.courier.com/v1"
+                    value={form.apiEndpoint}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, apiEndpoint: e.target.value }))
+                    }
+                  />
                 </div>
               </div>
             )}
 
             <hr />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="c-btn primary" onClick={handleSave} disabled={saving}>
-                <i className={`fa-solid ${saving ? 'fa-spinner fa-spin' : 'fa-check'}`} />
-                {saving ? 'Saving…' : editTarget ? 'Update Courier' : 'Save Courier'}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                className="c-btn primary"
+                onClick={handleSave}
+                disabled={saving}
+              >
+                <i
+                  className={`fa-solid ${saving ? "fa-spinner fa-spin" : "fa-check"}`}
+                />
+                {saving
+                  ? "Saving…"
+                  : editTarget
+                    ? "Update Courier"
+                    : "Save Courier"}
               </button>
-<button className="c-btn" onClick={() => { setEditTarget(null); setInnerTab('list'); }}>Cancel</button>            </div>
+              <button
+                className="c-btn"
+                onClick={() => {
+                  setEditTarget(null);
+                  setInnerTab("list");
+                }}
+              >
+                Cancel
+              </button>{" "}
+            </div>
           </div>
         </div>
       )}
 
       {/* ── API CREDENTIALS ── */}
-      {innerTab === 'api' && (
+      {innerTab === "api" && (
         <>
           <div className="alert-strip info">
             <i className="fa-solid fa-circle-info" />
-            API credentials are encrypted at rest. Keys are never displayed in full after saving.
+            API credentials are encrypted at rest. Keys are never displayed in
+            full after saving.
           </div>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>
+            <div
+              style={{
+                textAlign: "center",
+                padding: 24,
+                color: "var(--text-muted)",
+              }}
+            >
               <i className="fa-solid fa-spinner fa-spin" />
             </div>
-          ) : couriers.filter(c => c.apiIntegrationEnabled).length === 0 ? (
-            <div className="card"><div className="card-body">
-              <EmptyState icon="fa-plug" title="No API Couriers" desc="Enable API integration when adding a courier." />
-            </div></div>
-          ) : couriers.filter(c => c.apiIntegrationEnabled).map(a => (
-            <div className="card" style={{ marginBottom: 10 }} key={a._id}>
-              <div className="card-header">
-                <div className="card-title"><i className="fa-solid fa-building" /> {a.name}</div>
-                <Badge label={a.apiStatus === 'live' ? 'Connected' : a.apiStatus === 'test' ? 'Test Mode' : 'Disconnected'} />
-              </div>
+          ) : couriers.filter((c) => c.apiIntegrationEnabled).length === 0 ? (
+            <div className="card">
               <div className="card-body">
-                <div className="detail-row"><div className="detail-key">Service Regions</div><div className="detail-val">{a.serviceRegions?.join(', ') ?? '—'}</div></div>
-                <div className="detail-row"><div className="detail-key">Active Shipments</div><div className="detail-val">{a.activeShipments ?? '—'}</div></div>
-                <div className="detail-row"><div className="detail-key">Completion Rate</div><div className="detail-val">{a.completionRate ? `${a.completionRate}%` : '—'}</div></div>
-                <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-                  <button className="c-btn primary" style={{ fontSize: 10 }} onClick={() => handleTestConnection(a._id)}>
-                    <i className="fa-solid fa-rotate" /> Test
-                  </button>
-                  <button className="c-btn" style={{ fontSize: 10 }} onClick={() => handleSync(a._id)}>
-                    <i className="fa-solid fa-arrows-rotate" /> Sync Now
-                  </button>
-                </div>
+                <EmptyState
+                  icon="fa-plug"
+                  title="No API Couriers"
+                  desc="Enable API integration when adding a courier."
+                />
               </div>
             </div>
-          ))}
+          ) : (
+            couriers
+              .filter((c) => c.apiIntegrationEnabled)
+              .map((a) => (
+                <div className="card" style={{ marginBottom: 10 }} key={a._id}>
+                  <div className="card-header">
+                    <div className="card-title">
+                      <i className="fa-solid fa-building" /> {a.name}
+                    </div>
+                    <Badge
+                      label={
+                        a.apiStatus === "live"
+                          ? "Connected"
+                          : a.apiStatus === "test"
+                            ? "Test Mode"
+                            : "Disconnected"
+                      }
+                    />
+                  </div>
+                  <div className="card-body">
+                    <div className="detail-row">
+                      <div className="detail-key">Service Regions</div>
+                      <div className="detail-val">
+                        {a.serviceRegions?.join(", ") ?? "—"}
+                      </div>
+                    </div>
+                    <div className="detail-row">
+                      <div className="detail-key">Active Shipments</div>
+                      <div className="detail-val">
+                        {a.activeShipments ?? "—"}
+                      </div>
+                    </div>
+                    <div className="detail-row">
+                      <div className="detail-key">Completion Rate</div>
+                      <div className="detail-val">
+                        {a.completionRate ? `${a.completionRate}%` : "—"}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                      <button
+                        className="c-btn primary"
+                        style={{ fontSize: 10 }}
+                        onClick={() => handleTestConnection(a._id)}
+                      >
+                        <i className="fa-solid fa-rotate" /> Test
+                      </button>
+                      <button
+                        className="c-btn"
+                        style={{ fontSize: 10 }}
+                        onClick={() => handleSync(a._id)}
+                      >
+                        <i className="fa-solid fa-arrows-rotate" /> Sync Now
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+          )}
         </>
       )}
     </>

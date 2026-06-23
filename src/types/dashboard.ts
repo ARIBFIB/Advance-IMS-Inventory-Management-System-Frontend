@@ -1,6 +1,6 @@
 // ─── types/dashboard.ts ───────────────────────────────────────
 
-export type TrendDirection = 'up' | 'down' | 'neutral';
+export type TrendDirection = "up" | "down" | "neutral";
 
 export interface KpiStat {
   label: string;
@@ -23,7 +23,7 @@ export interface StatCard {
 export interface WeekBar {
   day: string;
   heightPct: number;
-  variant: 'accent' | 'accent2' | 'default';
+  variant: "accent" | "accent2" | "default";
 }
 
 export interface ActivityItem {
@@ -43,7 +43,7 @@ export interface TopProduct {
   sold: number;
   stock: number;
   revenue: string;
-  stockStatus: 'critical' | 'low' | 'ok';
+  stockStatus: "critical" | "low" | "ok";
 }
 
 export interface RiderStatus {
@@ -68,7 +68,7 @@ export interface RecentOrder {
   total: string;
   status: string;
   statusBadge: string;
-  paymentType: 'COD' | 'Prepaid';
+  paymentType: "COD" | "Prepaid";
   time: string;
 }
 
@@ -76,29 +76,28 @@ export interface CodRing {
   label: string;
   subLabel: string;
   pct: string;
-  ringClass: 'g' | 'y' | 'r';
+  ringClass: "g" | "y" | "r";
 }
 
 export interface IntegrationItem {
   id: string;
   name: string;
   type: string;
-  desc: string;                         
-  initialStatus: 'live' | 'disconnected' | 'error';  
+  desc: string;
+  initialStatus: "live" | "disconnected" | "error";
   logoBg?: string;
-  logoText?: string;                     
-  logoTextColor?: string;                
+  logoText?: string;
+  logoTextColor?: string;
   meta: string;
-  metaType: 'ok' | 'err' | 'neutral';
+  metaType: "ok" | "err" | "neutral";
 }
-
 
 export interface FinancialItem {
   label: string;
   value: string;
   color?: string;
 }
- 
+
 export interface WeeklyOrderData {
   day: string;
   orders: number;

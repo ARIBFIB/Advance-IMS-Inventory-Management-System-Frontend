@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface TableColumn<T> {
   key: keyof T | string;
@@ -14,7 +14,7 @@ interface TableProps<T> {
   columns: TableColumn<T>[];
   onSort?: (key: keyof T) => void;
   sortKey?: keyof T;
-  sortDirection?: 'asc' | 'desc';
+  sortDirection?: "asc" | "desc";
   onRowClick?: (row: T, index: number) => void;
   selectable?: boolean;
   selectedRows?: number[];
@@ -28,13 +28,13 @@ export function Table<T extends { id?: number | string }>({
   columns,
   onSort,
   sortKey,
-  sortDirection = 'asc',
+  sortDirection = "asc",
   onRowClick,
   selectable,
   selectedRows = [],
   onSelectionChange,
-  className = '',
-  emptyMessage = 'No data available',
+  className = "",
+  emptyMessage = "No data available",
 }: TableProps<T>) {
   const handleSort = (key: keyof T) => {
     if (onSort) onSort(key);
@@ -66,18 +66,20 @@ export function Table<T extends { id?: number | string }>({
         <thead>
           <tr>
             {selectable && (
-              <th style={{ width: '32px' }}>
+              <th style={{ width: "32px" }}>
                 <input
                   type="checkbox"
                   onChange={handleSelectAll}
-                  checked={data.length > 0 && selectedRows.length === data.length}
+                  checked={
+                    data.length > 0 && selectedRows.length === data.length
+                  }
                 />
               </th>
             )}
             {columns.map((col) => (
               <th
                 key={String(col.key)}
-                className={col.sortable ? 'sortable' : ''}
+                className={col.sortable ? "sortable" : ""}
                 style={{ width: col.width }}
                 onClick={() => col.sortable && handleSort(col.key as keyof T)}
               >
@@ -85,7 +87,7 @@ export function Table<T extends { id?: number | string }>({
                 {col.sortable && sortKey === col.key && (
                   <i
                     className={`fa-solid fa-sort-${
-                      sortDirection === 'asc' ? 'up' : 'down'
+                      sortDirection === "asc" ? "up" : "down"
                     } sort-icon`}
                   />
                 )}
@@ -96,7 +98,10 @@ export function Table<T extends { id?: number | string }>({
         <tbody>
           {data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + (selectable ? 1 : 0)} className="empty-cell">
+              <td
+                colSpan={columns.length + (selectable ? 1 : 0)}
+                className="empty-cell"
+              >
                 {emptyMessage}
               </td>
             </tr>
@@ -105,7 +110,7 @@ export function Table<T extends { id?: number | string }>({
               <tr
                 key={row.id || index}
                 onClick={() => onRowClick?.(row, index)}
-                className={onRowClick ? 'clickable' : ''}
+                className={onRowClick ? "clickable" : ""}
               >
                 {selectable && (
                   <td onClick={(e) => e.stopPropagation()}>
@@ -121,7 +126,7 @@ export function Table<T extends { id?: number | string }>({
                   <td key={String(col.key)} className={col.className}>
                     {col.render
                       ? col.render(row[col.key as keyof T], row, index)
-                      : String(row[col.key as keyof T] ?? '')}
+                      : String(row[col.key as keyof T] ?? "")}
                   </td>
                 ))}
               </tr>

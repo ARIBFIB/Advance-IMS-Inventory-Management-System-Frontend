@@ -1,13 +1,13 @@
 // ─── hooks/useDashboard.ts ────────────────────────────────────
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   analyticsAPI,
   ridersAPI,
   ordersAPI,
   integrationsAPI,
   notificationsAPI,
-} from '../services/api';
+} from "../services/api";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -69,9 +69,24 @@ export interface DashboardKpis {
 
 export interface DashboardTrends {
   growth: {
-    orders:        { current: number; previous: number; growthRate: string; trend: string };
-    revenue:       { current: string; previous: string; growthRate: string; trend: string };
-    avgOrderValue: { current: string; previous: string; growthRate: string; trend: string };
+    orders: {
+      current: number;
+      previous: number;
+      growthRate: string;
+      trend: string;
+    };
+    revenue: {
+      current: string;
+      previous: string;
+      growthRate: string;
+      trend: string;
+    };
+    avgOrderValue: {
+      current: string;
+      previous: string;
+      growthRate: string;
+      trend: string;
+    };
   };
   dailyRevenue: Array<{ date: string; revenue: number; orders: number }>;
   forecast: { next7DaysEstimate: string; dailyAverage: string };
@@ -100,48 +115,52 @@ export interface LiveOrder {
 }
 
 export interface IntegrationStatus {
-  shopify:   { connected: boolean; shopName?: string; pendingOrders?: number };
-  aftership: { connected: boolean; activeShipments?: number; courierCount?: number };
+  shopify: { connected: boolean; shopName?: string; pendingOrders?: number };
+  aftership: {
+    connected: boolean;
+    activeShipments?: number;
+    courierCount?: number;
+  };
   checkedAt: string;
 }
 
 // ── State shape ───────────────────────────────────────────────
 
 export interface DashboardState {
-  kpis:          DashboardKpis | null;
-  trends:        DashboardTrends | null;
-  riders:        LiveRider[];
-  recentOrders:  LiveOrder[];
-  integrations:  IntegrationStatus | null;
-  unreadCount:   number;
-  loadingKpis:         boolean;
-  loadingTrends:       boolean;
-  loadingRiders:       boolean;
-  loadingOrders:       boolean;
+  kpis: DashboardKpis | null;
+  trends: DashboardTrends | null;
+  riders: LiveRider[];
+  recentOrders: LiveOrder[];
+  integrations: IntegrationStatus | null;
+  unreadCount: number;
+  loadingKpis: boolean;
+  loadingTrends: boolean;
+  loadingRiders: boolean;
+  loadingOrders: boolean;
   loadingIntegrations: boolean;
-  errorKpis:         string | null;
-  errorTrends:       string | null;
-  errorRiders:       string | null;
-  errorOrders:       string | null;
+  errorKpis: string | null;
+  errorTrends: string | null;
+  errorRiders: string | null;
+  errorOrders: string | null;
   lastRefreshed: Date | null;
 }
 
 const initialState: DashboardState = {
-  kpis:          null,
-  trends:        null,
-  riders:        [],
-  recentOrders:  [],
-  integrations:  null,
-  unreadCount:   0,
-  loadingKpis:         true,
-  loadingTrends:       true,
-  loadingRiders:       true,
-  loadingOrders:       true,
+  kpis: null,
+  trends: null,
+  riders: [],
+  recentOrders: [],
+  integrations: null,
+  unreadCount: 0,
+  loadingKpis: true,
+  loadingTrends: true,
+  loadingRiders: true,
+  loadingOrders: true,
   loadingIntegrations: true,
-  errorKpis:         null,
-  errorTrends:       null,
-  errorRiders:       null,
-  errorOrders:       null,
+  errorKpis: null,
+  errorTrends: null,
+  errorRiders: null,
+  errorOrders: null,
   lastRefreshed: null,
 };
 
@@ -152,31 +171,31 @@ export function useDashboard(dateRange?: { from?: string; to?: string }) {
 
   // Each fetch updates ONLY its own slice of state — no spread of stale state
   const fetchKpis = useCallback(async () => {
-    setState(prev => ({ ...prev, loadingKpis: true, errorKpis: null }));
+    setState((prev) => ({ ...prev, loadingKpis: true, errorKpis: null }));
     try {
       const params = dateRange?.from
         ? { from: dateRange.from, to: dateRange.to }
         : undefined;
       const res = await analyticsAPI.getDashboard(params);
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         kpis: res.data.data as DashboardKpis,
         loadingKpis: false,
       }));
     } catch (err: any) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        errorKpis: err?.response?.data?.message ?? 'Failed to load KPIs',
+        errorKpis: err?.response?.data?.message ?? "Failed to load KPIs",
         loadingKpis: false,
       }));
     }
   }, [dateRange?.from, dateRange?.to]);
 
   const fetchTrends = useCallback(async () => {
-    setState(prev => ({ ...prev, loadingTrends: true, errorTrends: null }));
+    setState((prev) => ({ ...prev, loadingTrends: true, errorTrends: null }));
     try {
       const res = await analyticsAPI.getTrends();
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         trends: res.data.data as DashboardTrends,
         loadingTrends: false,
@@ -184,29 +203,44 @@ export function useDashboard(dateRange?: { from?: string; to?: string }) {
     } catch (err: any) {
       // fallback: try getSales for the chart bars at minimum
       try {
-        const res2 = await analyticsAPI.getSales({ groupBy: 'day' });
+        const res2 = await analyticsAPI.getSales({ groupBy: "day" });
         const timeline = (res2.data as any).data?.timeline ?? [];
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           trends: {
             growth: {
-              orders:        { current: 0, previous: 0, growthRate: '0', trend: 'neutral' },
-              revenue:       { current: '0', previous: '0', growthRate: '0', trend: 'neutral' },
-              avgOrderValue: { current: '0', previous: '0', growthRate: '0', trend: 'neutral' },
+              orders: {
+                current: 0,
+                previous: 0,
+                growthRate: "0",
+                trend: "neutral",
+              },
+              revenue: {
+                current: "0",
+                previous: "0",
+                growthRate: "0",
+                trend: "neutral",
+              },
+              avgOrderValue: {
+                current: "0",
+                previous: "0",
+                growthRate: "0",
+                trend: "neutral",
+              },
             },
             dailyRevenue: timeline.map((t: any) => ({
-              date:    t.date,
+              date: t.date,
               revenue: t.revenue ?? 0,
-              orders:  t.orders  ?? 0,
+              orders: t.orders ?? 0,
             })),
-            forecast: { next7DaysEstimate: '0', dailyAverage: '0' },
+            forecast: { next7DaysEstimate: "0", dailyAverage: "0" },
           },
           loadingTrends: false,
         }));
       } catch {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
-          errorTrends: err?.response?.data?.message ?? 'Failed to load trends',
+          errorTrends: err?.response?.data?.message ?? "Failed to load trends",
           loadingTrends: false,
         }));
       }
@@ -214,56 +248,56 @@ export function useDashboard(dateRange?: { from?: string; to?: string }) {
   }, [dateRange?.from, dateRange?.to]);
 
   const fetchRiders = useCallback(async () => {
-    setState(prev => ({ ...prev, loadingRiders: true, errorRiders: null }));
+    setState((prev) => ({ ...prev, loadingRiders: true, errorRiders: null }));
     try {
       const res = await ridersAPI.getAll({ limit: 10 });
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         riders: (res.data as any).data?.riders ?? [],
         loadingRiders: false,
       }));
     } catch (err: any) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        errorRiders: err?.response?.data?.message ?? 'Failed to load riders',
+        errorRiders: err?.response?.data?.message ?? "Failed to load riders",
         loadingRiders: false,
       }));
     }
   }, []);
 
   const fetchOrders = useCallback(async () => {
-    setState(prev => ({ ...prev, loadingOrders: true, errorOrders: null }));
+    setState((prev) => ({ ...prev, loadingOrders: true, errorOrders: null }));
     try {
       const res = await ordersAPI.getAll({ limit: 8, page: 1 });
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         recentOrders: (res.data as any).data?.orders ?? [],
         loadingOrders: false,
       }));
     } catch (err: any) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        errorOrders: err?.response?.data?.message ?? 'Failed to load orders',
+        errorOrders: err?.response?.data?.message ?? "Failed to load orders",
         loadingOrders: false,
       }));
     }
   }, []);
 
   const fetchIntegrations = useCallback(async () => {
-    setState(prev => ({ ...prev, loadingIntegrations: true }));
+    setState((prev) => ({ ...prev, loadingIntegrations: true }));
     try {
       const res = await integrationsAPI.getStatus();
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         integrations: (res.data as any).data ?? null,
         loadingIntegrations: false,
       }));
     } catch {
       // Non-critical — show disconnected, don't break the page
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         integrations: {
-          shopify:   { connected: false },
+          shopify: { connected: false },
           aftership: { connected: false },
           checkedAt: new Date().toISOString(),
         },
@@ -275,7 +309,7 @@ export function useDashboard(dateRange?: { from?: string; to?: string }) {
   const fetchUnreadCount = useCallback(async () => {
     try {
       const res = await notificationsAPI.getUnreadCount();
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         unreadCount: (res.data as any).data?.count ?? 0,
       }));
@@ -294,8 +328,15 @@ export function useDashboard(dateRange?: { from?: string; to?: string }) {
       fetchIntegrations(),
       fetchUnreadCount(),
     ]);
-    setState(prev => ({ ...prev, lastRefreshed: new Date() }));
-  }, [fetchKpis, fetchTrends, fetchRiders, fetchOrders, fetchIntegrations, fetchUnreadCount]);
+    setState((prev) => ({ ...prev, lastRefreshed: new Date() }));
+  }, [
+    fetchKpis,
+    fetchTrends,
+    fetchRiders,
+    fetchOrders,
+    fetchIntegrations,
+    fetchUnreadCount,
+  ]);
 
   useEffect(() => {
     refresh();

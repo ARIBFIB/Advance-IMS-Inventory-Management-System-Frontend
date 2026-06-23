@@ -1,4 +1,4 @@
-export type RiderStatusType = 'Active' | 'Offline' | 'On Delivery';
+export type RiderStatusType = "Active" | "Offline" | "On Delivery";
 
 export interface Rider {
   id: string;

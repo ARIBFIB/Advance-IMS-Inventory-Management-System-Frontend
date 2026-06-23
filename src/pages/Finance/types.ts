@@ -1,12 +1,21 @@
-import React from 'react';
+import React from "react";
 
 // ── Nav ────────────────────────────────────────────────────
 export type NavPanel =
-  | 'overview' | 'cod' | 'cod-log' | 'prepaid'
-  | 'expenses' | 'exp-add' | 'exp-categories'
-  | 'suppliers' | 'sup-payments' | 'sup-add'
-  | 'reports' | 'pl'
-  | 'integrations' | 'settings';
+  | "overview"
+  | "cod"
+  | "cod-log"
+  | "prepaid"
+  | "expenses"
+  | "exp-add"
+  | "exp-categories"
+  | "suppliers"
+  | "sup-payments"
+  | "sup-add"
+  | "reports"
+  | "pl"
+  | "integrations"
+  | "settings";
 
 export interface OverlayState {
   open: boolean;
@@ -41,10 +50,15 @@ export interface UserRef {
 
 // ── Expenses ───────────────────────────────────────────────
 export type ExpenseCategoryName =
-  | 'Shipping' | 'Marketing' | 'Utilities'
-  | 'Salaries' | 'Supplies' | 'Software' | 'Other';
+  | "Shipping"
+  | "Marketing"
+  | "Utilities"
+  | "Salaries"
+  | "Supplies"
+  | "Software"
+  | "Other";
 
-export type ExpenseStatus = 'Active' | 'Cancelled';
+export type ExpenseStatus = "Active" | "Cancelled";
 
 export interface ApiExpense {
   _id: string;
@@ -90,8 +104,13 @@ export interface ExpenseTimeline {
 }
 
 // ── Suppliers ──────────────────────────────────────────────
-export type SupplierBalanceStatus = 'cleared' | 'low' | 'medium' | 'high';
-export type SupplierPaymentMethod = 'Bank Transfer' | 'Cash' | 'Cheque' | 'Online' | 'Other';
+export type SupplierBalanceStatus = "cleared" | "low" | "medium" | "high";
+export type SupplierPaymentMethod =
+  | "Bank Transfer"
+  | "Cash"
+  | "Cheque"
+  | "Online"
+  | "Other";
 
 export interface ApiSupplier {
   _id: string;
@@ -151,14 +170,31 @@ export interface RecordSupplierPaymentPayload {
 }
 
 // ── Orders (COD / Prepaid) ─────────────────────────────────
-export type OrderPaymentMethod = 'COD' | 'Prepaid' | 'Card' | 'BankTransfer' | 'Wallet';
-export type OrderPaymentStatus = 'Pending' | 'Paid' | 'Partial' | 'Refunded';
+export type OrderPaymentMethod =
+  | "COD"
+  | "Prepaid"
+  | "Card"
+  | "BankTransfer"
+  | "Wallet";
+export type OrderPaymentStatus = "Pending" | "Paid" | "Partial" | "Refunded";
 export type OrderDeliveryStatus =
-  | 'Pending' | 'Assigned' | 'PickedUp' | 'InTransit'
-  | 'OutForDelivery' | 'Delivered' | 'Failed' | 'Returned';
+  | "Pending"
+  | "Assigned"
+  | "PickedUp"
+  | "InTransit"
+  | "OutForDelivery"
+  | "Delivered"
+  | "Failed"
+  | "Returned";
 export type OrderStatus =
-  | 'Pending' | 'Confirmed' | 'Processing' | 'Packed'
-  | 'Shipped' | 'Delivered' | 'Cancelled' | 'Returned';
+  | "Pending"
+  | "Confirmed"
+  | "Processing"
+  | "Packed"
+  | "Shipped"
+  | "Delivered"
+  | "Cancelled"
+  | "Returned";
 
 export interface ApiOrderListItem {
   _id: string;

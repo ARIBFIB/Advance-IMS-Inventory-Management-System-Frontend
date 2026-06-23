@@ -1,37 +1,43 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");
+@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css");
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 :root {
-  --bg: #F7F8FA;
-  --card: #FFFFFF;
-  --border: #E5E7EB;
-  --divider: #EEF0F3;
+  --bg: #f7f8fa;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --divider: #eef0f3;
   --text-primary: #111827;
-  --text-secondary: #6B7280;
-  --text-muted: #9CA3AF;
-  --accent: #FF6A00;
-  --accent-hover: #E65C00;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --accent: #ff6a00;
+  --accent-hover: #e65c00;
   --sidebar-bg: #111827;
-  --sidebar-active: #1F2937;
-  --info-bg: #E6F4FA;
-  --info-border: #B6E0F5;
-  --info-icon: #0284C7;
-  --green: #16A34A;
-  --green-bg: #F0FDF4;
-  --red: #DC2626;
-  --red-bg: #FEF2F2;
-  --yellow: #D97706;
-  --yellow-bg: #FFFBEB;
-  --blue: #2563EB;
-  --blue-bg: #EFF6FF;
-  --shadow-card: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-hover: 0 2px 6px rgba(0,0,0,0.06);
+  --sidebar-active: #1f2937;
+  --info-bg: #e6f4fa;
+  --info-border: #b6e0f5;
+  --info-icon: #0284c7;
+  --green: #16a34a;
+  --green-bg: #f0fdf4;
+  --red: #dc2626;
+  --red-bg: #fef2f2;
+  --yellow: #d97706;
+  --yellow-bg: #fffbeb;
+  --blue: #2563eb;
+  --blue-bg: #eff6ff;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-hover: 0 2px 6px rgba(0, 0, 0, 0.06);
   --radius-card: 8px;
   --radius-btn: 6px;
   --radius-input: 6px;
-  --font: 'Plus Jakarta Sans', sans-serif;
+  --font: "Plus Jakarta Sans", sans-serif;
 }
 
 body {

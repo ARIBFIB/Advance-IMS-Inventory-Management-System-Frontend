@@ -2,37 +2,56 @@
 // PANEL: All Tasks  (tab → 'all')
 // ═══════════════════════════════════════════════════════════
 
-import React, { useState } from 'react';
-import type { Task, ApiUser } from './types';
-import { getStaffColor, initials, progressColor } from './helpers';
-import { Badge, PriorityDot, ProgressBar, SkeletonRows, EmptyState } from './MicroComponents';
-import { STATUS_CHIPS } from './constants';
+import React, { useState } from "react";
+import type { Task, ApiUser } from "./types";
+import { getStaffColor, initials, progressColor } from "./helpers";
+import {
+  Badge,
+  PriorityDot,
+  ProgressBar,
+  SkeletonRows,
+  EmptyState,
+} from "./MicroComponents";
+import { STATUS_CHIPS } from "./constants";
 
 interface AllTasksPanelProps {
-  tasks:        Task[];
-  users:        ApiUser[];
-  loading:      boolean;
-  totalItems:   number;
-  page:         number;
-  totalPages:   number;
+  tasks: Task[];
+  users: ApiUser[];
+  loading: boolean;
+  totalItems: number;
+  page: number;
+  totalPages: number;
   onPageChange: (p: number) => void;
-  onOpenTask:   (id: string) => void;
-  onMarkDone:   (id: string) => void;
-  onNewTask:    () => void;
-  onFilter:     (params: { status?: string; priority?: string; assignee?: string }) => void;
+  onOpenTask: (id: string) => void;
+  onMarkDone: (id: string) => void;
+  onNewTask: () => void;
+  onFilter: (params: {
+    status?: string;
+    priority?: string;
+    assignee?: string;
+  }) => void;
 }
 
 const AllTasksPanel: React.FC<AllTasksPanelProps> = ({
-  tasks, users, loading, totalItems, page, totalPages,
-  onPageChange, onOpenTask, onMarkDone, onNewTask, onFilter,
+  tasks,
+  users,
+  loading,
+  totalItems,
+  page,
+  totalPages,
+  onPageChange,
+  onOpenTask,
+  onMarkDone,
+  onNewTask,
+  onFilter,
 }) => {
-  const [search,         setSearch]         = useState('');
-  const [chipFilter,     setChipFilter]     = useState('');
-  const [assigneeFilter, setAssigneeFilter] = useState('');
+  const [search, setSearch] = useState("");
+  const [chipFilter, setChipFilter] = useState("");
+  const [assigneeFilter, setAssigneeFilter] = useState("");
 
   // ── Client-side search filter on current page ────────────
   const filtered = search
-    ? tasks.filter(t => {
+    ? tasks.filter((t) => {
         const q = search.toLowerCase();
         return (
           t.title.toLowerCase().includes(q) ||
@@ -45,7 +64,7 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({
   // ── Chip filter → API call via onFilter ─────────────────
   const handleChip = (value: string) => {
     // Toggle off if same chip clicked again
-    const next = chipFilter === value ? '' : value;
+    const next = chipFilter === value ? "" : value;
     setChipFilter(next);
 
     if (!next) {
@@ -54,17 +73,26 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({
       return;
     }
 
-    const isPriority = ['High', 'Medium', 'Low'].includes(next);
-    const isStatus   = ['Pending', 'In Progress', 'Done', 'Overdue', 'Cancelled'].includes(next);
+    const isPriority = ["High", "Medium", "Low"].includes(next);
+    const isStatus = [
+      "Pending",
+      "In Progress",
+      "Done",
+      "Overdue",
+      "Cancelled",
+    ].includes(next);
 
     onFilter({
       priority: isPriority ? next : undefined,
       // Map UI label → API status value
       status: isStatus
-        ? next === 'In Progress' ? 'InProgress'
-        : next === 'Done'        ? 'Completed'
-        : next === 'Overdue'     ? 'Pending'    // backend has no 'Overdue' status; filter Pending + client detects overdue
-        : next
+        ? next === "In Progress"
+          ? "InProgress"
+          : next === "Done"
+            ? "Completed"
+            : next === "Overdue"
+              ? "Pending" // backend has no 'Overdue' status; filter Pending + client detects overdue
+              : next
         : undefined,
     });
   };
@@ -78,7 +106,7 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({
   // ── Pagination display range ─────────────────────────────
   const PAGE_SIZE = 20;
   const start = totalItems === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const end   = Math.min(page * PAGE_SIZE, totalItems);
+  const end = Math.min(page * PAGE_SIZE, totalItems);
 
   // ── Render pagination buttons (max 7 visible) ───────────
   const renderPageButtons = () => {
@@ -86,7 +114,7 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({
 
     const buttons: React.ReactNode[] = [];
     let startPage = Math.max(1, page - 3);
-    let endPage   = Math.min(totalPages, startPage + 6);
+    let endPage = Math.min(totalPages, startPage + 6);
     // Adjust window if near the end
     if (endPage - startPage < 6) startPage = Math.max(1, endPage - 6);
 
@@ -94,22 +122,32 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({
       buttons.push(
         <button
           key={p}
-          className={`pag-btn ${p === page ? 'active' : ''}`}
+          className={`pag-btn ${p === page ? "active" : ""}`}
           onClick={() => onPageChange(p)}
         >
           {p}
-        </button>
+        </button>,
       );
     }
 
     if (endPage < totalPages) {
       buttons.push(
-        <button key="ellipsis" className="pag-btn" style={{ pointerEvents: 'none' }}>…</button>
+        <button
+          key="ellipsis"
+          className="pag-btn"
+          style={{ pointerEvents: "none" }}
+        >
+          …
+        </button>,
       );
       buttons.push(
-        <button key={totalPages} className="pag-btn" onClick={() => onPageChange(totalPages)}>
+        <button
+          key={totalPages}
+          className="pag-btn"
+          onClick={() => onPageChange(totalPages)}
+        >
           {totalPages}
-        </button>
+        </button>,
       );
     }
 
@@ -120,16 +158,18 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({
     <>
       {/* ── Chip Filters ── */}
       <div className="chip-group">
-        {STATUS_CHIPS.map(c => (
+        {STATUS_CHIPS.map((c) => (
           <div
             key={c.value}
-            className={`chip ${chipFilter === c.value ? 'active' : ''}`}
+            className={`chip ${chipFilter === c.value ? "active" : ""}`}
             onClick={() => handleChip(c.value)}
           >
             {c.icon && (
               <i
                 className={`fa-solid ${c.icon}`}
-                style={c.value === 'Overdue' ? { color: 'var(--red)' } : undefined}
+                style={
+                  c.value === "Overdue" ? { color: "var(--red)" } : undefined
+                }
               />
             )}
             {c.label}
@@ -147,19 +187,21 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({
                 type="text"
                 placeholder="Search task or staff..."
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <select
               className="form-select"
-              style={{ height: 27, fontSize: '10.5px' }}
+              style={{ height: 27, fontSize: "10.5px" }}
               value={assigneeFilter}
-              onChange={e => handleAssignee(e.target.value)}
+              onChange={(e) => handleAssignee(e.target.value)}
             >
               <option value="">All Staff</option>
-              {users.map(u => (
+              {users.map((u) => (
                 <option key={u._id} value={u._id}>
-                  {u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : u.username}
+                  {u.firstName
+                    ? `${u.firstName} ${u.lastName || ""}`.trim()
+                    : u.username}
                 </option>
               ))}
             </select>
@@ -179,7 +221,9 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({
           <table>
             <thead>
               <tr>
-                <th><input type="checkbox" /></th>
+                <th>
+                  <input type="checkbox" />
+                </th>
                 <th>Task Title</th>
                 <th>Category</th>
                 <th>Assigned To</th>
@@ -204,88 +248,126 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({
                     />
                   </td>
                 </tr>
-              ) : filtered.map(t => {
-                const color    = getStaffColor(t.assignee);
-                const barColor = progressColor(t.status);
-                return (
-                  <tr key={t.id} onClick={() => onOpenTask(t.id)}>
-                    <td onClick={e => e.stopPropagation()}>
-                      <input type="checkbox" />
-                    </td>
+              ) : (
+                filtered.map((t) => {
+                  const color = getStaffColor(t.assignee);
+                  const barColor = progressColor(t.status);
+                  return (
+                    <tr key={t.id} onClick={() => onOpenTask(t.id)}>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" />
+                      </td>
 
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                        <PriorityDot priority={t.priority} />
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 11 }}>{t.title}</div>
-                          <div className="td-sub">
-                            <code className="ref">{t.id.slice(-8)}</code>
-                            {t.linked !== '—' && (
-                              <> · <span className="tag">{t.linked}</span></>
-                            )}
+                      <td>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 6,
+                          }}
+                        >
+                          <PriorityDot priority={t.priority} />
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 11 }}>
+                              {t.title}
+                            </div>
+                            <div className="td-sub">
+                              <code className="ref">{t.id.slice(-8)}</code>
+                              {t.linked !== "—" && (
+                                <>
+                                  {" "}
+                                  · <span className="tag">{t.linked}</span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td><span className="tag">{t.category}</span></td>
+                      <td>
+                        <span className="tag">{t.category}</span>
+                      </td>
 
-                    <td>
-                      <div className="td-flex">
-                        <div className="row-avatar" style={{ background: color }}>
-                          {initials(t.assignee)}
+                      <td>
+                        <div className="td-flex">
+                          <div
+                            className="row-avatar"
+                            style={{ background: color }}
+                          >
+                            {initials(t.assignee)}
+                          </div>
+                          <div style={{ fontSize: "10.5px", fontWeight: 500 }}>
+                            {t.assignee}
+                          </div>
                         </div>
-                        <div style={{ fontSize: '10.5px', fontWeight: 500 }}>{t.assignee}</div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                      {t.assignedBy}
-                    </td>
-
-                    <td
-                      style={{
-                        fontSize: 10,
-                        whiteSpace: 'nowrap',
-                        color:      t.status === 'Overdue' ? 'var(--red)' : undefined,
-                        fontWeight: t.status === 'Overdue' ? 600 : undefined,
-                      }}
-                    >
-                      {t.due}
-                    </td>
-
-                    <td><Badge label={t.priority} /></td>
-                    <td><Badge label={t.status}   /></td>
-
-                    <td style={{ minWidth: 80 }}>
-                      <div style={{ fontSize: 9.5, color: 'var(--text-muted)', marginBottom: 2 }}>
-                        {t.progress}%
-                      </div>
-                      <ProgressBar pct={t.progress} color={barColor} />
-                    </td>
-
-                    <td onClick={e => e.stopPropagation()}>
-                      {/* Only show Mark Done for Pending / In Progress / Overdue */}
-                      {(t.status === 'Pending' || t.status === 'In Progress' || t.status === 'Overdue') && (
-                        <button
-                          className="t-btn primary"
-                          style={{ height: 22, fontSize: 9.5 }}
-                          onClick={() => onMarkDone(t.id)}
-                        >
-                          <i className="fa-solid fa-check" />
-                        </button>
-                      )}
-                      <button
-                        className="t-btn"
-                        style={{ height: 22, fontSize: 9.5, marginLeft: 3 }}
-                        onClick={() => onOpenTask(t.id)}
+                      <td
+                        style={{
+                          fontSize: "10.5px",
+                          color: "var(--text-muted)",
+                        }}
                       >
-                        <i className="fa-solid fa-eye" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                        {t.assignedBy}
+                      </td>
+
+                      <td
+                        style={{
+                          fontSize: 10,
+                          whiteSpace: "nowrap",
+                          color:
+                            t.status === "Overdue" ? "var(--red)" : undefined,
+                          fontWeight: t.status === "Overdue" ? 600 : undefined,
+                        }}
+                      >
+                        {t.due}
+                      </td>
+
+                      <td>
+                        <Badge label={t.priority} />
+                      </td>
+                      <td>
+                        <Badge label={t.status} />
+                      </td>
+
+                      <td style={{ minWidth: 80 }}>
+                        <div
+                          style={{
+                            fontSize: 9.5,
+                            color: "var(--text-muted)",
+                            marginBottom: 2,
+                          }}
+                        >
+                          {t.progress}%
+                        </div>
+                        <ProgressBar pct={t.progress} color={barColor} />
+                      </td>
+
+                      <td onClick={(e) => e.stopPropagation()}>
+                        {/* Only show Mark Done for Pending / In Progress / Overdue */}
+                        {(t.status === "Pending" ||
+                          t.status === "In Progress" ||
+                          t.status === "Overdue") && (
+                          <button
+                            className="t-btn primary"
+                            style={{ height: 22, fontSize: 9.5 }}
+                            onClick={() => onMarkDone(t.id)}
+                          >
+                            <i className="fa-solid fa-check" />
+                          </button>
+                        )}
+                        <button
+                          className="t-btn"
+                          style={{ height: 22, fontSize: 9.5, marginLeft: 3 }}
+                          onClick={() => onOpenTask(t.id)}
+                        >
+                          <i className="fa-solid fa-eye" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -293,7 +375,11 @@ const AllTasksPanel: React.FC<AllTasksPanelProps> = ({
         {/* ── Pagination ── */}
         <div className="pagination">
           <div>
-            Showing <strong>{start}–{end}</strong> of <strong>{totalItems}</strong> tasks
+            Showing{" "}
+            <strong>
+              {start}–{end}
+            </strong>{" "}
+            of <strong>{totalItems}</strong> tasks
           </div>
           <div className="pag-controls">
             <button

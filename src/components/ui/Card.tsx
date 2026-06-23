@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface CardProps {
   title?: string;
@@ -15,9 +15,9 @@ export const Card: React.FC<CardProps> = ({
   icon,
   actions,
   children,
-  className = '',
-  bodyClassName = '',
-  headerClassName = '',
+  className = "",
+  bodyClassName = "",
+  headerClassName = "",
 }) => {
   return (
     <div className={`card ${className}`.trim()}>

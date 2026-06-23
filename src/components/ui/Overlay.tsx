@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface OverlayProps {
   isOpen: boolean;
@@ -14,7 +14,7 @@ export const Overlay: React.FC<OverlayProps> = ({
   onClose,
   title,
   children,
-  width = '420px',
+  width = "420px",
   showCloseButton = true,
 }) => {
   if (!isOpen) return null;
@@ -22,10 +22,7 @@ export const Overlay: React.FC<OverlayProps> = ({
   return (
     <>
       <div className="backdrop open" onClick={onClose} />
-      <div
-        className="overlay open"
-        style={{ width }}
-      >
+      <div className="overlay open" style={{ width }}>
         <div className="overlay-header">
           <div className="overlay-title">{title}</div>
           {showCloseButton && (

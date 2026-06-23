@@ -2,7 +2,7 @@
 // Toggle.tsx — Checkbox toggle switch
 // ═══════════════════════════════════════════════════════════
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 interface Props {
   checked: boolean;
@@ -13,11 +13,11 @@ const Toggle: React.FC<Props> = ({ checked, onChange }) => {
   const [val, setVal] = useState(checked);
 
   return (
-    <label className="toggle-switch" onClick={e => e.stopPropagation()}>
+    <label className="toggle-switch" onClick={(e) => e.stopPropagation()}>
       <input
         type="checkbox"
         checked={val}
-        onChange={e => {
+        onChange={(e) => {
           setVal(e.target.checked);
           onChange?.(e.target.checked);
         }}

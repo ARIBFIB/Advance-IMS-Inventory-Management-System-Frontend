@@ -1,12 +1,15 @@
-import React from 'react';
-import { Order } from '../../types/order';
+import React from "react";
+import { Order } from "../../types/order";
 
 interface OrdersTableProps {
   orders: Order[];
   onViewOrder: (orderId: string) => void;
 }
 
-export const OrdersTable: React.FC<OrdersTableProps> = ({ orders, onViewOrder }) => {
+export const OrdersTable: React.FC<OrdersTableProps> = ({
+  orders,
+  onViewOrder,
+}) => {
   return (
     <div className="table-wrap">
       <table className="d-table">
@@ -23,14 +26,40 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({ orders, onViewOrder })
         </thead>
         <tbody>
           {orders.map((order) => (
-            <tr key={order.id} onClick={() => onViewOrder(order.id)} style={{ cursor: 'pointer' }}>
-              <td><span className="d-mono" style={{ color: 'var(--accent)', fontWeight: 600 }}>{order.id}</span></td>
-              <td>{order.customer?.name ?? '—'}</td>
+            <tr
+              key={order.id}
+              onClick={() => onViewOrder(order.id)}
+              style={{ cursor: "pointer" }}
+            >
+              <td>
+                <span
+                  className="d-mono"
+                  style={{ color: "var(--accent)", fontWeight: 600 }}
+                >
+                  {order.id}
+                </span>
+              </td>
+              <td>{order.customer?.name ?? "—"}</td>
               <td>{order.items.length}</td>
-              <td><strong>₨{order.total.toLocaleString()}</strong></td>
-              <td><span className={`badge ${order.status === 'Delivered' ? 'green' : order.status === 'Pending' ? 'yellow' : 'blue'}`}>{order.status}</span></td>
-              <td><span className="tag">{order.paymentType}</span></td>
-              <td style={{ color: 'var(--text-muted)' }}>{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+              <td>
+                <strong>₨{order.total.toLocaleString()}</strong>
+              </td>
+              <td>
+                <span
+                  className={`badge ${order.status === "Delivered" ? "green" : order.status === "Pending" ? "yellow" : "blue"}`}
+                >
+                  {order.status}
+                </span>
+              </td>
+              <td>
+                <span className="tag">{order.paymentType}</span>
+              </td>
+              <td style={{ color: "var(--text-muted)" }}>
+                {new Date(order.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </td>
             </tr>
           ))}
         </tbody>

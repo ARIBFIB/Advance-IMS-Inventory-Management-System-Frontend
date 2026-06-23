@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { useSort } from '../hooks/useSort';
-import { usePagination } from '../hooks/usePagination';
+import React, { useState, useMemo } from "react";
+import { useSort } from "../hooks/useSort";
+import { usePagination } from "../hooks/usePagination";
 
 export interface TableColumn<T> {
   key: keyof T | string;
@@ -25,22 +25,25 @@ export function Table<T extends Record<string, any>>({
   columns,
   pageSize = 10,
   onRowClick,
-  rowKey = 'id',
-  className = '',
-  emptyMessage = 'No data available',
+  rowKey = "id",
+  className = "",
+  emptyMessage = "No data available",
 }: TableProps<T>) {
   const { sortConfig, requestSort, getSortIcon } = useSort<T>();
-  const { currentPage, totalPages, paginatedData, goToPage } = usePagination(data, pageSize);
+  const { currentPage, totalPages, paginatedData, goToPage } = usePagination(
+    data,
+    pageSize,
+  );
 
   const sortedData = useMemo(() => {
     if (!sortConfig.key) return paginatedData;
-    
+
     return [...paginatedData].sort((a, b) => {
       const aValue = a[sortConfig.key as keyof T];
       const bValue = b[sortConfig.key as keyof T];
-      
-      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
   }, [paginatedData, sortConfig]);
@@ -54,8 +57,10 @@ export function Table<T extends Record<string, any>>({
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
-                  className={column.sortable ? 'sortable' : ''}
-                  onClick={() => column.sortable && requestSort(column.key as keyof T)}
+                  className={column.sortable ? "sortable" : ""}
+                  onClick={() =>
+                    column.sortable && requestSort(column.key as keyof T)
+                  }
                   data-testid={`column-${String(column.key)}`}
                 >
                   {column.label}
@@ -80,13 +85,17 @@ export function Table<T extends Record<string, any>>({
                 <tr
                   key={String(item[rowKey]) || index}
                   onClick={() => onRowClick?.(item)}
-                  className={onRowClick ? 'clickable-row' : ''}
+                  className={onRowClick ? "clickable-row" : ""}
                   data-testid={`row-${String(item[rowKey])}`}
                 >
                   {columns.map((column) => (
                     <td key={String(column.key)} className={column.className}>
                       {column.render
-                        ? column.render(item[column.key as keyof T], item, index)
+                        ? column.render(
+                            item[column.key as keyof T],
+                            item,
+                            index,
+                          )
                         : String(item[column.key as keyof T])}
                     </td>
                   ))}
@@ -96,7 +105,7 @@ export function Table<T extends Record<string, any>>({
           </tbody>
         </table>
       </div>
-      
+
       {totalPages > 1 && (
         <div className="pagination">
           <span className="pagination-info">
@@ -115,10 +124,10 @@ export function Table<T extends Record<string, any>>({
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
-                className={`page-btn ${page === currentPage ? 'active' : ''}`}
+                className={`page-btn ${page === currentPage ? "active" : ""}`}
                 onClick={() => goToPage(page)}
                 aria-label={`Page ${page}`}
-                aria-current={page === currentPage ? 'page' : undefined}
+                aria-current={page === currentPage ? "page" : undefined}
               >
                 {page}
               </button>

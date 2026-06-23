@@ -1,13 +1,13 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
   getShaderColorFromString,
   liquidMetalFragmentShader,
   LiquidMetalShapes,
   ShaderFitOptions,
   ShaderMount,
-} from '@paper-design/shaders';
-import './LiquidMetalButton.css';
+} from "@paper-design/shaders";
+import "./LiquidMetalButton.css";
 
 type LiquidMetalButtonProps = {
   children: React.ReactNode;
@@ -22,12 +22,12 @@ type LiquidMetalButtonProps = {
 
 export const LiquidMetalButton: React.FC<LiquidMetalButtonProps> = ({
   children,
-  className = '',
+  className = "",
   icon,
   to,
   href,
-  colorBack = '#111827',
-  colorTint = '#f97316',
+  colorBack = "#111827",
+  colorTint = "#f97316",
   onClick,
 }) => {
   const shaderRef = useRef<HTMLSpanElement | null>(null);
@@ -56,7 +56,7 @@ export const LiquidMetalButton: React.FC<LiquidMetalButtonProps> = ({
       u_worldWidth: 360,
       u_worldHeight: 120,
     }),
-    [colorBack, colorTint]
+    [colorBack, colorTint],
   );
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export const LiquidMetalButton: React.FC<LiquidMetalButtonProps> = ({
         { alpha: true, antialias: true, premultipliedAlpha: false },
         0.55,
         0,
-        1.5
+        1.5,
       );
     } catch {
       mount = null;
@@ -86,7 +86,11 @@ export const LiquidMetalButton: React.FC<LiquidMetalButtonProps> = ({
   const classes = `liquid-metal-button ${className}`.trim();
   const content = (
     <>
-      <span className="liquid-metal-button__shader" ref={shaderRef} aria-hidden="true" />
+      <span
+        className="liquid-metal-button__shader"
+        ref={shaderRef}
+        aria-hidden="true"
+      />
       {icon && <i className={icon} aria-hidden="true" />}
       <span>{children}</span>
     </>

@@ -1,13 +1,27 @@
 // AllRidersPanel.tsx — dynamic
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
-  NavPanel, ApiRider, ApiPagination,
-  DOCS_DATA, SCHEDULE_DATA,
-  rColor, initials, avatarColorFromName, isRiderOnline, riderStatusLabel,
-  Badge, PerfBar, StarRating, ApiRiderAvatar, DayBadge,
-  InnerTabs, CPagination, EmptyState, TableSkeleton,
-} from './shared';
-import { ridersAPI } from '../../services/api';
+  NavPanel,
+  ApiRider,
+  ApiPagination,
+  DOCS_DATA,
+  SCHEDULE_DATA,
+  rColor,
+  initials,
+  avatarColorFromName,
+  isRiderOnline,
+  riderStatusLabel,
+  Badge,
+  PerfBar,
+  StarRating,
+  ApiRiderAvatar,
+  DayBadge,
+  InnerTabs,
+  CPagination,
+  EmptyState,
+  TableSkeleton,
+} from "./shared";
+import { ridersAPI } from "../../services/api";
 
 interface Props {
   onNav: (p: NavPanel) => void;
@@ -15,33 +29,48 @@ interface Props {
 }
 
 const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
-  const [innerTab,   setInnerTab]   = useState('grid');
-  const [riders,     setRiders]     = useState<ApiRider[]>([]);
-  const [pagination, setPagination] = useState<ApiPagination>({ currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 10 });
-  const [loading,    setLoading]    = useState(false);
-  const [error,      setError]      = useState('');
-  const [search,     setSearch]     = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [page,       setPage]       = useState(1);
+  const [innerTab, setInnerTab] = useState("grid");
+  const [riders, setRiders] = useState<ApiRider[]>([]);
+  const [pagination, setPagination] = useState<ApiPagination>({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 10,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [page, setPage] = useState(1);
   const PER_PAGE = 12;
 
   const fetchRiders = useCallback(async () => {
-    setLoading(true); setError('');
+    setLoading(true);
+    setError("");
     try {
       const params: Record<string, any> = { page, limit: PER_PAGE };
-      if (search)       params.search = search;
+      if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
-      const res  = await ridersAPI.getAll(params);
+      const res = await ridersAPI.getAll(params);
       const data = res.data?.data;
       setRiders(data?.riders ?? []);
-      setPagination(data?.pagination ?? { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: PER_PAGE });
+      setPagination(
+        data?.pagination ?? {
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: 0,
+          itemsPerPage: PER_PAGE,
+        },
+      );
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? 'Failed to load riders.');
-    } finally { setLoading(false); }
+      setError(e?.response?.data?.message ?? "Failed to load riders.");
+    } finally {
+      setLoading(false);
+    }
   }, [page, search, statusFilter]);
 
   useEffect(() => {
-    if (innerTab === 'grid' || innerTab === 'table') fetchRiders();
+    if (innerTab === "grid" || innerTab === "table") fetchRiders();
   }, [fetchRiders, innerTab]);
 
   const handleStatusUpdate = async (riderId: string, status: string) => {
@@ -49,91 +78,127 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
       await ridersAPI.updateStatus(riderId, { status });
       fetchRiders();
     } catch (e: any) {
-      alert(e?.response?.data?.message ?? 'Failed to update status.');
+      alert(e?.response?.data?.message ?? "Failed to update status.");
     }
   };
 
   const handleDelete = async (riderId: string) => {
-    if (!window.confirm('Deactivate this rider?')) return;
+    if (!window.confirm("Deactivate this rider?")) return;
     try {
       await ridersAPI.delete(riderId);
       fetchRiders();
     } catch (e: any) {
-      alert(e?.response?.data?.message ?? 'Failed to deactivate rider.');
+      alert(e?.response?.data?.message ?? "Failed to deactivate rider.");
     }
   };
 
   const { currentPage, totalPages, totalItems } = pagination;
   const start = (currentPage - 1) * PER_PAGE + 1;
-  const end   = Math.min(currentPage * PER_PAGE, totalItems);
+  const end = Math.min(currentPage * PER_PAGE, totalItems);
 
-  const activeCount   = riders.filter(r => r.status === 'Active').length;
-  const onlineCount   = riders.filter(r => isRiderOnline(r)).length;
+  const activeCount = riders.filter((r) => r.status === "Active").length;
+  const onlineCount = riders.filter((r) => isRiderOnline(r)).length;
 
   return (
     <>
       <div className="panel-heading">All Riders</div>
       <div className="panel-desc">
-        Full directory of internal delivery riders. View profiles, contact details, vehicle info,
-        and current status.
+        Full directory of internal delivery riders. View profiles, contact
+        details, vehicle info, and current status.
       </div>
 
       <div className="mini-stats">
         <div className="mini-stat">
           <div className="ms-label">Total Riders</div>
-          <div className="ms-value">{loading ? '…' : totalItems}</div>
+          <div className="ms-value">{loading ? "…" : totalItems}</div>
           <div className="ms-trend">{activeCount} active</div>
         </div>
         <div className="mini-stat">
           <div className="ms-label">Online Now</div>
-          <div className="ms-value">{loading ? '…' : onlineCount}</div>
-          <div className="ms-trend up"><i className="fa-solid fa-circle" style={{ color: 'var(--green)', fontSize: 7 }} /> This page</div>
+          <div className="ms-value">{loading ? "…" : onlineCount}</div>
+          <div className="ms-trend up">
+            <i
+              className="fa-solid fa-circle"
+              style={{ color: "var(--green)", fontSize: 7 }}
+            />{" "}
+            This page
+          </div>
         </div>
         <div className="mini-stat">
           <div className="ms-label">Available</div>
-          <div className="ms-value">{loading ? '…' : riders.filter(r => r.isAvailable).length}</div>
+          <div className="ms-value">
+            {loading ? "…" : riders.filter((r) => r.isAvailable).length}
+          </div>
           <div className="ms-trend up">Ready for dispatch</div>
         </div>
         <div className="mini-stat">
           <div className="ms-label">On Delivery</div>
-          <div className="ms-value">{loading ? '…' : riders.filter(r => r.status === 'OnDelivery').length}</div>
+          <div className="ms-value">
+            {loading
+              ? "…"
+              : riders.filter((r) => r.status === "OnDelivery").length}
+          </div>
           <div className="ms-trend">Active routes</div>
         </div>
       </div>
 
       <InnerTabs
         tabs={[
-          { id: 'grid',     label: 'Grid View'  },
-          { id: 'table',    label: 'Table View' },
-          { id: 'docs',     label: 'Documents'  },
-          { id: 'schedule', label: 'Schedules'  },
+          { id: "grid", label: "Grid View" },
+          { id: "table", label: "Table View" },
+          { id: "docs", label: "Documents" },
+          { id: "schedule", label: "Schedules" },
         ]}
         active={innerTab}
-        onChange={t => { setInnerTab(t); setPage(1); }}
+        onChange={(t) => {
+          setInnerTab(t);
+          setPage(1);
+        }}
       />
 
       {/* ── GRID VIEW ── */}
-      {innerTab === 'grid' && (
+      {innerTab === "grid" && (
         <>
-          <div className="c-toolbar" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-card) var(--radius-card) 0 0', borderBottom: '1px solid var(--divider)' }}>
+          <div
+            className="c-toolbar"
+            style={{
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-card) var(--radius-card) 0 0",
+              borderBottom: "1px solid var(--divider)",
+            }}
+          >
             <div className="c-toolbar-left">
               <div className="c-search">
                 <i className="fa-solid fa-magnifying-glass" />
-                <input placeholder="Search rider..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+                <input
+                  placeholder="Search rider..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                />
               </div>
-              {(['', 'Active', 'Inactive', 'OnDelivery', 'OnLeave'] as const).map(f => (
+              {(
+                ["", "Active", "Inactive", "OnDelivery", "OnLeave"] as const
+              ).map((f) => (
                 <button
                   key={f}
-                  className={`c-btn ${statusFilter === f ? 'active' : ''}`}
-                  onClick={() => { setStatusFilter(f); setPage(1); }}
+                  className={`c-btn ${statusFilter === f ? "active" : ""}`}
+                  onClick={() => {
+                    setStatusFilter(f);
+                    setPage(1);
+                  }}
                 >
-                  {f === '' ? 'All' : riderStatusLabel(f)}
+                  {f === "" ? "All" : riderStatusLabel(f)}
                 </button>
               ))}
             </div>
             <div className="c-toolbar-right">
-              <button className="c-btn" onClick={fetchRiders}><i className="fa-solid fa-rotate" /> Refresh</button>
-              <button className="c-btn primary" onClick={() => onNav('add')}>
+              <button className="c-btn" onClick={fetchRiders}>
+                <i className="fa-solid fa-rotate" /> Refresh
+              </button>
+              <button className="c-btn primary" onClick={() => onNav("add")}>
                 <i className="fa-solid fa-plus" /> Add Rider
               </button>
             </div>
@@ -142,30 +207,76 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
           {error && (
             <div className="alert-strip danger" style={{ borderRadius: 0 }}>
               <i className="fa-solid fa-circle-exclamation" /> {error}
-              <button className="c-btn" style={{ marginLeft: 'auto' }} onClick={fetchRiders}>Retry</button>
+              <button
+                className="c-btn"
+                style={{ marginLeft: "auto" }}
+                onClick={fetchRiders}
+              >
+                Retry
+              </button>
             </div>
           )}
 
           {loading ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, padding: '12px 0' }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3,1fr)",
+                gap: 12,
+                padding: "12px 0",
+              }}
+            >
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="card" style={{ padding: 14 }}>
-                  <div style={{ height: 36, width: 36, borderRadius: '50%', background: '#F3F4F6', marginBottom: 8 }} />
-                  <div style={{ height: 12, background: '#F3F4F6', borderRadius: 4, width: '60%', marginBottom: 6 }} />
-                  <div style={{ height: 10, background: '#F3F4F6', borderRadius: 4, width: '40%' }} />
+                  <div
+                    style={{
+                      height: 36,
+                      width: 36,
+                      borderRadius: "50%",
+                      background: "#F3F4F6",
+                      marginBottom: 8,
+                    }}
+                  />
+                  <div
+                    style={{
+                      height: 12,
+                      background: "#F3F4F6",
+                      borderRadius: 4,
+                      width: "60%",
+                      marginBottom: 6,
+                    }}
+                  />
+                  <div
+                    style={{
+                      height: 10,
+                      background: "#F3F4F6",
+                      borderRadius: 4,
+                      width: "40%",
+                    }}
+                  />
                 </div>
               ))}
             </div>
           ) : riders.length === 0 ? (
-            <div className="card"><div className="card-body">
-              <EmptyState icon="fa-person-biking" title="No riders found" desc="No riders match your current filters." />
-            </div></div>
+            <div className="card">
+              <div className="card-body">
+                <EmptyState
+                  icon="fa-person-biking"
+                  title="No riders found"
+                  desc="No riders match your current filters."
+                />
+              </div>
+            </div>
           ) : (
             <div className="rider-grid">
-              {riders.map(r => {
-                const rate = parseFloat(r.completionRate ?? '0');
+              {riders.map((r) => {
+                const rate = parseFloat(r.completionRate ?? "0");
                 return (
-                  <div className="rider-card" key={r._id} onClick={() => onOpenRider(r)}>
+                  <div
+                    className="rider-card"
+                    key={r._id}
+                    onClick={() => onOpenRider(r)}
+                  >
                     <div className="rider-card-status">
                       <Badge label={riderStatusLabel(r.status)} />
                     </div>
@@ -174,34 +285,57 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
                       <div>
                         <div className="rider-card-name">{r.fullName}</div>
                         <div className="rider-card-id">
-                          <i className="fa-solid fa-person-biking" style={{ fontSize: 9, color: 'var(--text-muted)' }} /> {r.assignedZone ?? '—'}
+                          <i
+                            className="fa-solid fa-person-biking"
+                            style={{ fontSize: 9, color: "var(--text-muted)" }}
+                          />{" "}
+                          {r.assignedZone ?? "—"}
                         </div>
                       </div>
                     </div>
                     <div className="rider-card-stats">
                       <div className="rider-stat">
-                        <div className="rider-stat-val">{r.performanceMetrics?.totalDeliveries ?? '—'}</div>
+                        <div className="rider-stat-val">
+                          {r.performanceMetrics?.totalDeliveries ?? "—"}
+                        </div>
                         <div className="rider-stat-lbl">Deliveries</div>
                       </div>
                       <div className="rider-stat">
-                        <div className="rider-stat-val">{r.completionRate ? `${parseFloat(r.completionRate).toFixed(0)}%` : '—'}</div>
+                        <div className="rider-stat-val">
+                          {r.completionRate
+                            ? `${parseFloat(r.completionRate).toFixed(0)}%`
+                            : "—"}
+                        </div>
                         <div className="rider-stat-lbl">Completion</div>
                       </div>
                       <div className="rider-stat">
-                        <div className="rider-stat-val">{r.activeDeliveries ?? 0}</div>
+                        <div className="rider-stat-val">
+                          {r.activeDeliveries ?? 0}
+                        </div>
                         <div className="rider-stat-lbl">Active</div>
                       </div>
                       <div className="rider-stat">
-                        <div className="rider-stat-val">{r.isAvailable ? <span style={{ color: 'var(--green)' }}>Yes</span> : 'No'}</div>
+                        <div className="rider-stat-val">
+                          {r.isAvailable ? (
+                            <span style={{ color: "var(--green)" }}>Yes</span>
+                          ) : (
+                            "No"
+                          )}
+                        </div>
                         <div className="rider-stat-lbl">Available</div>
                       </div>
                     </div>
                     <div className="rider-card-footer">
-                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                        <i className="fa-solid fa-motorcycle" style={{ fontSize: 9 }} /> {r.vehicle?.type ?? '—'} · {r.vehicle?.registrationNumber ?? '—'}
+                      <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
+                        <i
+                          className="fa-solid fa-motorcycle"
+                          style={{ fontSize: 9 }}
+                        />{" "}
+                        {r.vehicle?.type ?? "—"} ·{" "}
+                        {r.vehicle?.registrationNumber ?? "—"}
                       </div>
                       <span className="tag" style={{ fontSize: 9 }}>
-                        {r.serviceCities?.[0] ?? r.assignedZone ?? '—'}
+                        {r.serviceCities?.[0] ?? r.assignedZone ?? "—"}
                       </span>
                     </div>
                   </div>
@@ -212,32 +346,56 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
 
           {totalPages > 1 && (
             <div style={{ marginTop: 8 }}>
-              <CPagination current={currentPage} total={totalPages} totalItems={totalItems} start={start} end={end} onChange={setPage} />
+              <CPagination
+                current={currentPage}
+                total={totalPages}
+                totalItems={totalItems}
+                start={start}
+                end={end}
+                onChange={setPage}
+              />
             </div>
           )}
         </>
       )}
 
       {/* ── TABLE VIEW ── */}
-      {innerTab === 'table' && (
+      {innerTab === "table" && (
         <div className="card">
           <div className="c-toolbar">
             <div className="c-toolbar-left">
               <div className="c-search">
                 <i className="fa-solid fa-magnifying-glass" />
-                <input placeholder="Search..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+                <input
+                  placeholder="Search..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                />
               </div>
-              {(['', 'Active', 'Inactive', 'OnDelivery'] as const).map(f => (
-                <button key={f} className={`c-btn ${statusFilter === f ? 'active' : ''}`}
-                  onClick={() => { setStatusFilter(f); setPage(1); }}>
-                  {f === '' ? 'All' : riderStatusLabel(f)}
+              {(["", "Active", "Inactive", "OnDelivery"] as const).map((f) => (
+                <button
+                  key={f}
+                  className={`c-btn ${statusFilter === f ? "active" : ""}`}
+                  onClick={() => {
+                    setStatusFilter(f);
+                    setPage(1);
+                  }}
+                >
+                  {f === "" ? "All" : riderStatusLabel(f)}
                 </button>
               ))}
             </div>
             <div className="c-toolbar-right">
-              <button className="c-btn" onClick={fetchRiders}><i className="fa-solid fa-rotate" /> Refresh</button>
-              <button className="c-btn"><i className="fa-solid fa-file-export" /> Export</button>
-              <button className="c-btn primary" onClick={() => onNav('add')}>
+              <button className="c-btn" onClick={fetchRiders}>
+                <i className="fa-solid fa-rotate" /> Refresh
+              </button>
+              <button className="c-btn">
+                <i className="fa-solid fa-file-export" /> Export
+              </button>
+              <button className="c-btn primary" onClick={() => onNav("add")}>
                 <i className="fa-solid fa-plus" /> Add Rider
               </button>
             </div>
@@ -247,113 +405,230 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
             <table>
               <thead>
                 <tr>
-                  <th><input type="checkbox" /></th>
-                  <th>Rider</th><th>Phone</th><th>Vehicle</th><th>Zone</th>
-                  <th>Total Deliveries</th><th>Completion %</th>
-                  <th>Active Deliveries</th><th>Status</th><th>Available</th><th>Actions</th>
+                  <th>
+                    <input type="checkbox" />
+                  </th>
+                  <th>Rider</th>
+                  <th>Phone</th>
+                  <th>Vehicle</th>
+                  <th>Zone</th>
+                  <th>Total Deliveries</th>
+                  <th>Completion %</th>
+                  <th>Active Deliveries</th>
+                  <th>Status</th>
+                  <th>Available</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <TableSkeleton rows={8} cols={11} />
                 ) : error ? (
-                  <tr><td colSpan={11} style={{ textAlign: 'center', padding: 24, color: 'var(--red)' }}>
-                    <i className="fa-solid fa-circle-exclamation" /> {error}
-                    <button className="c-btn" style={{ marginLeft: 8 }} onClick={fetchRiders}>Retry</button>
-                  </td></tr>
+                  <tr>
+                    <td
+                      colSpan={11}
+                      style={{
+                        textAlign: "center",
+                        padding: 24,
+                        color: "var(--red)",
+                      }}
+                    >
+                      <i className="fa-solid fa-circle-exclamation" /> {error}
+                      <button
+                        className="c-btn"
+                        style={{ marginLeft: 8 }}
+                        onClick={fetchRiders}
+                      >
+                        Retry
+                      </button>
+                    </td>
+                  </tr>
                 ) : riders.length === 0 ? (
-                  <tr><td colSpan={11}>
-                    <EmptyState icon="fa-person-biking" title="No riders found" desc="No riders match your search." />
-                  </td></tr>
-                ) : riders.map(r => {
-                  const rate = parseFloat(r.completionRate ?? '0');
-                  return (
-                    <tr key={r._id} onClick={() => onOpenRider(r)}>
-                      <td onClick={e => e.stopPropagation()}><input type="checkbox" /></td>
-                      <td>
-                        <div className="td-flex">
-                          <ApiRiderAvatar rider={r} fontSize={9} />
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{r.fullName}</div>
-                            <div className="td-sub">{r.email ?? r.phone}</div>
+                  <tr>
+                    <td colSpan={11}>
+                      <EmptyState
+                        icon="fa-person-biking"
+                        title="No riders found"
+                        desc="No riders match your search."
+                      />
+                    </td>
+                  </tr>
+                ) : (
+                  riders.map((r) => {
+                    const rate = parseFloat(r.completionRate ?? "0");
+                    return (
+                      <tr key={r._id} onClick={() => onOpenRider(r)}>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          <input type="checkbox" />
+                        </td>
+                        <td>
+                          <div className="td-flex">
+                            <ApiRiderAvatar rider={r} fontSize={9} />
+                            <div>
+                              <div style={{ fontWeight: 600 }}>
+                                {r.fullName}
+                              </div>
+                              <div className="td-sub">{r.email ?? r.phone}</div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td>{r.phone}</td>
-                      <td>
-                        <span className="tag">
-                          <i className="fa-solid fa-motorcycle" style={{ fontSize: 9, marginRight: 3 }} />
-                          {r.vehicle?.type ?? '—'}
-                        </span>
-                      </td>
-                      <td><span className="tag">{r.assignedZone ?? '—'}</span></td>
-                      <td>{r.performanceMetrics?.totalDeliveries ?? '—'}</td>
-                      <td><PerfBar pct={rate} color={rColor(rate)} /></td>
-                      <td>{r.activeDeliveries ?? '—'}</td>
-                      <td><Badge label={riderStatusLabel(r.status)} /></td>
-                      <td>
-                        <span style={{ fontSize: 10.5, color: r.isAvailable ? 'var(--green)' : 'var(--text-muted)', fontWeight: 600 }}>
-                          {r.isAvailable ? 'Yes' : 'No'}
-                        </span>
-                      </td>
-                      <td onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 3 }}>
-                        <button className="c-btn" style={{ height: 23, fontSize: 9.5 }} onClick={() => onOpenRider(r)}>
-                          <i className="fa-solid fa-eye" />
-                        </button>
-                        <button
-                          className="c-btn"
-                          style={{ height: 23, fontSize: 9.5, color: r.status === 'Active' ? 'var(--yellow)' : 'var(--green)' }}
-                          title={r.status === 'Active' ? 'Set On Leave' : 'Set Active'}
-                          onClick={() => handleStatusUpdate(r._id, r.status === 'Active' ? 'OnLeave' : 'Active')}
+                        </td>
+                        <td>{r.phone}</td>
+                        <td>
+                          <span className="tag">
+                            <i
+                              className="fa-solid fa-motorcycle"
+                              style={{ fontSize: 9, marginRight: 3 }}
+                            />
+                            {r.vehicle?.type ?? "—"}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="tag">{r.assignedZone ?? "—"}</span>
+                        </td>
+                        <td>{r.performanceMetrics?.totalDeliveries ?? "—"}</td>
+                        <td>
+                          <PerfBar pct={rate} color={rColor(rate)} />
+                        </td>
+                        <td>{r.activeDeliveries ?? "—"}</td>
+                        <td>
+                          <Badge label={riderStatusLabel(r.status)} />
+                        </td>
+                        <td>
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              color: r.isAvailable
+                                ? "var(--green)"
+                                : "var(--text-muted)",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {r.isAvailable ? "Yes" : "No"}
+                          </span>
+                        </td>
+                        <td
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ display: "flex", gap: 3 }}
                         >
-                          <i className={`fa-solid fa-${r.status === 'Active' ? 'pause' : 'play'}`} />
-                        </button>
-                        <button
-                          className="c-btn"
-                          style={{ height: 23, fontSize: 9.5, color: 'var(--red)' }}
-                          title="Deactivate"
-                          onClick={() => handleDelete(r._id)}
-                        >
-                          <i className="fa-solid fa-ban" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                          <button
+                            className="c-btn"
+                            style={{ height: 23, fontSize: 9.5 }}
+                            onClick={() => onOpenRider(r)}
+                          >
+                            <i className="fa-solid fa-eye" />
+                          </button>
+                          <button
+                            className="c-btn"
+                            style={{
+                              height: 23,
+                              fontSize: 9.5,
+                              color:
+                                r.status === "Active"
+                                  ? "var(--yellow)"
+                                  : "var(--green)",
+                            }}
+                            title={
+                              r.status === "Active"
+                                ? "Set On Leave"
+                                : "Set Active"
+                            }
+                            onClick={() =>
+                              handleStatusUpdate(
+                                r._id,
+                                r.status === "Active" ? "OnLeave" : "Active",
+                              )
+                            }
+                          >
+                            <i
+                              className={`fa-solid fa-${r.status === "Active" ? "pause" : "play"}`}
+                            />
+                          </button>
+                          <button
+                            className="c-btn"
+                            style={{
+                              height: 23,
+                              fontSize: 9.5,
+                              color: "var(--red)",
+                            }}
+                            title="Deactivate"
+                            onClick={() => handleDelete(r._id)}
+                          >
+                            <i className="fa-solid fa-ban" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
-          <CPagination current={currentPage} total={totalPages} totalItems={totalItems} start={start} end={end} onChange={setPage} />
+          <CPagination
+            current={currentPage}
+            total={totalPages}
+            totalItems={totalItems}
+            start={start}
+            end={end}
+            onChange={setPage}
+          />
         </div>
       )}
 
       {/* ── DOCUMENTS (static) ── */}
-      {innerTab === 'docs' && (
+      {innerTab === "docs" && (
         <div className="card">
           <div className="card-header">
-            <div className="card-title"><i className="fa-solid fa-file-alt" /> Rider Documents</div>
-            <button className="c-btn primary"><i className="fa-solid fa-upload" /> Upload Document</button>
+            <div className="card-title">
+              <i className="fa-solid fa-file-alt" /> Rider Documents
+            </div>
+            <button className="c-btn primary">
+              <i className="fa-solid fa-upload" /> Upload Document
+            </button>
           </div>
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Rider</th><th>Document Type</th><th>File Name</th>
-                  <th>Expiry Date</th><th>Status</th><th>Uploaded</th><th>Actions</th>
+                  <th>Rider</th>
+                  <th>Document Type</th>
+                  <th>File Name</th>
+                  <th>Expiry Date</th>
+                  <th>Status</th>
+                  <th>Uploaded</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {DOCS_DATA.map((d, i) => (
                   <tr key={i}>
-                    <td><strong>{d.rider}</strong></td>
+                    <td>
+                      <strong>{d.rider}</strong>
+                    </td>
                     <td>{d.type}</td>
-                    <td><code className="sku">{d.file}</code></td>
+                    <td>
+                      <code className="sku">{d.file}</code>
+                    </td>
                     <td>{d.expiry}</td>
-                    <td><Badge label={d.status} /></td>
+                    <td>
+                      <Badge label={d.status} />
+                    </td>
                     <td>{d.uploaded}</td>
                     <td>
-                      <button className="c-btn" style={{ height: 22, fontSize: 9.5 }}><i className="fa-solid fa-eye" /></button>
-                      <button className="c-btn" style={{ height: 22, fontSize: 9.5, marginLeft: 3, color: 'var(--red)' }}>
+                      <button
+                        className="c-btn"
+                        style={{ height: 22, fontSize: 9.5 }}
+                      >
+                        <i className="fa-solid fa-eye" />
+                      </button>
+                      <button
+                        className="c-btn"
+                        style={{
+                          height: 22,
+                          fontSize: 9.5,
+                          marginLeft: 3,
+                          color: "var(--red)",
+                        }}
+                      >
                         <i className="fa-solid fa-trash" />
                       </button>
                     </td>
@@ -366,29 +641,48 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
       )}
 
       {/* ── SCHEDULE (static) ── */}
-      {innerTab === 'schedule' && (
+      {innerTab === "schedule" && (
         <div className="card">
           <div className="card-header">
-            <div className="card-title"><i className="fa-solid fa-calendar-alt" /> Shift Schedule Configuration</div>
-            <button className="c-btn primary"><i className="fa-solid fa-plus" /> Add Shift</button>
+            <div className="card-title">
+              <i className="fa-solid fa-calendar-alt" /> Shift Schedule
+              Configuration
+            </div>
+            <button className="c-btn primary">
+              <i className="fa-solid fa-plus" /> Add Shift
+            </button>
           </div>
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Rider</th><th>Mon</th><th>Tue</th><th>Wed</th>
-                  <th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th><th>Actions</th>
+                  <th>Rider</th>
+                  <th>Mon</th>
+                  <th>Tue</th>
+                  <th>Wed</th>
+                  <th>Thu</th>
+                  <th>Fri</th>
+                  <th>Sat</th>
+                  <th>Sun</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {SCHEDULE_DATA.map(s => (
+                {SCHEDULE_DATA.map((s) => (
                   <tr key={s.rider}>
-                    <td><strong>{s.rider.split(' ')[0]}</strong></td>
+                    <td>
+                      <strong>{s.rider.split(" ")[0]}</strong>
+                    </td>
                     {s.days.map((d, i) => (
-                      <td key={i} style={{ textAlign: 'center' }}><DayBadge d={d} /></td>
+                      <td key={i} style={{ textAlign: "center" }}>
+                        <DayBadge d={d} />
+                      </td>
                     ))}
                     <td>
-                      <button className="c-btn" style={{ height: 22, fontSize: 9.5 }}>
+                      <button
+                        className="c-btn"
+                        style={{ height: 22, fontSize: 9.5 }}
+                      >
                         <i className="fa-solid fa-pen" />
                       </button>
                     </td>

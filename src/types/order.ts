@@ -1,6 +1,6 @@
 // CRUD_Project/app/client/src/types/order.ts
 
-import { Customer } from './customer';
+import { Customer } from "./customer";
 
 // Add this after the Customer import
 export interface CustomerSummary {
@@ -12,21 +12,21 @@ export interface CustomerSummary {
 
 export interface OrderItem {
   sku: string;
-  id?: string;                    // ✅ make optional
-  name?: string;                  // ✅ add this (mock uses name)
-  productName?: string;           // ✅ make optional
-  productSku?: string;            // ✅ make optional
+  id?: string; // ✅ make optional
+  name?: string; // ✅ add this (mock uses name)
+  productName?: string; // ✅ make optional
+  productSku?: string; // ✅ make optional
   variant?: {
     size?: string;
     color?: string;
     material?: string;
   };
-  qty?: number;                   // ✅ add this (mock uses qty)
-  quantity?: number;              // ✅ make optional
-  price?: number;                 // ✅ add this (mock uses price)
-  unitPrice?: number;             // ✅ make optional
+  qty?: number; // ✅ add this (mock uses qty)
+  quantity?: number; // ✅ make optional
+  price?: number; // ✅ add this (mock uses price)
+  unitPrice?: number; // ✅ make optional
   discount?: number;
-  subtotal?: number;              // ✅ make optional
+  subtotal?: number; // ✅ make optional
   imageUrl?: string;
 }
 
@@ -41,12 +41,25 @@ export interface Order {
   shippingCost: number;
   tax?: number;
   total: number; // final amount
-  paymentType: 'COD' | 'Prepaid';
-  paymentStatus: 'Pending' | 'Paid' | 'Refunded' | 'Failed';
-  paymentMethod?: 'Cash' | 'JazzCash' | 'EasyPaisa' | 'BankTransfer' | 'Card';
+  paymentType: "COD" | "Prepaid";
+  paymentStatus: "Pending" | "Paid" | "Refunded" | "Failed";
+  paymentMethod?: "Cash" | "JazzCash" | "EasyPaisa" | "BankTransfer" | "Card";
   transactionRef?: string;
-  channel: 'WhatsApp' | 'Shopify' | 'Manual' | 'Instagram' | 'Facebook' | 'WooCommerce';
-  status: 'Pending' | 'Confirmed' | 'Packed' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Returned';
+  channel:
+    | "WhatsApp"
+    | "Shopify"
+    | "Manual"
+    | "Instagram"
+    | "Facebook"
+    | "WooCommerce";
+  status:
+    | "Pending"
+    | "Confirmed"
+    | "Packed"
+    | "Shipped"
+    | "Delivered"
+    | "Cancelled"
+    | "Returned";
   courierId?: string;
   courierName?: string;
   trackingNumber?: string;
@@ -92,7 +105,7 @@ export interface Order {
   sourceIp?: string;
   userAgent?: string;
   tags?: string[];
-  priority: 'Low' | 'Normal' | 'High' | 'Urgent';
+  priority: "Low" | "Normal" | "High" | "Urgent";
   isFragile?: boolean;
   estimatedDeliveryDate?: string;
   actualDeliveryDate?: string;
@@ -107,13 +120,13 @@ export interface OrderSummary {
   customerName: string;
   customerPhone: string;
   total: number;
-  paymentType: Order['paymentType'];
-  status: Order['status'];
-  channel: Order['channel'];
+  paymentType: Order["paymentType"];
+  status: Order["status"];
+  channel: Order["channel"];
   createdAt: string;
   itemsCount: number;
   codAmount: number;
-  priority: Order['priority'];
+  priority: Order["priority"];
 }
 
 export interface CreateOrderInput {
@@ -145,13 +158,13 @@ export interface CreateOrderInput {
     country: string;
     landmark?: string;
   };
-  paymentType: Order['paymentType'];
-  channel: Order['channel'];
+  paymentType: Order["paymentType"];
+  channel: Order["channel"];
   notes?: string;
   shippingCost?: number;
   discount?: number;
   tax?: number;
-  priority?: Order['priority'];
+  priority?: Order["priority"];
   isFragile?: boolean;
   estimatedDeliveryDate?: string;
   tags?: string[];
@@ -159,8 +172,8 @@ export interface CreateOrderInput {
 
 export interface UpdateOrderInput extends Partial<CreateOrderInput> {
   id: string;
-  status?: Order['status'];
-  paymentStatus?: Order['paymentStatus'];
+  status?: Order["status"];
+  paymentStatus?: Order["paymentStatus"];
   courierId?: string;
   trackingNumber?: string;
   assignedTo?: string;
@@ -172,10 +185,10 @@ export interface UpdateOrderInput extends Partial<CreateOrderInput> {
 
 export interface OrderFilter {
   search?: string; // order number, customer name, phone
-  status?: Order['status'][];
-  paymentStatus?: Order['paymentStatus'][];
-  paymentType?: Order['paymentType'][];
-  channel?: Order['channel'][];
+  status?: Order["status"][];
+  paymentStatus?: Order["paymentStatus"][];
+  paymentType?: Order["paymentType"][];
+  channel?: Order["channel"][];
   dateFrom?: string;
   dateTo?: string;
   minTotal?: number;
@@ -184,7 +197,7 @@ export interface OrderFilter {
   customerId?: string;
   courierId?: string;
   assignedTo?: string;
-  priority?: Order['priority'][];
+  priority?: Order["priority"][];
   tags?: string[];
   hasTracking?: boolean;
   isOverdue?: boolean;
@@ -192,9 +205,9 @@ export interface OrderFilter {
 
 export interface OrderStats {
   total: number;
-  byStatus: Record<Order['status'], number>;
-  byPaymentType: Record<Order['paymentType'], number>;
-  byChannel: Record<Order['channel'], number>;
+  byStatus: Record<Order["status"], number>;
+  byPaymentType: Record<Order["paymentType"], number>;
+  byChannel: Record<Order["channel"], number>;
   totalRevenue: number;
   codRevenue: number;
   prepaidRevenue: number;
@@ -207,7 +220,7 @@ export interface OrderStats {
 
 export interface OrderTimelineEvent {
   timestamp: string;
-  status: Order['status'];
+  status: Order["status"];
   updatedBy: string; // Staff name or "System"
   notes?: string;
   metadata?: Record<string, unknown>;

@@ -1,8 +1,8 @@
- // ─── components/dashboard/IntegrationsSection.tsx ────────────
+// ─── components/dashboard/IntegrationsSection.tsx ────────────
 
-import React, { useMemo } from 'react';
-import { IntegrationItem } from '../../types/dashboard';
-import IntegrationCard from './IntegrationCard';
+import React, { useMemo } from "react";
+import { IntegrationItem } from "../../types/dashboard";
+import IntegrationCard from "./IntegrationCard";
 
 interface IntegrationsSectionProps {
   ecommerce: IntegrationItem[];
@@ -14,29 +14,40 @@ interface IntegrationsSectionProps {
 
 // We count the initial stats from the data; the cards manage their own state.
 // A more complex app would lift the state up; for this scope, we compute from initial values.
-function countByStatus(items: IntegrationItem[], status: IntegrationItem['initialStatus']) {
+function countByStatus(
+  items: IntegrationItem[],
+  status: IntegrationItem["initialStatus"],
+) {
   return items.filter((i) => i.initialStatus === status).length;
 }
 
 const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
-  ecommerce, couriers, payments, comms, onSettings,
+  ecommerce,
+  couriers,
+  payments,
+  comms,
+  onSettings,
 }) => {
   const all = [...ecommerce, ...couriers, ...payments, ...comms];
 
-  const { connected, error, notConnected } = useMemo(() => ({
-    connected:    countByStatus(all, 'live'),
-    error:        countByStatus(all, 'error'),
-    notConnected: countByStatus(all, 'disconnected'),
-  }), [all]);
+  const { connected, error, notConnected } = useMemo(
+    () => ({
+      connected: countByStatus(all, "live"),
+      error: countByStatus(all, "error"),
+      notConnected: countByStatus(all, "disconnected"),
+    }),
+    [all],
+  );
 
   return (
-    <section style={{ marginTop: '6px' }}>
+    <section style={{ marginTop: "6px" }}>
       {/* Section header */}
       <div className="d-section-header">
         <div>
           <div className="d-section-title">API Integrations</div>
           <div className="d-section-desc">
-            Connect platforms, couriers, and payment gateways to automate your operations end-to-end.
+            Connect platforms, couriers, and payment gateways to automate your
+            operations end-to-end.
           </div>
         </div>
         <button className="d-btn" onClick={onSettings}>
@@ -47,23 +58,34 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
       {/* Status strip */}
       <div className="d-status-strip">
         <div className="d-status-chip connected">
-          <div className="d-status-chip-dot" style={{ background: 'var(--green)' }} />
+          <div
+            className="d-status-chip-dot"
+            style={{ background: "var(--green)" }}
+          />
           {connected} Connected
         </div>
         {error > 0 && (
           <div className="d-status-chip error">
-            <div className="d-status-chip-dot" style={{ background: 'var(--red)' }} />
+            <div
+              className="d-status-chip-dot"
+              style={{ background: "var(--red)" }}
+            />
             {error} Error
           </div>
         )}
         <div className="d-status-chip pending">
-          <div className="d-status-chip-dot" style={{ background: 'var(--text-faint)' }} />
+          <div
+            className="d-status-chip-dot"
+            style={{ background: "var(--text-faint)" }}
+          />
           {notConnected} Not Connected
         </div>
       </div>
 
       {/* E-Commerce */}
-      <div className="d-divider"><span>E-Commerce Platforms</span></div>
+      <div className="d-divider">
+        <span>E-Commerce Platforms</span>
+      </div>
       <div className="d-int-grid">
         {ecommerce.map((item) => (
           <IntegrationCard key={item.id} item={item} onFixKey={onSettings} />
@@ -71,7 +93,9 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
       </div>
 
       {/* Courier APIs */}
-      <div className="d-divider"><span>Courier APIs &amp; Tracking</span></div>
+      <div className="d-divider">
+        <span>Courier APIs &amp; Tracking</span>
+      </div>
       <div className="d-int-grid">
         {couriers.map((item) => (
           <IntegrationCard key={item.id} item={item} onFixKey={onSettings} />
@@ -79,7 +103,9 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
       </div>
 
       {/* Payment Gateways */}
-      <div className="d-divider"><span>Payment Gateways</span></div>
+      <div className="d-divider">
+        <span>Payment Gateways</span>
+      </div>
       <div className="d-int-grid">
         {payments.map((item) => (
           <IntegrationCard key={item.id} item={item} onFixKey={onSettings} />
@@ -87,7 +113,9 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({
       </div>
 
       {/* Communication & HR */}
-      <div className="d-divider"><span>Communication &amp; HR Tools</span></div>
+      <div className="d-divider">
+        <span>Communication &amp; HR Tools</span>
+      </div>
       <div className="d-int-grid">
         {comms.map((item) => (
           <IntegrationCard key={item.id} item={item} onFixKey={onSettings} />

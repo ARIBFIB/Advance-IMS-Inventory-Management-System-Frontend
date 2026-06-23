@@ -2,11 +2,11 @@
 // ProgBar.tsx — Reusable progress bar
 // ═══════════════════════════════════════════════════════════
 
-import React from 'react';
+import React from "react";
 
 interface Props {
   pct: number;
-  fill: string;   // 'green' | 'yellow' | 'red'
+  fill: string; // 'green' | 'yellow' | 'red'
   width?: number;
 }
 

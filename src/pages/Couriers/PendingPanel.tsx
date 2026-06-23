@@ -1,7 +1,15 @@
 // PendingPanel.tsx — dynamic
-import React, { useState, useEffect, useCallback } from 'react';
-import { ApiShipment, ApiCourier, Badge, EmptyState, TableSkeleton, CPagination, ApiPagination } from './shared';
-import { shipmentsAPI, couriersAPI, ordersAPI } from '../../services/api';
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  ApiShipment,
+  ApiCourier,
+  Badge,
+  EmptyState,
+  TableSkeleton,
+  CPagination,
+  ApiPagination,
+} from "./shared";
+import { shipmentsAPI, couriersAPI, ordersAPI } from "../../services/api";
 
 /* ─── Bulk Assign Drawer ─────────────────────────────────────────────── */
 const drawerStyles = `
@@ -24,53 +32,92 @@ const drawerStyles = `
   .bulk-summary-row{display:flex;justify-content:space-between;font-size:11px;color:var(--text-secondary,#555)}
 `;
 
-interface BulkDrawerProps { open: boolean; onClose: () => void; selected: ApiShipment[]; couriers: ApiCourier[]; onDispatched: () => void; }
+interface BulkDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  selected: ApiShipment[];
+  couriers: ApiCourier[];
+  onDispatched: () => void;
+}
 
-const BulkAssignDrawer: React.FC<BulkDrawerProps> = ({ open, onClose, selected, couriers, onDispatched }) => {
-  const [selectedCourierId, setSelectedCourierId] = useState('');
-  const [notes,             setNotes]             = useState('');
-  const [dispatching,       setDispatching]        = useState(false);
-  const [err,               setErr]               = useState('');
+const BulkAssignDrawer: React.FC<BulkDrawerProps> = ({
+  open,
+  onClose,
+  selected,
+  couriers,
+  onDispatched,
+}) => {
+  const [selectedCourierId, setSelectedCourierId] = useState("");
+  const [notes, setNotes] = useState("");
+  const [dispatching, setDispatching] = useState(false);
+  const [err, setErr] = useState("");
 
   const handleDispatch = async () => {
-    if (!selectedCourierId) { setErr('Select a courier.'); return; }
-    setDispatching(true); setErr('');
+    if (!selectedCourierId) {
+      setErr("Select a courier.");
+      return;
+    }
+    setDispatching(true);
+    setErr("");
     try {
-      await Promise.all(selected.map(s =>
-        couriersAPI.assignToOrder(selectedCourierId, {
-          orderId: s.order ?? s._id,
-          serviceType: 'Standard',
-          specialInstructions: notes || undefined,
-        }).catch(() => {})
-      ));
-      onDispatched(); onClose();
-    } catch (e: any) { setErr(e?.response?.data?.message ?? 'Dispatch failed.'); }
-    finally { setDispatching(false); }
+      await Promise.all(
+        selected.map((s) =>
+          couriersAPI
+            .assignToOrder(selectedCourierId, {
+              orderId: s.order ?? s._id,
+              serviceType: "Standard",
+              specialInstructions: notes || undefined,
+            })
+            .catch(() => {}),
+        ),
+      );
+      onDispatched();
+      onClose();
+    } catch (e: any) {
+      setErr(e?.response?.data?.message ?? "Dispatch failed.");
+    } finally {
+      setDispatching(false);
+    }
   };
 
   return (
     <>
       <style>{drawerStyles}</style>
-      <div className={`bulk-overlay ${open ? 'open' : ''}`} onClick={onClose} />
-      <div className={`bulk-drawer ${open ? 'open' : ''}`}>
+      <div className={`bulk-overlay ${open ? "open" : ""}`} onClick={onClose} />
+      <div className={`bulk-drawer ${open ? "open" : ""}`}>
         <div className="bulk-drawer-header">
-          <div className="bulk-drawer-title"><i className="fa-solid fa-truck" style={{ color: 'var(--accent)' }} /> Bulk Assign Courier</div>
-          <button className="bulk-drawer-close" onClick={onClose}><i className="fa-solid fa-xmark" /></button>
+          <div className="bulk-drawer-title">
+            <i
+              className="fa-solid fa-truck"
+              style={{ color: "var(--accent)" }}
+            />{" "}
+            Bulk Assign Courier
+          </div>
+          <button className="bulk-drawer-close" onClick={onClose}>
+            <i className="fa-solid fa-xmark" />
+          </button>
         </div>
         <div className="bulk-drawer-body">
-          {err && <div className="alert-strip danger" style={{ margin: 0 }}><i className="fa-solid fa-circle-exclamation" /> {err}</div>}
+          {err && (
+            <div className="alert-strip danger" style={{ margin: 0 }}>
+              <i className="fa-solid fa-circle-exclamation" /> {err}
+            </div>
+          )}
 
           <div>
             <div className="bulk-section-title" style={{ marginBottom: 8 }}>
               Orders to Dispatch ({selected.length})
             </div>
             <div className="bulk-order-list">
-              {selected.map(s => (
+              {selected.map((s) => (
                 <div className="bulk-order-item" key={s._id}>
                   <div>
-                    <div style={{ fontWeight: 700 }}>{s.orderReference ?? s.orderId ?? '—'}</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: 10 }}>
-                      {s.customer?.name ?? s.customer?.fullName ?? '—'} · {s.shippingAddress?.city ?? '—'}
+                    <div style={{ fontWeight: 700 }}>
+                      {s.orderReference ?? s.orderId ?? "—"}
+                    </div>
+                    <div style={{ color: "var(--text-muted)", fontSize: 10 }}>
+                      {s.customer?.name ?? s.customer?.fullName ?? "—"} ·{" "}
+                      {s.shippingAddress?.city ?? "—"}
                     </div>
                   </div>
                   <Badge label={s.currentStatus} />
@@ -80,41 +127,79 @@ const BulkAssignDrawer: React.FC<BulkDrawerProps> = ({ open, onClose, selected, 
           </div>
 
           <div>
-            <div className="bulk-section-title" style={{ marginBottom: 8 }}>Select Courier</div>
+            <div className="bulk-section-title" style={{ marginBottom: 8 }}>
+              Select Courier
+            </div>
             <div className="bulk-courier-grid">
-              {couriers.filter(c => c.status !== 'Inactive').map(c => (
-                <div key={c._id} className={`bulk-courier-card ${selectedCourierId === c._id ? 'selected' : ''}`}
-                  onClick={() => setSelectedCourierId(c._id)}>
-                  <div style={{ fontSize: 12, fontWeight: 600 }}>
-                    {selectedCourierId === c._id && <i className="fa-solid fa-circle-check" style={{ color: 'var(--accent)', marginRight: 5 }} />}
-                    {c.name}
+              {couriers
+                .filter((c) => c.status !== "Inactive")
+                .map((c) => (
+                  <div
+                    key={c._id}
+                    className={`bulk-courier-card ${selectedCourierId === c._id ? "selected" : ""}`}
+                    onClick={() => setSelectedCourierId(c._id)}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 600 }}>
+                      {selectedCourierId === c._id && (
+                        <i
+                          className="fa-solid fa-circle-check"
+                          style={{ color: "var(--accent)", marginRight: 5 }}
+                        />
+                      )}
+                      {c.name}
+                    </div>
+                    <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
+                      {c.serviceRegions?.slice(0, 2).join(", ") ?? "Nationwide"}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                    {c.serviceRegions?.slice(0, 2).join(', ') ?? 'Nationwide'}
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
 
           <div>
-            <div className="bulk-section-title" style={{ marginBottom: 8 }}>Notes (optional)</div>
-            <textarea className="c-form-textarea" rows={3}
+            <div className="bulk-section-title" style={{ marginBottom: 8 }}>
+              Notes (optional)
+            </div>
+            <textarea
+              className="c-form-textarea"
+              rows={3}
               placeholder="Special handling instructions…"
-              value={notes} onChange={e => setNotes(e.target.value)} />
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
           </div>
 
           <div className="bulk-summary-box">
-            <div className="bulk-section-title" style={{ marginBottom: 4 }}>Summary</div>
-            <div className="bulk-summary-row"><span>Total orders</span><strong>{selected.length}</strong></div>
-            <div className="bulk-summary-row"><span>Assigned courier</span><strong>{couriers.find(c => c._id === selectedCourierId)?.name ?? '—'}</strong></div>
+            <div className="bulk-section-title" style={{ marginBottom: 4 }}>
+              Summary
+            </div>
+            <div className="bulk-summary-row">
+              <span>Total orders</span>
+              <strong>{selected.length}</strong>
+            </div>
+            <div className="bulk-summary-row">
+              <span>Assigned courier</span>
+              <strong>
+                {couriers.find((c) => c._id === selectedCourierId)?.name ?? "—"}
+              </strong>
+            </div>
           </div>
         </div>
         <div className="bulk-drawer-footer">
-          <button className="c-btn primary" style={{ flex: 1 }} disabled={!selectedCourierId || dispatching} onClick={handleDispatch}>
-            <i className={`fa-solid ${dispatching ? 'fa-spinner fa-spin' : 'fa-truck'}`} /> {dispatching ? 'Dispatching…' : 'Dispatch All'}
+          <button
+            className="c-btn primary"
+            style={{ flex: 1 }}
+            disabled={!selectedCourierId || dispatching}
+            onClick={handleDispatch}
+          >
+            <i
+              className={`fa-solid ${dispatching ? "fa-spinner fa-spin" : "fa-truck"}`}
+            />{" "}
+            {dispatching ? "Dispatching…" : "Dispatch All"}
           </button>
-          <button className="c-btn" onClick={onClose}>Cancel</button>
+          <button className="c-btn" onClick={onClose}>
+            Cancel
+          </button>
         </div>
       </div>
     </>
@@ -123,45 +208,74 @@ const BulkAssignDrawer: React.FC<BulkDrawerProps> = ({ open, onClose, selected, 
 
 /* ─── Main Panel ─────────────────────────────────────────────────────── */
 const PendingPanel: React.FC = () => {
-  const [shipments,  setShipments]  = useState<ApiShipment[]>([]);
-  const [couriers,   setCouriers]   = useState<ApiCourier[]>([]);
-  const [pagination, setPagination] = useState<ApiPagination>({ currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 10 });
-  const [loading,    setLoading]    = useState(false);
-  const [error,      setError]      = useState('');
-  const [search,     setSearch]     = useState('');
-  const [page,       setPage]       = useState(1);
-  const [selected,   setSelected]   = useState<Set<string>>(new Set());
+  const [shipments, setShipments] = useState<ApiShipment[]>([]);
+  const [couriers, setCouriers] = useState<ApiCourier[]>([]);
+  const [pagination, setPagination] = useState<ApiPagination>({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 10,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [dispatching,setDispatching]= useState<string | null>(null);
+  const [dispatching, setDispatching] = useState<string | null>(null);
   const PER_PAGE = 10;
 
   const fetchData = useCallback(async () => {
-    setLoading(true); setError('');
+    setLoading(true);
+    setError("");
     try {
-      const params: Record<string, any> = { page, limit: PER_PAGE, status: 'assigned' };
+      const params: Record<string, any> = {
+        page,
+        limit: PER_PAGE,
+        status: "assigned",
+      };
       if (search) params.search = search;
       const [sRes, cRes] = await Promise.allSettled([
         shipmentsAPI.getAll(params),
         couriersAPI.getAll({ limit: 50 }),
       ]);
-      if (sRes.status === 'fulfilled') {
+      if (sRes.status === "fulfilled") {
         const d = sRes.value.data?.data;
         setShipments(d?.shipments ?? []);
-        setPagination(d?.pagination ?? { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: PER_PAGE });
+        setPagination(
+          d?.pagination ?? {
+            currentPage: 1,
+            totalPages: 1,
+            totalItems: 0,
+            itemsPerPage: PER_PAGE,
+          },
+        );
       }
-      if (cRes.status === 'fulfilled') setCouriers(cRes.value.data?.data?.couriers ?? []);
-    } catch (e: any) { setError(e?.response?.data?.message ?? 'Failed to load pending orders.'); }
-    finally { setLoading(false); }
+      if (cRes.status === "fulfilled")
+        setCouriers(cRes.value.data?.data?.couriers ?? []);
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Failed to load pending orders.");
+    } finally {
+      setLoading(false);
+    }
   }, [page, search]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  const toggleSelect = (id: string) => setSelected(prev => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
-  const toggleAll = () => setSelected(prev => prev.size === shipments.length ? new Set() : new Set(shipments.map(s => s._id)));
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const toggleAll = () =>
+    setSelected((prev) =>
+      prev.size === shipments.length
+        ? new Set()
+        : new Set(shipments.map((s) => s._id)),
+    );
 
   const handleDispatchOne = async (s: ApiShipment, courierId: string) => {
     if (!courierId) return;
@@ -169,17 +283,20 @@ const PendingPanel: React.FC = () => {
     try {
       await couriersAPI.assignToOrder(courierId, {
         orderId: s.order ?? s._id,
-        serviceType: 'Standard',
+        serviceType: "Standard",
       });
       fetchData();
-    } catch (e: any) { alert(e?.response?.data?.message ?? 'Dispatch failed.'); }
-    finally { setDispatching(null); }
+    } catch (e: any) {
+      alert(e?.response?.data?.message ?? "Dispatch failed.");
+    } finally {
+      setDispatching(null);
+    }
   };
 
-  const selectedShipments = shipments.filter(s => selected.has(s._id));
+  const selectedShipments = shipments.filter((s) => selected.has(s._id));
   const { currentPage, totalPages, totalItems } = pagination;
   const start = (currentPage - 1) * PER_PAGE + 1;
-  const end   = Math.min(currentPage * PER_PAGE, totalItems);
+  const end = Math.min(currentPage * PER_PAGE, totalItems);
 
   return (
     <>
@@ -188,13 +305,16 @@ const PendingPanel: React.FC = () => {
         onClose={() => setDrawerOpen(false)}
         selected={selectedShipments}
         couriers={couriers}
-        onDispatched={() => { setSelected(new Set()); fetchData(); }}
+        onDispatched={() => {
+          setSelected(new Set());
+          fetchData();
+        }}
       />
 
       <div className="panel-heading">Pending Dispatch</div>
       <div className="panel-desc">
-        Shipments assigned but not yet picked up. Assign a courier and dispatch — overdue orders
-        are highlighted.
+        Shipments assigned but not yet picked up. Assign a courier and dispatch
+        — overdue orders are highlighted.
       </div>
 
       {totalItems > 0 && (
@@ -209,13 +329,25 @@ const PendingPanel: React.FC = () => {
           <div className="c-toolbar-left">
             <div className="c-search">
               <i className="fa-solid fa-magnifying-glass" />
-              <input placeholder="Search order or customer…" value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }} />
+              <input
+                placeholder="Search order or customer…"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
             </div>
           </div>
           <div className="c-toolbar-right">
-            <button className="c-btn" onClick={fetchData}><i className="fa-solid fa-rotate" /> Refresh</button>
-            <button className="c-btn primary" disabled={selected.size === 0} onClick={() => setDrawerOpen(true)}>
+            <button className="c-btn" onClick={fetchData}>
+              <i className="fa-solid fa-rotate" /> Refresh
+            </button>
+            <button
+              className="c-btn primary"
+              disabled={selected.size === 0}
+              onClick={() => setDrawerOpen(true)}
+            >
               <i className="fa-solid fa-truck" /> Bulk Assign ({selected.size})
             </button>
           </div>
@@ -225,61 +357,149 @@ const PendingPanel: React.FC = () => {
           <table>
             <thead>
               <tr>
-                <th><input type="checkbox" checked={selected.size === shipments.length && shipments.length > 0} onChange={toggleAll} /></th>
-                <th>Order</th><th>Tracking No.</th><th>Customer</th><th>City</th>
-                <th>COD Amount</th><th>Created</th><th>Status</th><th>Assign Courier</th><th>Actions</th>
+                <th>
+                  <input
+                    type="checkbox"
+                    checked={
+                      selected.size === shipments.length && shipments.length > 0
+                    }
+                    onChange={toggleAll}
+                  />
+                </th>
+                <th>Order</th>
+                <th>Tracking No.</th>
+                <th>Customer</th>
+                <th>City</th>
+                <th>COD Amount</th>
+                <th>Created</th>
+                <th>Status</th>
+                <th>Assign Courier</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <TableSkeleton rows={5} cols={10} />
               ) : error ? (
-                <tr><td colSpan={10} style={{ textAlign: 'center', padding: 24, color: 'var(--red)' }}>
-                  <i className="fa-solid fa-circle-exclamation" /> {error}
-                  <button className="c-btn" style={{ marginLeft: 8 }} onClick={fetchData}>Retry</button>
-                </td></tr>
-              ) : shipments.length === 0 ? (
-                <tr><td colSpan={10}><EmptyState icon="fa-clock" title="No pending shipments" desc="All shipments have been dispatched." /></td></tr>
-              ) : shipments.map(s => (
-                <tr key={s._id}>
-                  <td><input type="checkbox" checked={selected.has(s._id)} onChange={() => toggleSelect(s._id)} /></td>
-                  <td><strong>{s.orderReference ?? s.orderId ?? '—'}</strong></td>
-                  <td><code className="sku">{s.trackingNumber ?? '—'}</code></td>
-                  <td>{s.customer?.name ?? s.customer?.fullName ?? '—'}</td>
-                  <td>{s.shippingAddress?.city ?? '—'}</td>
-                  <td><strong>{s.codAmount != null ? `₨${Number(s.codAmount).toLocaleString()}` : '—'}</strong></td>
-                  <td style={{ fontSize: 10 }}>{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '—'}</td>
-                  <td><Badge label={s.currentStatus} /></td>
-                  <td>
-                    <select data-id={s._id} className="c-form-select" style={{ height: 24, fontSize: 10, minWidth: 130 }}
-                      defaultValue=""
-                      onChange={e => e.target.value && handleDispatchOne(s, e.target.value)}>
-                      <option value="">— Assign —</option>
-                      {couriers.filter(c => c.status !== 'Inactive').map(c => (
-                        <option key={c._id} value={c._id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    {dispatching === s._id ? (
-                      <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--accent)' }} />
-                    ) : (
-                      <button className="c-btn primary" style={{ height: 24, fontSize: 9.5 }}
-                        onClick={() => {
-                          const sel = document.querySelector<HTMLSelectElement>(`select[data-id="${s._id}"]`);
-                          if (sel?.value) handleDispatchOne(s, sel.value);
-                        }}>
-                        <i className="fa-solid fa-truck" /> Dispatch
-                      </button>
-                    )}
+                <tr>
+                  <td
+                    colSpan={10}
+                    style={{
+                      textAlign: "center",
+                      padding: 24,
+                      color: "var(--red)",
+                    }}
+                  >
+                    <i className="fa-solid fa-circle-exclamation" /> {error}
+                    <button
+                      className="c-btn"
+                      style={{ marginLeft: 8 }}
+                      onClick={fetchData}
+                    >
+                      Retry
+                    </button>
                   </td>
                 </tr>
-              ))}
+              ) : shipments.length === 0 ? (
+                <tr>
+                  <td colSpan={10}>
+                    <EmptyState
+                      icon="fa-clock"
+                      title="No pending shipments"
+                      desc="All shipments have been dispatched."
+                    />
+                  </td>
+                </tr>
+              ) : (
+                shipments.map((s) => (
+                  <tr key={s._id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(s._id)}
+                        onChange={() => toggleSelect(s._id)}
+                      />
+                    </td>
+                    <td>
+                      <strong>{s.orderReference ?? s.orderId ?? "—"}</strong>
+                    </td>
+                    <td>
+                      <code className="sku">{s.trackingNumber ?? "—"}</code>
+                    </td>
+                    <td>{s.customer?.name ?? s.customer?.fullName ?? "—"}</td>
+                    <td>{s.shippingAddress?.city ?? "—"}</td>
+                    <td>
+                      <strong>
+                        {s.codAmount != null
+                          ? `₨${Number(s.codAmount).toLocaleString()}`
+                          : "—"}
+                      </strong>
+                    </td>
+                    <td style={{ fontSize: 10 }}>
+                      {s.createdAt
+                        ? new Date(s.createdAt).toLocaleDateString()
+                        : "—"}
+                    </td>
+                    <td>
+                      <Badge label={s.currentStatus} />
+                    </td>
+                    <td>
+                      <select
+                        data-id={s._id}
+                        className="c-form-select"
+                        style={{ height: 24, fontSize: 10, minWidth: 130 }}
+                        defaultValue=""
+                        onChange={(e) =>
+                          e.target.value && handleDispatchOne(s, e.target.value)
+                        }
+                      >
+                        <option value="">— Assign —</option>
+                        {couriers
+                          .filter((c) => c.status !== "Inactive")
+                          .map((c) => (
+                            <option key={c._id} value={c._id}>
+                              {c.name}
+                            </option>
+                          ))}
+                      </select>
+                    </td>
+                    <td>
+                      {dispatching === s._id ? (
+                        <i
+                          className="fa-solid fa-spinner fa-spin"
+                          style={{ color: "var(--accent)" }}
+                        />
+                      ) : (
+                        <button
+                          className="c-btn primary"
+                          style={{ height: 24, fontSize: 9.5 }}
+                          onClick={() => {
+                            const sel =
+                              document.querySelector<HTMLSelectElement>(
+                                `select[data-id="${s._id}"]`,
+                              );
+                            if (sel?.value) handleDispatchOne(s, sel.value);
+                          }}
+                        >
+                          <i className="fa-solid fa-truck" /> Dispatch
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
-        <CPagination current={currentPage} total={totalPages} totalItems={totalItems} start={start} end={end} onChange={setPage} />
+        <CPagination
+          current={currentPage}
+          total={totalPages}
+          totalItems={totalItems}
+          start={start}
+          end={end}
+          onChange={setPage}
+        />
       </div>
     </>
   );

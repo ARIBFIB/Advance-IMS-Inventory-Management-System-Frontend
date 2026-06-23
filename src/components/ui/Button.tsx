@@ -1,8 +1,8 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { Link } from "react-router-dom";
 
 interface ButtonProps {
-  variant?: 'primary' | 'outline' | 'lg-primary' | 'lg-outline';
+  variant?: "primary" | "outline" | "lg-primary" | "lg-outline";
   href?: string;
   to?: string;
   onClick?: () => void;
@@ -12,23 +12,24 @@ interface ButtonProps {
 }
 
 export const Button: React.FC<ButtonProps> = ({
-  variant = 'primary',
+  variant = "primary",
   href,
   to,
   onClick,
   children,
   icon,
-  className = '',
+  className = "",
 }) => {
-  const baseClasses = 'btn';
+  const baseClasses = "btn";
   const variantClasses = {
-    primary: 'btn-accent',
-    outline: 'btn-outline',
-    'lg-primary': 'btn-lg btn-lg-accent',
-    'lg-outline': 'btn-lg btn-lg-outline',
+    primary: "btn-accent",
+    outline: "btn-outline",
+    "lg-primary": "btn-lg btn-lg-accent",
+    "lg-outline": "btn-lg btn-lg-outline",
   };
 
-  const classes = `${baseClasses} ${variantClasses[variant]} ${className}`.trim();
+  const classes =
+    `${baseClasses} ${variantClasses[variant]} ${className}`.trim();
 
   const content = (
     <>

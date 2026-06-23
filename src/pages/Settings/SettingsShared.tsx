@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 // ── ToggleSwitch ───────────────────────────────────────────
 
@@ -7,14 +7,20 @@ interface ToggleSwitchProps {
   onChange?: (v: boolean) => void;
 }
 
-export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ checked = false, onChange }) => {
+export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
+  checked = false,
+  onChange,
+}) => {
   const [on, setOn] = useState(checked);
   return (
     <label className="toggle-switch">
       <input
         type="checkbox"
         checked={on}
-        onChange={e => { setOn(e.target.checked); onChange?.(e.target.checked); }}
+        onChange={(e) => {
+          setOn(e.target.checked);
+          onChange?.(e.target.checked);
+        }}
       />
       <span className="toggle-track" />
     </label>
@@ -24,7 +30,9 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ checked = false, onC
 // ── SectionDivider ─────────────────────────────────────────
 
 export const SectionDivider: React.FC<{ label: string }> = ({ label }) => (
-  <div className="section-divider"><span>{label}</span></div>
+  <div className="section-divider">
+    <span>{label}</span>
+  </div>
 );
 
 // ── StgToggleRow ───────────────────────────────────────────
@@ -35,7 +43,11 @@ interface StgToggleRowProps {
   defaultChecked?: boolean;
 }
 
-export const StgToggleRow: React.FC<StgToggleRowProps> = ({ label, desc, defaultChecked = false }) => (
+export const StgToggleRow: React.FC<StgToggleRowProps> = ({
+  label,
+  desc,
+  defaultChecked = false,
+}) => (
   <div className="stg-row">
     <div>
       <div className="stg-key">{label}</div>
@@ -54,7 +66,9 @@ interface StgRowProps {
 
 export const StgRow: React.FC<StgRowProps> = ({ label, children }) => (
   <div className="stg-row">
-    <div><div className="stg-key">{label}</div></div>
+    <div>
+      <div className="stg-key">{label}</div>
+    </div>
     {children}
   </div>
 );

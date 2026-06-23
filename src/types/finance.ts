@@ -34,25 +34,25 @@ export interface UserRef {
 
 /** Categories accepted by POST /api/expenses */
 export type ExpenseCategoryName =
-  | 'Shipping'
-  | 'Marketing'
-  | 'Utilities'
-  | 'Salaries'
-  | 'Supplies'
-  | 'Software'
-  | 'Other';
+  | "Shipping"
+  | "Marketing"
+  | "Utilities"
+  | "Salaries"
+  | "Supplies"
+  | "Software"
+  | "Other";
 
-export type ExpenseStatus = 'Active' | 'Cancelled';
+export type ExpenseStatus = "Active" | "Cancelled";
 
 /** Single expense record returned by GET /api/expenses and GET /api/expenses/:id */
 export interface ApiExpense {
   _id: string;
-  date: string;                   // ISO date string
+  date: string; // ISO date string
   amount: number;
   category: ExpenseCategoryName;
   description: string;
   status: ExpenseStatus;
-  attachments?: string[];         // Cloudinary URLs
+  attachments?: string[]; // Cloudinary URLs
   recordedBy: UserRef;
   createdAt?: string;
   updatedAt?: string;
@@ -60,7 +60,7 @@ export interface ApiExpense {
 
 /** POST /api/expenses body */
 export interface CreateExpensePayload {
-  date: string;                   // ISO date e.g. '2026-05-11'
+  date: string; // ISO date e.g. '2026-05-11'
   amount: number;
   category: ExpenseCategoryName;
   description: string;
@@ -122,8 +122,13 @@ export interface ExpenseAnalyticsResponse {
 // SUPPLIERS  —  /api/suppliers
 // ═══════════════════════════════════════════════════════════
 
-export type SupplierPaymentTerms = 'Net 15' | 'Net 30' | 'Net 60' | 'Net 90' | 'Immediate';
-export type SupplierBalanceStatus = 'cleared' | 'low' | 'medium' | 'high';
+export type SupplierPaymentTerms =
+  | "Net 15"
+  | "Net 30"
+  | "Net 60"
+  | "Net 90"
+  | "Immediate";
+export type SupplierBalanceStatus = "cleared" | "low" | "medium" | "high";
 
 /** Supplier record returned by API */
 export interface ApiSupplier {
@@ -190,11 +195,11 @@ export interface SupplierPaymentsSummaryResponse {
 // ═══════════════════════════════════════════════════════════
 
 export type SupplierPaymentMethod =
-  | 'Bank Transfer'
-  | 'Cash'
-  | 'Cheque'
-  | 'Online'
-  | 'Other';
+  | "Bank Transfer"
+  | "Cash"
+  | "Cheque"
+  | "Online"
+  | "Other";
 
 /** Single supplier payment record */
 export interface ApiSupplierPayment {
@@ -233,7 +238,7 @@ export interface RecordSupplierPaymentPayload {
   amount: number;
   paymentMethod: SupplierPaymentMethod;
   referenceNumber?: string;
-  paymentDate: string;            // ISO date e.g. '2026-05-11'
+  paymentDate: string; // ISO date e.g. '2026-05-11'
   notes?: string;
   invoiceReference?: string;
 }
@@ -252,26 +257,31 @@ export interface RecordPaymentResponse {
 // ORDERS (COD / PREPAID)  —  /api/orders
 // ═══════════════════════════════════════════════════════════
 
-export type OrderPaymentMethod = 'COD' | 'Prepaid' | 'Card' | 'BankTransfer' | 'Wallet';
-export type OrderPaymentStatus = 'Pending' | 'Paid' | 'Partial' | 'Refunded';
+export type OrderPaymentMethod =
+  | "COD"
+  | "Prepaid"
+  | "Card"
+  | "BankTransfer"
+  | "Wallet";
+export type OrderPaymentStatus = "Pending" | "Paid" | "Partial" | "Refunded";
 export type OrderDeliveryStatus =
-  | 'Pending'
-  | 'Assigned'
-  | 'PickedUp'
-  | 'InTransit'
-  | 'OutForDelivery'
-  | 'Delivered'
-  | 'Failed'
-  | 'Returned';
+  | "Pending"
+  | "Assigned"
+  | "PickedUp"
+  | "InTransit"
+  | "OutForDelivery"
+  | "Delivered"
+  | "Failed"
+  | "Returned";
 export type OrderStatus =
-  | 'Pending'
-  | 'Confirmed'
-  | 'Processing'
-  | 'Packed'
-  | 'Shipped'
-  | 'Delivered'
-  | 'Cancelled'
-  | 'Returned';
+  | "Pending"
+  | "Confirmed"
+  | "Processing"
+  | "Packed"
+  | "Shipped"
+  | "Delivered"
+  | "Cancelled"
+  | "Returned";
 
 /** Order list item returned by GET /api/orders */
 export interface ApiOrderListItem {
@@ -352,11 +362,11 @@ export interface FinancialAnalyticsResponse {
 // ═══════════════════════════════════════════════════════════
 
 export type TransactionType =
-  | 'COD Collection'
-  | 'Prepaid'
-  | 'Expense'
-  | 'Supplier Payment'
-  | 'Rider Payout';
+  | "COD Collection"
+  | "Prepaid"
+  | "Expense"
+  | "Supplier Payment"
+  | "Rider Payout";
 
 /** @deprecated Use ApiExpense / ApiOrderListItem / ApiSupplierPayment instead */
 export interface FinanceEntry {
@@ -372,20 +382,20 @@ export interface FinanceEntry {
 
 // ── Finance page nav panel keys (UI only) ─────────────────
 export type NavPanel =
-  | 'overview'
-  | 'cod'
-  | 'cod-log'
-  | 'prepaid'
-  | 'expenses'
-  | 'exp-add'
-  | 'exp-categories'
-  | 'suppliers'
-  | 'sup-payments'
-  | 'sup-add'
-  | 'reports'
-  | 'pl'
-  | 'integrations'
-  | 'settings';
+  | "overview"
+  | "cod"
+  | "cod-log"
+  | "prepaid"
+  | "expenses"
+  | "exp-add"
+  | "exp-categories"
+  | "suppliers"
+  | "sup-payments"
+  | "sup-add"
+  | "reports"
+  | "pl"
+  | "integrations"
+  | "settings";
 
 export interface OverlayState {
   open: boolean;

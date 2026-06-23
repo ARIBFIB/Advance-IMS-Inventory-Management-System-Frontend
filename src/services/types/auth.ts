@@ -32,15 +32,15 @@ export interface UpdatePasswordPayload {
 // ── Auth Response Types ────────────────────────────────────
 
 export type UserRole =
-  | 'Administrator'
-  | 'OperationsManager'
-  | 'InventoryManager'
-  | 'SalesOperator'
-  | 'Accounts'
-  | 'CourierHandler'
-  | 'Rider';
+  | "Administrator"
+  | "OperationsManager"
+  | "InventoryManager"
+  | "SalesOperator"
+  | "Accounts"
+  | "CourierHandler"
+  | "Rider";
 
-export type UserStatus = 'Active' | 'Inactive' | 'Suspended';
+export type UserStatus = "Active" | "Inactive" | "Suspended";
 
 export interface AuthUser {
   _id: string;

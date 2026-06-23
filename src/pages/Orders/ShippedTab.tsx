@@ -1,6 +1,6 @@
 // ShippedTab.tsx — dynamic
-import React, { useState, useEffect, useCallback } from 'react';
-import { ordersAPI } from '../../services/api';
+import React, { useState, useEffect, useCallback } from "react";
+import { ordersAPI } from "../../services/api";
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface ApiOrder {
@@ -28,45 +28,83 @@ interface ApiPagination {
 
 /* ─── Helpers ────────────────────────────────────────────── */
 const fmt = (v: number) =>
-  '₨' + v.toLocaleString('en-PK', { maximumFractionDigits: 0 });
+  "₨" + v.toLocaleString("en-PK", { maximumFractionDigits: 0 });
 
 const fmtDate = (d: string) =>
-  new Date(d).toLocaleDateString('en-PK', {
-    day: '2-digit', month: 'short', year: 'numeric',
+  new Date(d).toLocaleDateString("en-PK", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
   });
 
-const Badge: React.FC<{ label: string; color: string }> = ({ label, color }) => (
-  <span style={{
-    display: 'inline-block', padding: '2px 8px', borderRadius: 99,
-    fontSize: 10, fontWeight: 700, letterSpacing: .4,
-    background: color + '18', color, border: `1px solid ${color}33`,
-  }}>{label}</span>
+const Badge: React.FC<{ label: string; color: string }> = ({
+  label,
+  color,
+}) => (
+  <span
+    style={{
+      display: "inline-block",
+      padding: "2px 8px",
+      borderRadius: 99,
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: 0.4,
+      background: color + "18",
+      color,
+      border: `1px solid ${color}33`,
+    }}
+  >
+    {label}
+  </span>
 );
 
 const payBadge = (s: string) => {
   const map: Record<string, string> = {
-    Paid: '#16a34a', Pending: '#d97706', Refunded: '#6366f1',
-    'Partially Paid': '#0891b2', Failed: '#dc2626',
+    Paid: "#16a34a",
+    Pending: "#d97706",
+    Refunded: "#6366f1",
+    "Partially Paid": "#0891b2",
+    Failed: "#dc2626",
   };
-  return <Badge label={s} color={map[s] ?? '#64748b'} />;
+  return <Badge label={s} color={map[s] ?? "#64748b"} />;
 };
 
 /* ─── Skeleton ───────────────────────────────────────────── */
 const TableSkeleton = () => (
-  <div style={{ padding: '12px 0' }}>
-    {[1, 2, 3, 4, 5].map(i => (
-      <div key={i} style={{
-        height: 44, background: 'var(--bg-2)', borderRadius: 6,
-        marginBottom: 6, opacity: 1 - i * 0.15,
-        animation: 'pulse 1.4s ease-in-out infinite',
-      }} />
+  <div style={{ padding: "12px 0" }}>
+    {[1, 2, 3, 4, 5].map((i) => (
+      <div
+        key={i}
+        style={{
+          height: 44,
+          background: "var(--bg-2)",
+          borderRadius: 6,
+          marginBottom: 6,
+          opacity: 1 - i * 0.15,
+          animation: "pulse 1.4s ease-in-out infinite",
+        }}
+      />
     ))}
   </div>
 );
 
 const EmptyState: React.FC<{ msg: string }> = ({ msg }) => (
-  <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>
-    <i className="fa-solid fa-truck" style={{ fontSize: 28, marginBottom: 10, display: 'block', opacity: .35 }} />
+  <div
+    style={{
+      textAlign: "center",
+      padding: "48px 0",
+      color: "var(--text-muted)",
+    }}
+  >
+    <i
+      className="fa-solid fa-truck"
+      style={{
+        fontSize: 28,
+        marginBottom: 10,
+        display: "block",
+        opacity: 0.35,
+      }}
+    />
     <div style={{ fontSize: 13 }}>{msg}</div>
   </div>
 );
@@ -122,29 +160,48 @@ const OrderDetailModal: React.FC<{
 
   return (
     <div className="st-modal-overlay" onClick={onClose}>
-      <div className="st-modal" onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div className="st-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
           <div>
             <div style={{ fontWeight: 700, fontSize: 14 }}>{order.orderId}</div>
-            <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>Shipment Detail</div>
+            <div
+              style={{ color: "var(--text-muted)", fontSize: 11, marginTop: 2 }}
+            >
+              Shipment Detail
+            </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-muted)', fontSize: 16 }}>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--text-muted)",
+              fontSize: 16,
+            }}
+          >
             <i className="fa-solid fa-xmark" />
           </button>
         </div>
 
         <div>
           {[
-            ['Customer', order.customer?.fullName ?? '—'],
-            ['Phone', order.customer?.phone ?? '—'],
-            ['City', order.shippingAddress?.city ?? '—'],
-            ['Courier', order.courier?.name ?? '—'],
-            ['Tracking #', order.trackingNumber ?? '—'],
-            ['Payment', order.paymentMethod],
-            ['Pay Status', order.paymentStatus],
-            ['Amount', fmt(order.totalAmount)],
-            ['Shipped On', fmtDate(order.createdAt)],
+            ["Customer", order.customer?.fullName ?? "—"],
+            ["Phone", order.customer?.phone ?? "—"],
+            ["City", order.shippingAddress?.city ?? "—"],
+            ["Courier", order.courier?.name ?? "—"],
+            ["Tracking #", order.trackingNumber ?? "—"],
+            ["Payment", order.paymentMethod],
+            ["Pay Status", order.paymentStatus],
+            ["Amount", fmt(order.totalAmount)],
+            ["Shipped On", fmtDate(order.createdAt)],
           ].map(([label, val]) => (
             <div className="st-detail-row" key={label as string}>
               <span className="st-detail-label">{label}</span>
@@ -153,16 +210,31 @@ const OrderDetailModal: React.FC<{
           ))}
         </div>
 
-        <div style={{ marginTop: 18, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button className="st-btn" onClick={onClose}>Close</button>
+        <div
+          style={{
+            marginTop: 18,
+            display: "flex",
+            gap: 8,
+            justifyContent: "flex-end",
+          }}
+        >
+          <button className="st-btn" onClick={onClose}>
+            Close
+          </button>
           <button
             className="st-btn st-btn-primary"
             onClick={handleDeliver}
             disabled={loading}
           >
-            {loading
-              ? <><i className="fa-solid fa-spinner fa-spin" /> Marking…</>
-              : <><i className="fa-solid fa-circle-check" /> Mark Delivered</>}
+            {loading ? (
+              <>
+                <i className="fa-solid fa-spinner fa-spin" /> Marking…
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-circle-check" /> Mark Delivered
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -172,15 +244,38 @@ const OrderDetailModal: React.FC<{
 
 /* ─── Pagination ─────────────────────────────────────────── */
 const CPagination: React.FC<{
-  p: ApiPagination; onPage: (n: number) => void;
+  p: ApiPagination;
+  onPage: (n: number) => void;
 }> = ({ p, onPage }) => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '10px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>
-    <span>Showing {(p.currentPage - 1) * p.itemsPerPage + 1}–
-      {Math.min(p.currentPage * p.itemsPerPage, p.totalItems)} of {p.totalItems}</span>
-    <div style={{ display: 'flex', gap: 4 }}>
-      <button className="st-btn" disabled={!p.hasPrev} onClick={() => onPage(p.currentPage - 1)}>‹ Prev</button>
-      <button className="st-btn" disabled={!p.hasNext} onClick={() => onPage(p.currentPage + 1)}>Next ›</button>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "10px 0 0",
+      fontSize: 11,
+      color: "var(--text-muted)",
+    }}
+  >
+    <span>
+      Showing {(p.currentPage - 1) * p.itemsPerPage + 1}–
+      {Math.min(p.currentPage * p.itemsPerPage, p.totalItems)} of {p.totalItems}
+    </span>
+    <div style={{ display: "flex", gap: 4 }}>
+      <button
+        className="st-btn"
+        disabled={!p.hasPrev}
+        onClick={() => onPage(p.currentPage - 1)}
+      >
+        ‹ Prev
+      </button>
+      <button
+        className="st-btn"
+        disabled={!p.hasNext}
+        onClick={() => onPage(p.currentPage + 1)}
+      >
+        Next ›
+      </button>
     </div>
   </div>
 );
@@ -191,12 +286,15 @@ const ShippedTab: React.FC = () => {
   const [pagination, setPagination] = useState<ApiPagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [detail, setDetail] = useState<ApiOrder | null>(null);
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{
+    msg: string;
+    type: "success" | "error";
+  } | null>(null);
 
-  const showToast = (msg: string, type: 'success' | 'error') => {
+  const showToast = (msg: string, type: "success" | "error") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   };
@@ -204,27 +302,44 @@ const ShippedTab: React.FC = () => {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await ordersAPI.getAll({ status: 'Shipped', page, limit: 15, search });
+      const res = await ordersAPI.getAll({
+        status: "Shipped",
+        page,
+        limit: 15,
+        search,
+      });
       setOrders(res.data?.data?.orders ?? []);
       setPagination(res.data?.data?.pagination ?? null);
     } catch {
-      showToast('Failed to load shipped orders.', 'error');
+      showToast("Failed to load shipped orders.", "error");
     } finally {
       setLoading(false);
     }
   }, [page, search]);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
-  const handleSearch = () => { setPage(1); setSearch(searchInput); };
+  const handleSearch = () => {
+    setPage(1);
+    setSearch(searchInput);
+  };
 
   const handleMarkDelivered = async (orderId: string) => {
     try {
-      await ordersAPI.updateStatus(orderId, 'Delivered', 'Marked delivered from Shipped tab');
-      showToast('Order marked as Delivered!', 'success');
+      await ordersAPI.updateStatus(
+        orderId,
+        "Delivered",
+        "Marked delivered from Shipped tab",
+      );
+      showToast("Order marked as Delivered!", "success");
       fetchOrders();
     } catch (e: any) {
-      showToast(e?.response?.data?.message ?? 'Failed to update status.', 'error');
+      showToast(
+        e?.response?.data?.message ?? "Failed to update status.",
+        "error",
+      );
       throw e;
     }
   };
@@ -234,39 +349,59 @@ const ShippedTab: React.FC = () => {
       <style>{styles}</style>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 14,
+        }}
+      >
         <div>
-          <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
-            <i className="fa-solid fa-truck-fast" style={{ color: '#6366f1', marginRight: 7 }} />
+          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>
+            <i
+              className="fa-solid fa-truck-fast"
+              style={{ color: "#6366f1", marginRight: 7 }}
+            />
             Shipped Orders
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+          <div
+            style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}
+          >
             Orders in transit — track and mark delivered.
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input
             className="st-search"
             placeholder="Search order or customer…"
             value={searchInput}
-            onChange={e => setSearchInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
           <button className="st-btn" onClick={handleSearch}>
             <i className="fa-solid fa-magnifying-glass" />
           </button>
-          <button className="st-btn" onClick={() => { setPage(1); fetchOrders(); }}>
+          <button
+            className="st-btn"
+            onClick={() => {
+              setPage(1);
+              fetchOrders();
+            }}
+          >
             <i className="fa-solid fa-rotate-right" /> Refresh
           </button>
         </div>
       </div>
 
       {/* Table */}
-      {loading ? <TableSkeleton /> : orders.length === 0 ? (
+      {loading ? (
+        <TableSkeleton />
+      ) : orders.length === 0 ? (
         <EmptyState msg="No shipped orders found." />
       ) : (
         <>
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: "auto" }}>
             <table className="st-table">
               <thead>
                 <tr>
@@ -282,34 +417,64 @@ const ShippedTab: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {orders.map(o => (
+                {orders.map((o) => (
                   <tr key={o._id}>
                     <td>
                       <span
                         onClick={() => setDetail(o)}
-                        style={{ color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', fontSize: 11 }}
-                      >{o.orderId}</span>
+                        style={{
+                          color: "var(--primary)",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          fontSize: 11,
+                        }}
+                      >
+                        {o.orderId}
+                      </span>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 600, fontSize: 12 }}>{o.customer?.fullName ?? '—'}</div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 10 }}>{o.customer?.phone ?? ''}</div>
+                      <div style={{ fontWeight: 600, fontSize: 12 }}>
+                        {o.customer?.fullName ?? "—"}
+                      </div>
+                      <div style={{ color: "var(--text-muted)", fontSize: 10 }}>
+                        {o.customer?.phone ?? ""}
+                      </div>
                     </td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{o.shippingAddress?.city ?? '—'}</td>
-                    <td style={{ fontSize: 11, fontWeight: 600 }}>{o.courier?.name ?? '—'}</td>
+                    <td style={{ color: "var(--text-muted)", fontSize: 11 }}>
+                      {o.shippingAddress?.city ?? "—"}
+                    </td>
+                    <td style={{ fontSize: 11, fontWeight: 600 }}>
+                      {o.courier?.name ?? "—"}
+                    </td>
                     <td>
-                      {o.trackingNumber
-                        ? <code style={{ fontSize: 10, background: 'var(--bg-2)', padding: '2px 6px', borderRadius: 4 }}>
-                            {o.trackingNumber}
-                          </code>
-                        : <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>—</span>}
+                      {o.trackingNumber ? (
+                        <code
+                          style={{
+                            fontSize: 10,
+                            background: "var(--bg-2)",
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          {o.trackingNumber}
+                        </code>
+                      ) : (
+                        <span
+                          style={{ color: "var(--text-muted)", fontSize: 10 }}
+                        >
+                          —
+                        </span>
+                      )}
                     </td>
                     <td style={{ fontWeight: 700 }}>{fmt(o.totalAmount)}</td>
                     <td>{payBadge(o.paymentStatus)}</td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: 11 }}>{fmtDate(o.createdAt)}</td>
+                    <td style={{ color: "var(--text-muted)", fontSize: 11 }}>
+                      {fmtDate(o.createdAt)}
+                    </td>
                     <td>
                       <button
                         className="st-btn st-btn-primary"
-                        style={{ fontSize: 10, padding: '4px 10px' }}
+                        style={{ fontSize: 10, padding: "4px 10px" }}
                         onClick={() => setDetail(o)}
                       >
                         <i className="fa-solid fa-circle-check" /> Deliver
@@ -336,7 +501,9 @@ const ShippedTab: React.FC = () => {
       {/* Toast */}
       {toast && (
         <div className={`st-toast ${toast.type}`}>
-          <i className={`fa-solid ${toast.type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}`} />
+          <i
+            className={`fa-solid ${toast.type === "success" ? "fa-circle-check" : "fa-circle-exclamation"}`}
+          />
           {toast.msg}
         </div>
       )}

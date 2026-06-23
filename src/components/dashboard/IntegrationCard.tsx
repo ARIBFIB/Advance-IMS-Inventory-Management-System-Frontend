@@ -1,75 +1,100 @@
 // ─── components/dashboard/IntegrationCard.tsx ────────────────
 
-import React, { useState } from 'react';
-import { IntegrationItem } from '../../types/dashboard';
+import React, { useState } from "react";
+import { IntegrationItem } from "../../types/dashboard";
 
-type IntStatus = 'live' | 'error' | 'disconnected' | 'loading';
+type IntStatus = "live" | "error" | "disconnected" | "loading";
 
 interface IntegrationCardProps {
   item: IntegrationItem;
   onFixKey?: () => void;
 }
 
-const IntegrationCard: React.FC<IntegrationCardProps> = ({ item, onFixKey }) => {
+const IntegrationCard: React.FC<IntegrationCardProps> = ({
+  item,
+  onFixKey,
+}) => {
   const [status, setStatus] = useState<IntStatus>(item.initialStatus);
-  const [meta, setMeta]     = useState(item.meta ?? '');
-  const [metaType, setMetaType] = useState(item.metaType ?? 'neutral');
+  const [meta, setMeta] = useState(item.meta ?? "");
+  const [metaType, setMetaType] = useState(item.metaType ?? "neutral");
 
   const handleConnect = () => {
-    setStatus('loading');
+    setStatus("loading");
     setTimeout(() => {
-      setStatus('live');
-      setMeta('Just connected');
-      setMetaType('ok');
+      setStatus("live");
+      setMeta("Just connected");
+      setMetaType("ok");
     }, 1500);
   };
 
   const handleDisconnect = () => {
-    setStatus('loading');
+    setStatus("loading");
     setTimeout(() => {
-      setStatus('disconnected');
-      setMeta('Disconnected');
-      setMetaType('neutral');
+      setStatus("disconnected");
+      setMeta("Disconnected");
+      setMetaType("neutral");
     }, 800);
   };
 
   const cardClass = [
-    'd-int-card',
-    status === 'live'  ? 'connected' : '',
-    status === 'error' ? 'error'     : '',
-  ].filter(Boolean).join(' ');
+    "d-int-card",
+    status === "live" ? "connected" : "",
+    status === "error" ? "error" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const renderBadge = () => {
-    if (status === 'loading') return <span className="d-badge gray"><i className="fa-solid fa-spinner fa-spin" /></span>;
-    if (status === 'live')    return <span className="d-badge green"><span className="d-pulse" />Live</span>;
-    if (status === 'error')   return <span className="d-badge red">API Error</span>;
+    if (status === "loading")
+      return (
+        <span className="d-badge gray">
+          <i className="fa-solid fa-spinner fa-spin" />
+        </span>
+      );
+    if (status === "live")
+      return (
+        <span className="d-badge green">
+          <span className="d-pulse" />
+          Live
+        </span>
+      );
+    if (status === "error")
+      return <span className="d-badge red">API Error</span>;
     return <span className="d-badge gray">Not Connected</span>;
   };
 
   const renderAction = () => {
-    if (status === 'loading') {
+    if (status === "loading") {
       return (
         <button className="d-btn sm" disabled>
           <i className="fa-solid fa-spinner fa-spin" />
         </button>
       );
     }
-    if (status === 'live') {
+    if (status === "live") {
       return (
         <button
           className="d-btn sm"
-          style={{ background: '#ECFDF5', borderColor: '#A7F3D0', color: '#059669' }}
+          style={{
+            background: "#ECFDF5",
+            borderColor: "#A7F3D0",
+            color: "#059669",
+          }}
           onClick={handleDisconnect}
         >
           <i className="fa-solid fa-circle-check" /> Connected
         </button>
       );
     }
-    if (status === 'error') {
+    if (status === "error") {
       return (
         <button
           className="d-btn sm"
-          style={{ background: '#FEF2F2', borderColor: '#FECACA', color: '#DC2626' }}
+          style={{
+            background: "#FEF2F2",
+            borderColor: "#FECACA",
+            color: "#DC2626",
+          }}
           onClick={onFixKey}
         >
           <i className="fa-solid fa-key" /> Fix Key
@@ -83,7 +108,7 @@ const IntegrationCard: React.FC<IntegrationCardProps> = ({ item, onFixKey }) => 
     );
   };
 
-  const metaClass = `d-int-meta${metaType === 'ok' ? ' ok' : metaType === 'err' ? ' err' : ''}`;
+  const metaClass = `d-int-meta${metaType === "ok" ? " ok" : metaType === "err" ? " err" : ""}`;
 
   return (
     <div className={cardClass}>
@@ -94,7 +119,13 @@ const IntegrationCard: React.FC<IntegrationCardProps> = ({ item, onFixKey }) => 
           style={item.logoBg ? { background: item.logoBg } : undefined}
         >
           {item.logoText ? (
-            <span style={{ color: item.logoTextColor ?? '#fff', fontSize: '10px', fontWeight: 800 }}>
+            <span
+              style={{
+                color: item.logoTextColor ?? "#fff",
+                fontSize: "10px",
+                fontWeight: 800,
+              }}
+            >
               {item.logoText}
             </span>
           ) : null}
@@ -112,16 +143,22 @@ const IntegrationCard: React.FC<IntegrationCardProps> = ({ item, onFixKey }) => 
       {/* Footer */}
       <div className="d-int-footer">
         <div className={metaClass}>
-          {metaType === 'ok' && (
-            <i className="fa-solid fa-circle-check" style={{ fontSize: '8px', marginRight: '3px' }} />
+          {metaType === "ok" && (
+            <i
+              className="fa-solid fa-circle-check"
+              style={{ fontSize: "8px", marginRight: "3px" }}
+            />
           )}
-          {metaType === 'err' && (
-            <i className="fa-solid fa-circle-xmark" style={{ fontSize: '8px', marginRight: '3px' }} />
+          {metaType === "err" && (
+            <i
+              className="fa-solid fa-circle-xmark"
+              style={{ fontSize: "8px", marginRight: "3px" }}
+            />
           )}
           {meta}
         </div>
-        <div style={{ display: 'flex', gap: '5px' }}>
-          {status === 'live' && (
+        <div style={{ display: "flex", gap: "5px" }}>
+          {status === "live" && (
             <button className="d-btn sm">
               <i className="fa-solid fa-gear" />
             </button>

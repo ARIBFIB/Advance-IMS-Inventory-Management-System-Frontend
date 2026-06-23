@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { Link } from "react-router-dom";
 
 export const Footer: React.FC = () => {
   return (
@@ -14,7 +14,8 @@ export const Footer: React.FC = () => {
           </span>
         </div>
         <div className="footer-center">
-          © 2026 <span>Zone In</span>. All rights reserved. Built with MERN Stack.
+          © 2026 <span>Zone In</span>. All rights reserved. Built with MERN
+          Stack.
         </div>
         <div className="footer-links">
           <Link to="/privacy">Privacy Policy</Link>
