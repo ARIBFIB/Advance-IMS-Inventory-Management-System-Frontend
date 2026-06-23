@@ -1,5 +1,5 @@
-// AddRiderPanel.tsx — connected to API
-import React, { useState } from "react";
+// AddRiderPanel.tsx — with full validation (onBlur + submit, auto CNIC, field errors + summary)
+import React, { useState, useRef } from "react";
 import { NavPanel, ZONES_DATA } from "./shared";
 import { ridersAPI, authAPI } from "../../services/api";
 
@@ -7,20 +7,118 @@ interface Props {
   onNav: (p: NavPanel) => void;
 }
 
+// ── Validation Rules ────────────────────────────────────────────────────────
+const PHONE_REGEX = /^(\+92|0)(3\d{9}|[0-9]{9,10})$/;
+const CNIC_CLEAN_REGEX = /^\d{13}$/; // after stripping dashes
+const CNIC_FORMATTED_REGEX = /^\d{5}-\d{7}-\d{1}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CURRENT_YEAR = new Date().getFullYear();
+
+type FieldErrors = Record<string, string>;
+
+// ── Auto-format CNIC (inserts dashes at positions 5 and 13) ────────────────
+const formatCNIC = (raw: string): string => {
+  const digits = raw.replace(/\D/g, "").slice(0, 13);
+  if (digits.length <= 5) return digits;
+  if (digits.length <= 12) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12)}`;
+};
+
+// ── Individual field validators (return error string or "") ─────────────────
+const validators: Record<string, (v: string, form?: any) => string> = {
+  fullName: (v) => {
+    if (!v.trim()) return "Full name is required.";
+    if (v.trim().length < 2) return "Name must be at least 2 characters.";
+    if (!/^[a-zA-Z\s'.'-]+$/.test(v.trim()))
+      return "Name can only contain letters, spaces, and apostrophes.";
+    return "";
+  },
+  phone: (v) => {
+    if (!v.trim()) return "Phone number is required.";
+    const cleaned = v.trim().replace(/[\s-]/g, "");
+    if (!PHONE_REGEX.test(cleaned))
+      return "Enter a valid Pakistani number (e.g. +923001234567 or 03001234567).";
+    return "";
+  },
+  email: (v) => {
+    if (!v.trim()) return "Email is required to create rider account.";
+    if (!EMAIL_REGEX.test(v.trim())) return "Enter a valid email address.";
+    return "";
+  },
+  cnic: (v) => {
+    if (!v.trim()) return ""; // optional
+    const digits = v.replace(/\D/g, "");
+    if (digits.length !== 13) return "CNIC must be 13 digits (XXXXX-XXXXXXX-X).";
+    return "";
+  },
+  licenseNumber: (v) => {
+    if (!v.trim()) return ""; // optional
+    if (v.trim().length < 3) return "License number seems too short.";
+    return "";
+  },
+  licenseExpiry: (v) => {
+    if (!v) return ""; // optional
+    const date = new Date(v);
+    if (isNaN(date.getTime())) return "Enter a valid date.";
+    if (date < new Date()) return "License expiry date cannot be in the past.";
+    return "";
+  },
+  vehicleYear: (v) => {
+    if (!v) return ""; // optional
+    const yr = parseInt(v);
+    if (isNaN(yr)) return "Enter a valid year.";
+    if (yr < 1980 || yr > CURRENT_YEAR + 1)
+      return `Year must be between 1980 and ${CURRENT_YEAR + 1}.`;
+    return "";
+  },
+  vehicleRegistration: (v) => {
+    if (!v.trim()) return ""; // optional
+    if (v.trim().length < 4) return "Registration number seems too short.";
+    return "";
+  },
+  serviceCities: (v) => {
+    if (!v.trim()) return "Enter at least one service city.";
+    return "";
+  },
+  bankAccountNumber: (v, form) => {
+    if (!v.trim()) return ""; // optional
+    if (v.trim().length < 6) return "Account number seems too short.";
+    return "";
+  },
+  bankAccountTitle: (v, form) => {
+    // required only if account number is filled
+    if (!form?.bankAccountNumber?.trim()) return "";
+    if (!v.trim()) return "Account title is required when account number is provided.";
+    return "";
+  },
+};
+
+// ── Run all validations and return full error map ───────────────────────────
+const validateAll = (form: Record<string, string>): FieldErrors => {
+  const errs: FieldErrors = {};
+  Object.keys(validators).forEach((field) => {
+    const msg = validators[field](form[field] ?? "", form);
+    if (msg) errs[field] = msg;
+  });
+  return errs;
+};
+
+// ── Component ───────────────────────────────────────────────────────────────
 const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [success, setSuccess] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const summaryRef = useRef<HTMLDivElement>(null);
 
-  // Form state
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<Record<string, string>>({
     fullName: "",
     phone: "",
     cnic: "",
     email: "",
     licenseNumber: "",
     licenseExpiry: "",
-    homeAddress: "",
     emergencyContactName: "",
     emergencyContactPhone: "",
     vehicleType: "Motorcycle",
@@ -36,34 +134,92 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
     bankAccountTitle: "",
     bankAccountNumber: "",
     bankName: "",
-    status: "Active",
-    joinDate: "",
-    notes: "",
   });
 
-  const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
-
-  const handleSubmit = async () => {
-    if (!form.fullName.trim() || !form.phone.trim()) {
-      setError("Full name and phone number are required.");
-      return;
+  // ── Generic setter ────────────────────────────────────────────────────────
+  const set = (k: string, v: string) => {
+    setForm((p) => ({ ...p, [k]: v }));
+    // Clear field error as user types (after it was touched)
+    if (touched[k] && fieldErrors[k]) {
+      const updated = { ...form, [k]: v };
+      const msg = validators[k] ? validators[k](v, updated) : "";
+      setFieldErrors((p) => ({ ...p, [k]: msg }));
     }
-    if (!form.email.trim()) {
-      setError("Email is required to create rider account.");
+  };
+
+  // ── CNIC special setter (auto-format) ─────────────────────────────────────
+  const setCNIC = (raw: string) => {
+    const formatted = formatCNIC(raw);
+    set("cnic", formatted);
+  };
+
+  // ── onBlur handler ────────────────────────────────────────────────────────
+  const handleBlur = (field: string) => {
+    setTouched((p) => ({ ...p, [field]: true }));
+    if (validators[field]) {
+      const msg = validators[field](form[field] ?? "", form);
+      setFieldErrors((p) => ({ ...p, [field]: msg }));
+    }
+  };
+
+  // ── Error display helper ──────────────────────────────────────────────────
+  const FieldError = ({ field }: { field: string }) => {
+    const msg = fieldErrors[field];
+    if (!msg || !touched[field]) return null;
+    return (
+      <div style={{
+        color: "#ef4444",
+        fontSize: 11,
+        marginTop: 3,
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+      }}>
+        <i className="fa-solid fa-circle-exclamation" style={{ fontSize: 10 }} />
+        {msg}
+      </div>
+    );
+  };
+
+  // ── Input border color ────────────────────────────────────────────────────
+  const inputStyle = (field: string): React.CSSProperties => ({
+    borderColor: touched[field] && fieldErrors[field] ? "#ef4444" : undefined,
+  });
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+  const handleSubmit = async () => {
+    // Mark all validatable fields as touched
+    const allFields = Object.keys(validators);
+    const allTouched = allFields.reduce(
+      (acc, k) => ({ ...acc, [k]: true }),
+      {} as Record<string, boolean>
+    );
+    setTouched(allTouched);
+
+    // Run full validation
+    const errs = validateAll(form);
+    setFieldErrors(errs);
+
+    const errorCount = Object.values(errs).filter(Boolean).length;
+    if (errorCount > 0) {
+      setSubmitError(
+        `Please fix ${errorCount} error${errorCount > 1 ? "s" : ""} before submitting.`
+      );
+      // Scroll to summary
+      setTimeout(() => summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
       return;
     }
 
     setLoading(true);
-    setError("");
-    setSuccess("");
+    setSubmitError("");
 
     try {
-      // Step 1: User account banao with Rider role
+      // Step 1: Create User with Rider role
       const username =
         form.fullName.trim().toLowerCase().replace(/\s+/g, "_") +
         "_" +
         Date.now().toString().slice(-4);
-      const password = "Rider@" + form.phone.trim().slice(-4) + "2024!";
+      const password = "Rider@" + form.phone.trim().replace(/\D/g, "").slice(-4) + "2024!";
 
       const userRes = await authAPI.register({
         username,
@@ -75,11 +231,11 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
         role: "Rider",
       });
 
-      const userId = userRes.data?.data?.user?._id ?? userRes.data?.data?.user?.id;
-      if (!userId) throw new Error("User creation failed");
+      const userId =
+        userRes.data?.data?.user?._id ?? userRes.data?.data?.user?.id;
+      if (!userId) throw new Error("User creation failed — no userId returned.");
 
-      // Step 2: Rider profile banao
-      // Step 2: Rider profile banao
+      // Step 2: Create Rider profile
       const vehicle: Record<string, any> = { type: form.vehicleType };
       if (form.vehicleMake.trim())         vehicle.make               = form.vehicleMake.trim();
       if (form.vehicleModel.trim())        vehicle.model              = form.vehicleModel.trim();
@@ -105,7 +261,7 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
       if (form.licenseNumber.trim()) payload.licenseNumber = form.licenseNumber.trim();
       if (form.licenseExpiry)        payload.licenseExpiry = form.licenseExpiry;
 
-      if (form.bankAccountNumber || form.bankAccountTitle) {
+      if (form.bankAccountNumber.trim() || form.bankAccountTitle.trim()) {
         payload.bankDetails = {
           ...(form.bankAccountTitle.trim() && { accountTitle: form.bankAccountTitle.trim() }),
           ...(form.bankAccountNumber.trim() && { accountNumber: form.bankAccountNumber.trim() }),
@@ -115,22 +271,53 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
 
       await ridersAPI.create(payload);
       setSuccess(
-        `Rider registered! Login: ${form.email.trim()} | Pass: ${password}`,
+        `Rider registered successfully! Login: ${form.email.trim()} | Password: ${password}`
       );
-      setTimeout(() => onNav("all"), 3000);
+      setTimeout(() => onNav("all"), 3500);
     } catch (e: any) {
-      const msg = e?.response?.data?.message ?? "";
-      const err = e?.response?.data?.error ?? "";
-      if (e?.response?.status === 409 || err.toLowerCase().includes("email")) {
-        setError("This email is already registered. Please use a different email address for this rider.");
+      const msg  = e?.response?.data?.message ?? "";
+      const err  = e?.response?.data?.error   ?? "";
+      const status = e?.response?.status;
+
+      if (status === 409 || err.toLowerCase().includes("email") || msg.toLowerCase().includes("email")) {
+        // Show as field error on email
+        setFieldErrors((p) => ({ ...p, email: "This email is already registered. Use a different email." }));
+        setTouched((p) => ({ ...p, email: true }));
+        setSubmitError("Email is already registered. Please use a different email address.");
+      } else if (msg.toLowerCase().includes("username")) {
+        setSubmitError("Username conflict — please try again (a new unique username will be generated).");
+      } else if (status === 400) {
+        setSubmitError(`Validation error from server: ${msg || "Please check your inputs."}`);
       } else {
-        setError(msg || "Failed to register rider. Please try again.");
+        setSubmitError(msg || "Failed to register rider. Please try again.");
       }
+
+      setTimeout(() => summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
     } finally {
       setLoading(false);
     }
   };
 
+  // ── Summary error list (visible only after submit attempt) ────────────────
+  const summaryErrors = Object.entries(fieldErrors)
+    .filter(([, v]) => Boolean(v))
+    .map(([k, v]) => ({ field: k, msg: v }));
+
+  const fieldLabels: Record<string, string> = {
+    fullName:            "Full Name",
+    phone:               "Phone Number",
+    email:               "Email",
+    cnic:                "CNIC",
+    licenseNumber:       "License Number",
+    licenseExpiry:       "License Expiry",
+    vehicleYear:         "Vehicle Year",
+    vehicleRegistration: "Registration Number",
+    serviceCities:       "Service Cities",
+    bankAccountNumber:   "Account Number",
+    bankAccountTitle:    "Account Title",
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       <div className="panel-heading">Add New Rider</div>
@@ -139,16 +326,31 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
         vehicle information, assigned zone, and payment structure.
       </div>
 
-      {error && (
-        <div className="alert-strip danger" style={{ marginBottom: 12 }}>
-          <i className="fa-solid fa-circle-exclamation" /> {error}
-        </div>
-      )}
-      {success && (
-        <div className="alert-strip success" style={{ marginBottom: 12 }}>
-          <i className="fa-solid fa-circle-check" /> {success}
-        </div>
-      )}
+      {/* ── Summary block (top) ── */}
+      <div ref={summaryRef}>
+        {submitError && !success && (
+          <div className="alert-strip danger" style={{ marginBottom: 8 }}>
+            <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: 6 }} />
+            <strong>{submitError}</strong>
+            {summaryErrors.length > 0 && (
+              <ul style={{ margin: "6px 0 0 16px", padding: 0, fontSize: 12 }}>
+                {summaryErrors.map(({ field, msg }) => (
+                  <li key={field}>
+                    <strong>{fieldLabels[field] ?? field}:</strong> {msg}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {success && (
+          <div className="alert-strip success" style={{ marginBottom: 8 }}>
+            <i className="fa-solid fa-circle-check" style={{ marginRight: 6 }} />
+            {success}
+          </div>
+        )}
+      </div>
 
       <div className="card">
         <div className="card-header">
@@ -158,11 +360,13 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
           </div>
         </div>
         <div className="card-body">
-          {/* Personal Info */}
+
+          {/* ══ Personal Info ══ */}
           <div className="section-label">
             <i className="fa-solid fa-bolt" style={{ color: "#f59e0b", fontSize: 10, marginRight: 5 }} />
             Personal Information
           </div>
+
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">Full Name *</div>
@@ -171,18 +375,25 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
                 placeholder="e.g. Usman Ahmed"
                 value={form.fullName}
                 onChange={(e) => set("fullName", e.target.value)}
+                onBlur={() => handleBlur("fullName")}
+                style={inputStyle("fullName")}
               />
+              <FieldError field="fullName" />
             </div>
             <div className="c-form-group">
               <div className="c-form-label">Phone Number *</div>
               <input
                 className="c-form-input"
-                placeholder="+923XX-XXXXXXX"
+                placeholder="+923XXXXXXXXX or 03XXXXXXXXX"
                 value={form.phone}
                 onChange={(e) => set("phone", e.target.value)}
+                onBlur={() => handleBlur("phone")}
+                style={inputStyle("phone")}
               />
+              <FieldError field="phone" />
             </div>
           </div>
+
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">
@@ -197,19 +408,29 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
                 placeholder="rider@example.com"
                 value={form.email}
                 onChange={(e) => set("email", e.target.value)}
-                style={{ borderColor: error.includes("email") || error.includes("Email") ? "#ef4444" : undefined }}
+                onBlur={() => handleBlur("email")}
+                style={inputStyle("email")}
               />
+              <FieldError field="email" />
             </div>
             <div className="c-form-group">
-              <div className="c-form-label">CNIC Number <span style={{ color: "#6B7280", fontSize: 10 }}>(optional)</span></div>
+              <div className="c-form-label">
+                CNIC Number
+                <span style={{ color: "#6B7280", fontSize: 10, marginLeft: 6 }}>(optional — auto-formatted)</span>
+              </div>
               <input
                 className="c-form-input"
                 placeholder="XXXXX-XXXXXXX-X"
                 value={form.cnic}
-                onChange={(e) => set("cnic", e.target.value)}
+                onChange={(e) => setCNIC(e.target.value)}
+                onBlur={() => handleBlur("cnic")}
+                style={inputStyle("cnic")}
+                maxLength={15}
               />
+              <FieldError field="cnic" />
             </div>
           </div>
+
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">License Number</div>
@@ -218,7 +439,10 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
                 placeholder="e.g. LHR-D-2024-001"
                 value={form.licenseNumber}
                 onChange={(e) => set("licenseNumber", e.target.value)}
+                onBlur={() => handleBlur("licenseNumber")}
+                style={inputStyle("licenseNumber")}
               />
+              <FieldError field="licenseNumber" />
             </div>
             <div className="c-form-group">
               <div className="c-form-label">License Expiry</div>
@@ -227,9 +451,14 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
                 type="date"
                 value={form.licenseExpiry}
                 onChange={(e) => set("licenseExpiry", e.target.value)}
+                onBlur={() => handleBlur("licenseExpiry")}
+                style={inputStyle("licenseExpiry")}
+                min={new Date().toISOString().split("T")[0]}
               />
+              <FieldError field="licenseExpiry" />
             </div>
           </div>
+
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">Emergency Contact Name</div>
@@ -244,26 +473,21 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
               <div className="c-form-label">Emergency Contact Phone</div>
               <input
                 className="c-form-input"
-                placeholder="+923XX-XXXXXXX"
+                placeholder="+923XXXXXXXXX"
                 value={form.emergencyContactPhone}
                 onChange={(e) => set("emergencyContactPhone", e.target.value)}
               />
             </div>
           </div>
 
-          <hr
-            style={{
-              border: "none",
-              borderTop: "1px solid var(--divider)",
-              margin: "12px 0",
-            }}
-          />
+          <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "12px 0" }} />
 
-          {/* Vehicle Info */}
+          {/* ══ Vehicle & Assignment ══ */}
           <div className="section-label">
             <i className="fa-solid fa-bolt" style={{ color: "#f59e0b", fontSize: 10, marginRight: 5 }} />
             Vehicle &amp; Assignment
           </div>
+
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">Vehicle Type</div>
@@ -285,9 +509,13 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
                 placeholder="LHR-1234"
                 value={form.vehicleRegistration}
                 onChange={(e) => set("vehicleRegistration", e.target.value)}
+                onBlur={() => handleBlur("vehicleRegistration")}
+                style={inputStyle("vehicleRegistration")}
               />
+              <FieldError field="vehicleRegistration" />
             </div>
           </div>
+
           <div className="c-form-row triple">
             <div className="c-form-group">
               <div className="c-form-label">Make</div>
@@ -315,9 +543,15 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
                 placeholder="2022"
                 value={form.vehicleYear}
                 onChange={(e) => set("vehicleYear", e.target.value)}
+                onBlur={() => handleBlur("vehicleYear")}
+                style={inputStyle("vehicleYear")}
+                min={1980}
+                max={CURRENT_YEAR + 1}
               />
+              <FieldError field="vehicleYear" />
             </div>
           </div>
+
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">Vehicle Color</div>
@@ -342,17 +576,19 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
               </select>
             </div>
           </div>
+
           <div className="c-form-row">
             <div className="c-form-group">
-              <div className="c-form-label">
-                Service Cities (comma-separated)
-              </div>
+              <div className="c-form-label">Service Cities (comma-separated)</div>
               <input
                 className="c-form-input"
                 placeholder="Lahore, Islamabad"
                 value={form.serviceCities}
                 onChange={(e) => set("serviceCities", e.target.value)}
+                onBlur={() => handleBlur("serviceCities")}
+                style={inputStyle("serviceCities")}
               />
+              <FieldError field="serviceCities" />
             </div>
             <div className="c-form-group">
               <div className="c-form-label">Shift</div>
@@ -369,19 +605,14 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
             </div>
           </div>
 
-          <hr
-            style={{
-              border: "none",
-              borderTop: "1px solid var(--divider)",
-              margin: "12px 0",
-            }}
-          />
+          <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "12px 0" }} />
 
-          {/* Payment Info */}
+          {/* ══ Payment Details ══ */}
           <div className="section-label">
             <i className="fa-solid fa-bolt" style={{ color: "#f59e0b", fontSize: 10, marginRight: 5 }} />
             Payment Details
           </div>
+
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">Payment Method</div>
@@ -403,9 +634,13 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
                 placeholder="Account holder name"
                 value={form.bankAccountTitle}
                 onChange={(e) => set("bankAccountTitle", e.target.value)}
+                onBlur={() => handleBlur("bankAccountTitle")}
+                style={inputStyle("bankAccountTitle")}
               />
+              <FieldError field="bankAccountTitle" />
             </div>
           </div>
+
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">Account Number / Mobile</div>
@@ -414,7 +649,14 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
                 placeholder="03001234567"
                 value={form.bankAccountNumber}
                 onChange={(e) => set("bankAccountNumber", e.target.value)}
+                onBlur={() => {
+                  handleBlur("bankAccountNumber");
+                  // Re-validate accountTitle when accountNumber changes
+                  handleBlur("bankAccountTitle");
+                }}
+                style={inputStyle("bankAccountNumber")}
               />
+              <FieldError field="bankAccountNumber" />
             </div>
             <div className="c-form-group">
               <div className="c-form-label">Bank Name</div>
@@ -427,14 +669,9 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
             </div>
           </div>
 
-          <hr
-            style={{
-              border: "none",
-              borderTop: "1px solid var(--divider)",
-              margin: "12px 0",
-            }}
-          />
-          <div style={{ display: "flex", gap: 8 }}>
+          <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "12px 0" }} />
+
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button
               className="c-btn primary"
               onClick={handleSubmit}
@@ -457,7 +694,22 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
             >
               Cancel
             </button>
+            {/* Live error count badge */}
+            {Object.values(fieldErrors).filter(Boolean).length > 0 && !success && (
+              <span style={{
+                fontSize: 11,
+                color: "#ef4444",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}>
+                <i className="fa-solid fa-circle-exclamation" />
+                {Object.values(fieldErrors).filter(Boolean).length} issue
+                {Object.values(fieldErrors).filter(Boolean).length > 1 ? "s" : ""} to fix
+              </span>
+            )}
           </div>
+
         </div>
       </div>
     </>
