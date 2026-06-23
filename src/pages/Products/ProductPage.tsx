@@ -829,6 +829,7 @@ const VariantsTab: React.FC = () => {
   const priceRef     = useRef<HTMLInputElement>(null);
   const stockRef     = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
+  const [variantType, setVariantType] = useState('size');
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -1039,19 +1040,70 @@ const VariantsTab: React.FC = () => {
               </select>
             </div>
             <div className="form-row">
-              <div className="form-group">
-                <div className="form-label">Variant Type *</div>
-                <select ref={typeRef} className="form-select" defaultValue={editingVariant ? Object.keys(editingVariant.variant.attributes)[0] : 'size'}>
-                  <option value="size">Size</option>
-                  <option value="color">Color</option>
-                  <option value="weight">Weight</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <div className="form-label">Value *</div>
-                <input ref={valueRef} className="form-input" defaultValue={editingVariant ? Object.values(editingVariant.variant.attributes)[0] : ''} placeholder="e.g. XL, Red, 500g" />
-              </div>
-            </div>
+  <div className="form-group">
+    <div className="form-label">Variant Type *</div>
+    <select
+      ref={typeRef}
+      className="form-select"
+      defaultValue={editingVariant ? Object.keys(editingVariant.variant.attributes)[0] : 'size'}
+      onChange={e => setVariantType(e.target.value)}
+    >
+      <option value="size">Size</option>
+      <option value="color">Color</option>
+      <option value="weight">Weight</option>
+    </select>
+  </div>
+  <div className="form-group">
+    <div className="form-label">Value *</div>
+    {variantType === 'color' ? (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input
+          ref={valueRef}
+          type="color"
+          defaultValue={editingVariant ? Object.values(editingVariant.variant.attributes)[0] : '#000000'}
+          style={{ width: 40, height: 36, padding: 2, border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', background: 'var(--bg)' }}
+          onChange={e => {
+            if (valueRef.current) valueRef.current.value = e.target.value;
+          }}
+        />
+        <input
+          className="form-input"
+          defaultValue={editingVariant ? Object.values(editingVariant.variant.attributes)[0] : ''}
+          placeholder="e.g. Red, #FF0000"
+          onChange={e => {
+            if (valueRef.current) valueRef.current.value = e.target.value;
+          }}
+          style={{ flex: 1 }}
+        />
+        <input ref={valueRef} type="hidden" defaultValue={editingVariant ? Object.values(editingVariant.variant.attributes)[0] : ''} />
+      </div>
+    ) : variantType === 'size' ? (
+      <select ref={valueRef as any} className="form-select" defaultValue={editingVariant ? Object.values(editingVariant.variant.attributes)[0] : ''}>
+        <option value="">— Select Size —</option>
+        {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '28', '30', '32', '34', '36', '38', '40'].map(s => (
+          <option key={s} value={s}>{s}</option>
+        ))}
+      </select>
+    ) : (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <input
+          ref={valueRef}
+          className="form-input"
+          type="number"
+          defaultValue={editingVariant ? Object.values(editingVariant.variant.attributes)[0] : ''}
+          placeholder="e.g. 500"
+          style={{ flex: 1 }}
+        />
+        <select className="form-select" style={{ width: 70 }}>
+          <option>g</option>
+          <option>kg</option>
+          <option>ml</option>
+          <option>L</option>
+        </select>
+      </div>
+    )}
+  </div>
+</div>
             <div className="form-row">
               <div className="form-group">
                 <div className="form-label">Variant SKU</div>
