@@ -266,7 +266,7 @@ const PendingPanel: React.FC = () => {
   }, [fetchData]);
 
   const toggleSelect = (id: string) =>
-    setSelected((prev) => {
+    setSelected((prev) => { 
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
