@@ -1,7 +1,7 @@
 // AddRiderPanel.tsx — connected to API
 import React, { useState } from "react";
 import { NavPanel, ZONES_DATA } from "./shared";
-import { ridersAPI } from "../../services/api";
+import { ridersAPI, authAPI } from "../../services/api";
 
 interface Props {
   onNav: (p: NavPanel) => void;
@@ -48,14 +48,42 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
       setError("Full name and phone number are required.");
       return;
     }
+    if (!form.email.trim()) {
+      setError("Email is required to create rider account.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setSuccess("");
+
     try {
+      // Step 1: User account banao with Rider role
+      const username =
+        form.fullName.trim().toLowerCase().replace(/\s+/g, "_") +
+        "_" +
+        Date.now().toString().slice(-4);
+      const password = "Rider@" + form.phone.trim().slice(-4) + "2024!";
+
+      const userRes = await authAPI.register({
+        username,
+        email: form.email.trim(),
+        password,
+        firstName: form.fullName.trim().split(" ")[0],
+        lastName: form.fullName.trim().split(" ").slice(1).join(" ") || ".",
+        phone: form.phone.trim(),
+        role: "Rider",
+      });
+
+      const userId = userRes.data?.data?.user?._id;
+      if (!userId) throw new Error("User creation failed");
+
+      // Step 2: Rider profile banao
       const payload: Record<string, any> = {
+        userId,
         fullName: form.fullName.trim(),
         phone: form.phone.trim(),
-        email: form.email.trim() || undefined,
+        email: form.email.trim(),
         cnic: form.cnic.trim() || undefined,
         licenseNumber: form.licenseNumber.trim() || undefined,
         licenseExpiry: form.licenseExpiry || undefined,
@@ -84,13 +112,12 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
       };
 
       await ridersAPI.create(payload);
-      setSuccess("Rider registered successfully!");
-      setTimeout(() => onNav("all"), 1200);
-    } catch (e: any) {
-      setError(
-        e?.response?.data?.message ??
-          "Failed to register rider. Please try again.",
+      setSuccess(
+        `Rider registered! Login: ${form.email.trim()} | Pass: ${password}`,
       );
+      setTimeout(() => onNav("all"), 3000);
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Failed to register rider.");
     } finally {
       setLoading(false);
     }
