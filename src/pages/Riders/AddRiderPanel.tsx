@@ -79,37 +79,39 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
       if (!userId) throw new Error("User creation failed");
 
       // Step 2: Rider profile banao
+      // Step 2: Rider profile banao
+      const vehicle: Record<string, any> = { type: form.vehicleType };
+      if (form.vehicleMake.trim())         vehicle.make               = form.vehicleMake.trim();
+      if (form.vehicleModel.trim())        vehicle.model              = form.vehicleModel.trim();
+      if (form.vehicleYear)                vehicle.year               = parseInt(form.vehicleYear);
+      if (form.vehicleRegistration.trim()) vehicle.registrationNumber = form.vehicleRegistration.trim();
+      if (form.vehicleColor.trim())        vehicle.color              = form.vehicleColor.trim();
+
       const payload: Record<string, any> = {
         userId,
         fullName: form.fullName.trim(),
         phone: form.phone.trim(),
         email: form.email.trim(),
-        cnic: form.cnic.trim() || undefined,
-        licenseNumber: form.licenseNumber.trim() || undefined,
-        licenseExpiry: form.licenseExpiry || undefined,
-        vehicle: {
-          type: form.vehicleType,
-          make: form.vehicleMake.trim() || undefined,
-          model: form.vehicleModel.trim() || undefined,
-          year: form.vehicleYear ? parseInt(form.vehicleYear) : undefined,
-          registrationNumber: form.vehicleRegistration.trim() || undefined,
-          color: form.vehicleColor.trim() || undefined,
-        },
+        vehicle,
         assignedZone: form.assignedZone,
         serviceCities: form.serviceCities
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
         paymentMethod: form.paymentMethod,
-        bankDetails:
-          form.bankAccountNumber || form.bankAccountTitle
-            ? {
-                accountTitle: form.bankAccountTitle.trim() || undefined,
-                accountNumber: form.bankAccountNumber.trim() || undefined,
-                bankName: form.bankName.trim() || undefined,
-              }
-            : undefined,
       };
+
+      if (form.cnic.trim())          payload.cnic          = form.cnic.trim();
+      if (form.licenseNumber.trim()) payload.licenseNumber = form.licenseNumber.trim();
+      if (form.licenseExpiry)        payload.licenseExpiry = form.licenseExpiry;
+
+      if (form.bankAccountNumber || form.bankAccountTitle) {
+        payload.bankDetails = {
+          ...(form.bankAccountTitle.trim() && { accountTitle: form.bankAccountTitle.trim() }),
+          ...(form.bankAccountNumber.trim() && { accountNumber: form.bankAccountNumber.trim() }),
+          ...(form.bankName.trim() && { bankName: form.bankName.trim() }),
+        };
+      }
 
       await ridersAPI.create(payload);
       setSuccess(
