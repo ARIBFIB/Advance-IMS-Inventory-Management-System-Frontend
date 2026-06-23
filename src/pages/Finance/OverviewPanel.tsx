@@ -22,8 +22,8 @@ export const CODDetailContent: React.FC<{ c: ApiOrderListItem }> = ({ c }) => (
     {(
       [
         ["Order ID", <code className="ref">{c.orderId}</code>],
-        ["Customer", c.customer.fullName],
-        ["Phone", c.customer.phone || "—"],
+        ["Customer", c.customer?.fullName ?? "—"],
+        ["Phone", c.customer?.phone ?? "—"],
         [
           "COD Amount",
           <span
@@ -260,7 +260,7 @@ const OverviewPanel: React.FC<Props> = ({ onNav, onOpenOverlay }) => {
                 >
                   <div className="list-content">
                     <div className="list-title" style={{ fontSize: 10.5 }}>
-                      {c.orderId} · {c.customer.fullName}
+                      {c.orderId} · {c.customer?.fullName ?? "—"}
                     </div>
                     <div className="list-meta">{fmtDate(c.createdAt)}</div>
                   </div>
