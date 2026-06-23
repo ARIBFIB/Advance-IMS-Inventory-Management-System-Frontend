@@ -883,7 +883,17 @@ const VariantsTab: React.FC = () => {
       } else {
         await productsAPI.addVariant(parentId, payload);
       }
-      fetchProducts(); setShowPanel(false);
+      fetchProducts();
+setShowPanel(false);
+setVariantType('size');
+setTimeout(() => {
+  if (parentRef.current)  parentRef.current.value  = '';
+  if (typeRef.current)    typeRef.current.value     = 'size';
+  if (valueRef.current)   valueRef.current.value    = '';
+  if (varSkuRef.current)  varSkuRef.current.value   = '';
+  if (priceRef.current)   priceRef.current.value    = '';
+  if (stockRef.current)   stockRef.current.value    = '0';
+}, 0);
     } catch { /* ignore */ }
     finally { setSaving(false); }
   };
@@ -934,9 +944,21 @@ const VariantsTab: React.FC = () => {
             </select>
           </div>
           <div className="table-toolbar-right">
-            <button className="header-btn primary" onClick={() => { setEditingVariant(null); setShowPanel(true); }}>
-              <i className="fa-solid fa-plus" /> Add Variant
-            </button>
+            <button className="header-btn primary" onClick={() => {
+  setEditingVariant(null);
+  setVariantType('size');
+  setTimeout(() => {
+    if (parentRef.current)  parentRef.current.value  = '';
+    if (typeRef.current)    typeRef.current.value     = 'size';
+    if (valueRef.current)   valueRef.current.value    = '';
+    if (varSkuRef.current)  varSkuRef.current.value   = '';
+    if (priceRef.current)   priceRef.current.value    = '';
+    if (stockRef.current)   stockRef.current.value    = '0';
+  }, 0);
+  setShowPanel(true);
+}}>
+  <i className="fa-solid fa-plus" /> Add Variant
+</button>
           </div>
         </div>
         <div className="table-wrap">
@@ -1126,7 +1148,18 @@ const VariantsTab: React.FC = () => {
                 <i className={`fa-solid ${saving ? 'fa-spinner fa-spin' : editingVariant ? 'fa-check' : 'fa-plus'}`} />
                 {' '}{saving ? 'Saving…' : editingVariant ? 'Save Changes' : 'Add Variant'}
               </button>
-              <button className="header-btn" onClick={() => setShowPanel(false)}>Cancel</button>
+              <button className="header-btn" onClick={() => {
+  setShowPanel(false);
+  setVariantType('size');
+  setTimeout(() => {
+    if (parentRef.current)  parentRef.current.value  = '';
+    if (typeRef.current)    typeRef.current.value     = 'size';
+    if (valueRef.current)   valueRef.current.value    = '';
+    if (varSkuRef.current)  varSkuRef.current.value   = '';
+    if (priceRef.current)   priceRef.current.value    = '';
+    if (stockRef.current)   stockRef.current.value    = '0';
+  }, 0);
+}}>Cancel</button>
             </div>
           </div>
         </div>
