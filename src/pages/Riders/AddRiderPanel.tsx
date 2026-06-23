@@ -117,7 +117,13 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
       );
       setTimeout(() => onNav("all"), 3000);
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Failed to register rider.");
+      const msg = e?.response?.data?.message ?? "";
+      const err = e?.response?.data?.error ?? "";
+      if (e?.response?.status === 409 || err.toLowerCase().includes("email")) {
+        setError("This email is already registered. Please use a different email address for this rider.");
+      } else {
+        setError(msg || "Failed to register rider. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -145,12 +151,16 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
       <div className="card">
         <div className="card-header">
           <div className="card-title">
-            <i className="fa-solid fa-user-plus" /> Rider Registration
+            <i className="fa-solid fa-bolt" style={{ color: "#f59e0b", marginRight: 6 }} />
+            Rider Registration
           </div>
         </div>
         <div className="card-body">
           {/* Personal Info */}
-          <div className="section-label">Personal Information</div>
+          <div className="section-label">
+            <i className="fa-solid fa-bolt" style={{ color: "#f59e0b", fontSize: 10, marginRight: 5 }} />
+            Personal Information
+          </div>
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">Full Name *</div>
@@ -173,17 +183,23 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
           </div>
           <div className="c-form-row">
             <div className="c-form-group">
-              <div className="c-form-label">Email</div>
+              <div className="c-form-label">
+                Email *
+                <span style={{ fontSize: 10, color: "#6B7280", marginLeft: 6, fontWeight: 400 }}>
+                  (must be unique per rider)
+                </span>
+              </div>
               <input
                 className="c-form-input"
                 type="email"
                 placeholder="rider@example.com"
                 value={form.email}
                 onChange={(e) => set("email", e.target.value)}
+                style={{ borderColor: error.includes("email") || error.includes("Email") ? "#ef4444" : undefined }}
               />
             </div>
             <div className="c-form-group">
-              <div className="c-form-label">CNIC Number</div>
+              <div className="c-form-label">CNIC Number <span style={{ color: "#6B7280", fontSize: 10 }}>(optional)</span></div>
               <input
                 className="c-form-input"
                 placeholder="XXXXX-XXXXXXX-X"
@@ -242,7 +258,10 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
           />
 
           {/* Vehicle Info */}
-          <div className="section-label">Vehicle &amp; Assignment</div>
+          <div className="section-label">
+            <i className="fa-solid fa-bolt" style={{ color: "#f59e0b", fontSize: 10, marginRight: 5 }} />
+            Vehicle &amp; Assignment
+          </div>
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">Vehicle Type</div>
@@ -357,7 +376,10 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
           />
 
           {/* Payment Info */}
-          <div className="section-label">Payment Details</div>
+          <div className="section-label">
+            <i className="fa-solid fa-bolt" style={{ color: "#f59e0b", fontSize: 10, marginRight: 5 }} />
+            Payment Details
+          </div>
           <div className="c-form-row">
             <div className="c-form-group">
               <div className="c-form-label">Payment Method</div>
