@@ -22,6 +22,7 @@ import {
 import OverviewPanel from "./OverviewPanel";
 import AllRidersPanel from "./AllRidersPanel";
 import AddRiderPanel from "./AddRiderPanel";
+import EditRiderPanel from "./EditRiderPanel";
 import AvailabilityPanel from "./AvailabilityPanel";
 import ActiveDeliveriesPanel from "./ActiveDeliveriesPanel";
 import AssignTasksPanel from "./AssignTasksPanel";
@@ -156,6 +157,11 @@ interface OverlayState {
   content: React.ReactNode;
 }
 
+interface EditState {
+  open: boolean;
+  rider: ApiRider | null;
+}
+
 // ═══════════════════════════════════════════════════════════
 // MAIN PAGE COMPONENT
 // ═══════════════════════════════════════════════════════════
@@ -170,6 +176,10 @@ const RidersPage: React.FC = () => {
     open: false,
     title: "",
     content: null,
+  });
+  const [editState, setEditState] = useState<EditState>({
+    open: false,
+    rider: null,
   });
 
   // ── Rider detail overlay ──────────────────────────────
@@ -341,7 +351,14 @@ const RidersPage: React.FC = () => {
 
           {/* Actions */}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <button className="c-btn primary" style={{ fontSize: 10 }}>
+            <button
+              className="c-btn primary"
+              style={{ fontSize: 10 }}
+              onClick={() => {
+                closeOverlay();
+                setEditState({ open: true, rider: r });
+              }}
+            >
               <i className="fa-solid fa-pen" /> Edit
             </button>
             <button className="c-btn" style={{ fontSize: 10 }}>
@@ -404,6 +421,18 @@ const RidersPage: React.FC = () => {
 
   // ── Panel renderer ────────────────────────────────────
   const renderPanel = () => {
+    if (editState.open && editState.rider) {
+      return (
+        <EditRiderPanel
+          onNav={(p) => {
+            setEditState({ open: false, rider: null });
+            setActivePanel(p);
+          }}
+          rider={editState.rider}
+          onSuccess={() => setEditState({ open: false, rider: null })}
+        />
+      );
+    }
     switch (activePanel) {
       case "overview":   return <OverviewPanel onNav={setActivePanel} onOpenRider={openRiderOverlay} />;
       case "all":        return <AllRidersPanel onNav={setActivePanel} onOpenRider={openRiderOverlay} />;
