@@ -75,7 +75,7 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
         role: "Rider",
       });
 
-      const userId = userRes.data?.data?.user?._id;
+      const userId = userRes.data?.data?.user?._id ?? userRes.data?.data?.user?.id;
       if (!userId) throw new Error("User creation failed");
 
       // Step 2: Rider profile banao
