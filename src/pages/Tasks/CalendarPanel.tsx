@@ -145,18 +145,16 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
                   <div className="cal-date">{d}</div>
                   {loading
                     ? null
-                    : dayTaskList
-                        .slice(0, 3)
-                        .map((t, i) => (
-                          <div
-                            key={i}
-                            className="cal-dot"
-                            style={{
-                              background: getDotColor(t),
-                              opacity: 0.75,
-                            }}
-                          />
-                        ))}
+                    : dayTaskList.slice(0, 3).map((t, i) => (
+                        <div
+                          key={i}
+                          className="cal-dot"
+                          style={{
+                            background: getDotColor(t),
+                            opacity: 0.75,
+                          }}
+                        />
+                      ))}
                   {!loading && dayTaskList.length > 3 && (
                     <div style={{ fontSize: 8, color: "var(--text-muted)" }}>
                       +{dayTaskList.length - 3}

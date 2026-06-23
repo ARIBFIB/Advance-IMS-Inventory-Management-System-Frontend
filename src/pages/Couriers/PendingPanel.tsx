@@ -223,6 +223,7 @@ const PendingPanel: React.FC = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dispatching, setDispatching] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const PER_PAGE = 10;
 
   const fetchData = useCallback(async () => {
@@ -311,6 +312,30 @@ const PendingPanel: React.FC = () => {
         }}
       />
 
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            zIndex: 9999,
+            background: "#1F2937",
+            color: "#fff",
+            padding: "11px 16px",
+            borderRadius: 8,
+            fontSize: 12,
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            boxShadow: "0 4px 16px rgba(0,0,0,.2)",
+          }}
+        >
+          <i className="fa-solid fa-circle-info" style={{ color: "#60a5fa" }} />
+          {toast}
+        </div>
+      )}
+
       <div className="panel-heading">Pending Dispatch</div>
       <div className="panel-desc">
         Shipments assigned but not yet picked up. Assign a courier and dispatch
@@ -345,8 +370,14 @@ const PendingPanel: React.FC = () => {
             </button>
             <button
               className="c-btn primary"
-              disabled={selected.size === 0}
-              onClick={() => setDrawerOpen(true)}
+              onClick={() => {
+                if (selected.size === 0) {
+                  setToast("Pehle koi shipment select karo checkbox se.");
+                  setTimeout(() => setToast(null), 3000);
+                  return;
+                }
+                setDrawerOpen(true);
+              }}
             >
               <i className="fa-solid fa-truck" /> Bulk Assign ({selected.size})
             </button>
