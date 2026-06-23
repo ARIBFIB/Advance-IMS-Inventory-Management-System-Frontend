@@ -86,7 +86,7 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
     ? orders.filter(
         (o) =>
           o.orderId.toLowerCase().includes(search.toLowerCase()) ||
-          o.customer.fullName.toLowerCase().includes(search.toLowerCase()),
+          (o.customer?.fullName ?? "").toLowerCase().includes(search.toLowerCase()),
       )
     : orders;
 
@@ -239,7 +239,7 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
                     <td>
                       <code className="ref">{c.orderId}</code>
                     </td>
-                    <td>{c.customer.fullName}</td>
+                    <td>{c.customer?.fullName ?? "—"}</td>
                     <td>
                       <strong>{fmt(c.totalAmount)}</strong>
                     </td>
