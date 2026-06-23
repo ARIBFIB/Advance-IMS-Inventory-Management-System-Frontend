@@ -539,6 +539,12 @@ export const ridersAPI = {
     api.patch(`/riders/${id}/deliveries/${orderId}/status`, data),
   getPerformance: (params?: object) =>
     api.get("/riders/analytics/performance", { params }),
+  uploadDocument: (id: string, formData: FormData) =>
+    api.post(`/riders/${id}/documents`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  deleteDocument: (id: string, docIndex: number) =>
+    api.delete(`/riders/${id}/documents/${docIndex}`),
 };
 
 // ─────────────────────────────────────────────────────────

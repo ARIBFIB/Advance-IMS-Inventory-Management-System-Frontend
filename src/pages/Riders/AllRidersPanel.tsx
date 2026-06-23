@@ -4,7 +4,6 @@ import {
   NavPanel,
   ApiRider,
   ApiPagination,
-  DOCS_DATA,
   SCHEDULE_DATA,
   rColor,
   initials,
@@ -22,6 +21,300 @@ import {
   TableSkeleton,
 } from "./shared";
 import { ridersAPI } from "../../services/api";
+
+// ── Rider Documents Tab ──────────────────────────────────────────────────────
+const DOC_TYPES = ["CNIC", "License", "VehicleRegistration", "Insurance"] as const;
+type DocType = typeof DOC_TYPES[number];
+
+interface RiderDoc {
+  _id?: string;
+  type: DocType;
+  url: string;
+  uploadedAt: string;
+}
+
+interface RiderWithDocs {
+  _id: string;
+  fullName: string;
+  documents: RiderDoc[];
+}
+
+const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAPI }) => {
+  const [riders, setRiders] = useState<RiderWithDocs[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadSuccess, setUploadSuccess] = useState("");
+  const [showUpload, setShowUpload] = useState(false);
+  const [selectedRiderId, setSelectedRiderId] = useState("");
+  const [selectedDocType, setSelectedDocType] = useState<DocType>("CNIC");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const fetchRidersWithDocs = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await ridersAPI.getAll({ limit: 100 });
+      const data = res.data?.data?.riders ?? [];
+      setRiders(data.map((r: any) => ({
+        _id: r._id,
+        fullName: r.fullName,
+        documents: r.documents ?? [],
+      })));
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Failed to load riders.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchRidersWithDocs(); }, []);
+
+  const handleUpload = async () => {
+    if (!selectedRiderId) { setUploadError("Please select a rider."); return; }
+    if (!selectedFile)    { setUploadError("Please select a file."); return; }
+    setUploading(true);
+    setUploadError("");
+    setUploadSuccess("");
+    try {
+      const formData = new FormData();
+      formData.append("document", selectedFile);
+      formData.append("type", selectedDocType);
+      await ridersAPI.uploadDocument(selectedRiderId, formData);
+      setUploadSuccess("Document uploaded successfully!");
+      setShowUpload(false);
+      setSelectedFile(null);
+      setSelectedRiderId("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      fetchRidersWithDocs();
+      setTimeout(() => setUploadSuccess(""), 3000);
+    } catch (e: any) {
+      setUploadError(e?.response?.data?.message ?? "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async (riderId: string, docIndex: number, docType: string) => {
+    if (!window.confirm(`Delete ${docType} document?`)) return;
+    try {
+      await ridersAPI.deleteDocument(riderId, docIndex);
+      fetchRidersWithDocs();
+    } catch (e: any) {
+      alert(e?.response?.data?.message ?? "Failed to delete document.");
+    }
+  };
+
+  const allRows: { rider: RiderWithDocs; doc: RiderDoc; docIndex: number }[] = [];
+  riders.forEach((r) => {
+    r.documents.forEach((doc, i) => {
+      allRows.push({ rider: r, doc, docIndex: i });
+    });
+  });
+
+  const getDocStatus = (doc: RiderDoc): string => {
+    const uploaded = new Date(doc.uploadedAt);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - uploaded.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays > 365) return "Expired";
+    if (diffDays > 300) return "Expiring Soon";
+    return "Valid";
+  };
+
+  const getFileNameFromUrl = (url: string): string => {
+    try {
+      const parts = url.split("/");
+      return parts[parts.length - 1].split("?")[0];
+    } catch { return "document"; }
+  };
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <div className="card-title">
+          <i className="fa-solid fa-file-alt" /> Rider Documents
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button className="c-btn" onClick={fetchRidersWithDocs}>
+            <i className="fa-solid fa-rotate" /> Refresh
+          </button>
+          <button
+            className="c-btn primary"
+            onClick={() => { setShowUpload(true); setUploadError(""); setUploadSuccess(""); }}
+          >
+            <i className="fa-solid fa-upload" /> Upload Document
+          </button>
+        </div>
+      </div>
+
+      {uploadSuccess && (
+        <div className="alert-strip success" style={{ margin: "0 0 8px 0" }}>
+          <i className="fa-solid fa-circle-check" /> {uploadSuccess}
+        </div>
+      )}
+
+      {showUpload && (
+        <div style={{
+          background: "var(--bg-card)",
+          border: "1px solid var(--border)",
+          borderRadius: 8,
+          padding: 16,
+          margin: "0 0 12px 0",
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "var(--text-primary)" }}>
+            <i className="fa-solid fa-upload" style={{ marginRight: 6, color: "var(--accent)" }} />
+            Upload Document
+          </div>
+          <div className="c-form-row">
+            <div className="c-form-group">
+              <div className="c-form-label">Select Rider *</div>
+              <select
+                className="c-form-select"
+                value={selectedRiderId}
+                onChange={(e) => setSelectedRiderId(e.target.value)}
+              >
+                <option value="">— Choose Rider —</option>
+                {riders.map((r) => (
+                  <option key={r._id} value={r._id}>{r.fullName}</option>
+                ))}
+              </select>
+            </div>
+            <div className="c-form-group">
+              <div className="c-form-label">Document Type *</div>
+              <select
+                className="c-form-select"
+                value={selectedDocType}
+                onChange={(e) => setSelectedDocType(e.target.value as DocType)}
+              >
+                {DOC_TYPES.map((t) => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="c-form-group" style={{ marginBottom: 12 }}>
+            <div className="c-form-label">File * (JPG, PNG, WebP, PDF — max 10MB)</div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="c-form-input"
+              accept=".jpg,.jpeg,.png,.webp,.pdf"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+              style={{ padding: "4px 8px" }}
+            />
+            {selectedFile && (
+              <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
+                <i className="fa-solid fa-file" style={{ marginRight: 4 }} />
+                {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+              </div>
+            )}
+          </div>
+          {uploadError && (
+            <div className="alert-strip danger" style={{ marginBottom: 8, fontSize: 11 }}>
+              <i className="fa-solid fa-circle-exclamation" /> {uploadError}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="c-btn primary" onClick={handleUpload} disabled={uploading}>
+              {uploading
+                ? <><i className="fa-solid fa-spinner fa-spin" /> Uploading…</>
+                : <><i className="fa-solid fa-check" /> Upload</>
+              }
+            </button>
+            <button className="c-btn" onClick={() => {
+              setShowUpload(false);
+              setSelectedFile(null);
+              setUploadError("");
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
+          <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: 8 }} />
+          Loading documents…
+        </div>
+      ) : error ? (
+        <div className="alert-strip danger" style={{ margin: 12 }}>
+          <i className="fa-solid fa-circle-exclamation" /> {error}
+          <button className="c-btn" style={{ marginLeft: "auto" }} onClick={fetchRidersWithDocs}>Retry</button>
+        </div>
+      ) : (
+        <div className="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rider</th>
+                <th>Document Type</th>
+                <th>File</th>
+                <th>Status</th>
+                <th>Uploaded</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allRows.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <EmptyState
+                      icon="fa-file-alt"
+                      title="No documents uploaded"
+                      desc="Upload CNIC, License, or Vehicle Registration for your riders."
+                    />
+                  </td>
+                </tr>
+              ) : (
+                allRows.map(({ rider, doc, docIndex }) => {
+                  const status = getDocStatus(doc);
+                  return (
+                    <tr key={`${rider._id}-${docIndex}`}>
+                      <td><strong>{rider.fullName}</strong></td>
+                      <td>
+                        <span className="tag">
+                          <i className="fa-solid fa-file" style={{ fontSize: 9, marginRight: 4 }} />
+                          {doc.type}
+                        </span>
+                      </td>
+                      <td>
+                        <code className="sku">{getFileNameFromUrl(doc.url)}</code>
+                      </td>
+                      <td><Badge label={status} /></td>
+                      <td>{new Date(doc.uploadedAt).toLocaleDateString()}</td>
+                      <td style={{ display: "flex", gap: 4 }}>
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="c-btn"
+                          style={{ height: 22, fontSize: 9.5 }}
+                          title="View"
+                        >
+                          <i className="fa-solid fa-eye" />
+                        </a>
+                        <button
+                          className="c-btn"
+                          style={{ height: 22, fontSize: 9.5, color: "var(--red)" }}
+                          title="Delete"
+                          onClick={() => handleDelete(rider._id, docIndex, doc.type)}
+                        >
+                          <i className="fa-solid fa-trash" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface Props {
   onNav: (p: NavPanel) => void;
@@ -575,7 +868,7 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
       )}
 
       {/* ── DOCUMENTS (static) ── */}
-      {innerTab === "docs" && (
+      {/* {innerTab === "docs" && (
         <div className="card">
           <div className="card-header">
             <div className="card-title">
@@ -638,6 +931,10 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
             </table>
           </div>
         </div>
+      )} */}
+      {/* ── DOCUMENTS (dynamic) ── */}
+      {innerTab === "docs" && (
+        <RiderDocumentsTab ridersAPI={ridersAPI} />
       )}
 
       {/* ── SCHEDULE (static) ── */}
