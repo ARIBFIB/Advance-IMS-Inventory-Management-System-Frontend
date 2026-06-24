@@ -443,20 +443,11 @@ interface StepItemsProps {
 const StepItems: React.FC<StepItemsProps> = ({ items, setItems }) => {
   const [prodSearch, setProdSearch] = useState("");
   const [showProdList, setShowProdList] = useState(false);
-  const [apiProducts, setApiProducts] = useState<
-    Array<{
-      _id: string;
-      name: string;
-      sku: string;
-      basePrice: number;
-      totalStock: number;
-      variants?: Array<{ variantId: string; price: number; stock: number }>;
-    }>
-  >([]);
+  type ApiProduct = { _id: string; name: string; sku: string; basePrice: number; totalStock: number; variants?: Array<{ variantId: string; price: number; stock: number; attributes: Record<string, string> }> };
+  const [apiProducts, setApiProducts] = useState<ApiProduct[]>([]);
   const [searching, setSearching] = useState(false);
-  const [searchTimeout, setSearchTimeout] = useState<ReturnType<
-    typeof setTimeout
-  > | null>(null);
+  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [variantPickerProduct, setVariantPickerProduct] = useState<ApiProduct | null>(null);
 
   // Search products from API
   // Search products from API
@@ -501,29 +492,43 @@ const StepItems: React.FC<StepItemsProps> = ({ items, setItems }) => {
   }, [prodSearch]);
 
   const addItem = (p: (typeof apiProducts)[0]) => {
-    const existing = items.find((i) => i.id === p._id);
-    if (existing) {
-      setItems(
-        items.map((i) => (i.id === p._id ? { ...i, qty: i.qty + 1 } : i)),
-      );
-    } else {
-      const firstVariant = p.variants?.[0];
-      setItems([
-        ...items,
-        {
-          id: p._id,
-          sku: p.sku,
-          name: p.name,
-          qty: 1,
-          price: firstVariant?.price ?? p.basePrice,
-          productId: p._id,
-          variantId: firstVariant?.variantId,
-        },
-      ]);
-    }
-    setProdSearch("");
-    setShowProdList(false);
-  };
+  setProdSearch("");
+  setShowProdList(false);
+  if (p.variants && p.variants.length > 1) {
+    setVariantPickerProduct(p);
+    return;
+  }
+  const existing = items.find((i) => i.id === p._id);
+  if (existing) {
+    setItems(items.map((i) => (i.id === p._id ? { ...i, qty: i.qty + 1 } : i)));
+    return;
+  }
+  const firstVariant = p.variants?.[0];
+  setItems([...items, {
+    id: p._id, sku: p.sku, name: p.name, qty: 1,
+    price: firstVariant?.price ?? p.basePrice,
+    productId: p._id, variantId: firstVariant?.variantId,
+  }]);
+};
+
+const addVariantItem = (
+  p: (typeof apiProducts)[0],
+  v: { variantId: string; price: number; stock: number; attributes: Record<string, string> }
+) => {
+  const uniqueId = `${p._id}-${v.variantId}`;
+  const attrLabel = Object.values(v.attributes ?? {}).join(" / ");
+  const existing = items.find((i) => i.id === uniqueId);
+  if (existing) {
+    setItems(items.map((i) => (i.id === uniqueId ? { ...i, qty: i.qty + 1 } : i)));
+  } else {
+    setItems([...items, {
+      id: uniqueId, sku: v.variantId,
+      name: `${p.name}${attrLabel ? ` — ${attrLabel}` : ""}`,
+      qty: 1, price: v.price, productId: p._id, variantId: v.variantId,
+    }]);
+  }
+  setVariantPickerProduct(null);
+};
 
   const removeItem = (id: string) => setItems(items.filter((i) => i.id !== id));
   const updateQty = (id: string, qty: number) => {
@@ -677,6 +682,51 @@ const StepItems: React.FC<StepItemsProps> = ({ items, setItems }) => {
           </div>
         )}
       </div>
+
+      {variantPickerProduct && (
+          <div style={{
+            border: "1px solid var(--border)", borderRadius: 8,
+            background: "var(--card)", padding: 12, marginTop: 8,
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700 }}>{variantPickerProduct.name}</div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Select a variant to add</div>
+              </div>
+              <button onClick={() => setVariantPickerProduct(null)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: 14 }}>
+                <i className="fa-solid fa-xmark" />
+              </button>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {variantPickerProduct.variants?.map((v) => {
+                const attrLabel = Object.values(v.attributes ?? {}).join(" / ");
+                const isOutOfStock = v.stock === 0;
+                return (
+                  <button key={v.variantId} disabled={isOutOfStock}
+                    onClick={() => addVariantItem(variantPickerProduct, v as any)}
+                    style={{
+                      padding: "6px 12px", borderRadius: 20,
+                      border: "1px solid var(--border)",
+                      background: isOutOfStock ? "var(--bg)" : "var(--card)",
+                      color: isOutOfStock ? "var(--text-muted)" : "var(--text)",
+                      cursor: isOutOfStock ? "not-allowed" : "pointer",
+                      fontSize: 11, fontWeight: 600, opacity: isOutOfStock ? 0.5 : 1,
+                      display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                    }}>
+                    <span>{attrLabel || v.variantId}</span>
+                    <span style={{ fontSize: 10, color: "var(--accent)", fontWeight: 700 }}>
+                      ₨{v.price.toLocaleString()}
+                    </span>
+                    <span style={{ fontSize: 9, color: isOutOfStock ? "#EF4444" : "var(--text-muted)" }}>
+                      {isOutOfStock ? "Out of Stock" : `Stock: ${v.stock}`}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
       {/* Items list */}
       {items.length === 0 ? (
