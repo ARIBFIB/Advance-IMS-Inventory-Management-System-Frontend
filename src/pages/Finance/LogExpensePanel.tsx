@@ -45,6 +45,7 @@ const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
     setError("");
     setSuccess(false);
     try {
+      console.log("Sending:", { description, category, amount: Number(amount), date });
       await expensesAPI.create({
         description,
         category,
