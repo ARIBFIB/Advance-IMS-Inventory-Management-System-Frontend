@@ -129,13 +129,15 @@ export const SkeletonCard: React.FC<{ lines?: number }> = ({ lines = 3 }) => (
 export const ToggleSwitch: React.FC<{
   defaultChecked?: boolean;
   onChange?: (v: boolean) => void;
-}> = ({ defaultChecked = false, onChange }) => {
+  disabled?: boolean;
+}> = ({ defaultChecked = false, onChange, disabled = false }) => {
   const [on, setOn] = useState(defaultChecked);
   return (
-    <label className="toggle-switch">
+    <label className="toggle-switch" style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? "none" : "auto" }}>
       <input
         type="checkbox"
         checked={on}
+        disabled={disabled}
         onChange={(e) => {
           setOn(e.target.checked);
           onChange?.(e.target.checked);
