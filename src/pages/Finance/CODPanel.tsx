@@ -20,15 +20,17 @@ interface Props {
 }
 
 const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
-  const [innerTab, setInnerTab] = useState("all");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [orders, setOrders] = useState<ApiOrderListItem[]>([]);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [kpis, setKpis] = useState<any>(null);
+const [innerTab, setInnerTab] = useState("all");
+const [search, setSearch] = useState("");
+const [page, setPage] = useState(1);
+const [orders, setOrders] = useState<ApiOrderListItem[]>([]);
+const [totalItems, setTotalItems] = useState(0);
+const [totalPages, setTotalPages] = useState(1);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState("");
+const [kpis, setKpis] = useState<any>(null);
+const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+const [bulkLoading, setBulkLoading] = useState(false);
 
   const deliveryStatusFilter: Record<string, string | undefined> = {
     pending: "InTransit",
@@ -96,9 +98,48 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
   const end = Math.min(page * PER_PAGE, totalItems);
 
   const handleTabChange = (id: string) => {
-    setInnerTab(id);
-    setPage(1);
-  };
+  setInnerTab(id);
+  setPage(1);
+  setSelectedIds(new Set());
+};
+
+const toggleSelect = (id: string) => {
+  setSelectedIds((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+};
+
+const toggleSelectAll = () => {
+  const eligible = filteredBySearch.filter(
+    (o) => o.paymentStatus === "Pending" && o.deliveryStatus === "Delivered"
+  );
+  if (eligible.every((o) => selectedIds.has(o._id))) {
+    setSelectedIds(new Set());
+  } else {
+    setSelectedIds(new Set(eligible.map((o) => o._id)));
+  }
+};
+
+const handleBulkSubmit = async () => {
+  if (selectedIds.size === 0) return;
+  if (!window.confirm(`Mark ${selectedIds.size} order(s) as Paid?`)) return;
+  setBulkLoading(true);
+  try {
+    await Promise.all(
+      Array.from(selectedIds).map((id) =>
+        financeOrdersAPI.updatePaymentStatus(id, "Paid")
+      )
+    );
+    setSelectedIds(new Set());
+    load(innerTab, page);
+  } catch {
+    alert("Some orders failed to update.");
+  } finally {
+    setBulkLoading(false);
+  }
+};
 
   return (
     <>
@@ -121,11 +162,14 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
             uncollected COD cash.
           </div>
           <button
-            className="f-btn primary"
-            style={{ marginLeft: "auto", fontSize: 9.5 }}
-          >
-            <i className="fa-solid fa-check-double" /> Bulk Submit
-          </button>
+  className="f-btn primary"
+  style={{ marginLeft: "auto", fontSize: 9.5 }}
+  onClick={handleBulkSubmit}
+  disabled={bulkLoading}
+>
+  <i className={bulkLoading ? "fa-solid fa-spinner fa-spin" : "fa-solid fa-check-double"} />
+  {bulkLoading ? "Submitting…" : "Bulk Submit"}
+</button>
         </div>
       )}
 
@@ -189,9 +233,14 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
             <button className="f-btn">
               <i className="fa-solid fa-file-export" /> Export
             </button>
-            <button className="f-btn primary">
-              <i className="fa-solid fa-check-double" /> Bulk Submit
-            </button>
+            <button
+  className="f-btn primary"
+  onClick={handleBulkSubmit}
+  disabled={bulkLoading || selectedIds.size === 0}
+>
+  <i className={bulkLoading ? "fa-solid fa-spinner fa-spin" : "fa-solid fa-check-double"} />
+  {bulkLoading ? "Submitting…" : `Bulk Submit${selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}`}
+</button>
           </div>
         </div>
 
@@ -200,8 +249,8 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
             <thead>
               <tr>
                 <th>
-                  <input type="checkbox" />
-                </th>
+  <input type="checkbox" onChange={toggleSelectAll} />
+</th>
                 <th>Order ID</th>
                 <th>Customer</th>
                 <th>Amount</th>
@@ -236,8 +285,12 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
                     }
                   >
                     <td onClick={(e) => e.stopPropagation()}>
-                      <input type="checkbox" />
-                    </td>
+  <input
+    type="checkbox"
+    checked={selectedIds.has(c._id)}
+    onChange={() => toggleSelect(c._id)}
+  />
+</td>
                     <td>
                       <code className="ref">{c.orderId}</code>
                     </td>
