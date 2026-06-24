@@ -148,13 +148,23 @@ const OrderDetailModal: React.FC<{
   order: ApiOrder;
   onClose: () => void;
   onMarkDelivered: (id: string) => Promise<void>;
-}> = ({ order, onClose, onMarkDelivered }) => {
-  const [loading, setLoading] = useState(false);
+  onMarkReturned: (id: string) => Promise<void>;
+}> = ({ order, onClose, onMarkDelivered, onMarkReturned }) => {
+  const [loadingDeliver, setLoadingDeliver] = useState(false);
+  const [loadingReturn, setLoadingReturn] = useState(false);
 
   const handleDeliver = async () => {
-    setLoading(true);
+    setLoadingDeliver(true);
     await onMarkDelivered(order._id);
-    setLoading(false);
+    setLoadingDeliver(false);
+    onClose();
+  };
+
+  const handleReturn = async () => {
+    if (!window.confirm(`Mark ${order.orderId} as Returned?`)) return;
+    setLoadingReturn(true);
+    await onMarkReturned(order._id);
+    setLoadingReturn(false);
     onClose();
   };
 
@@ -216,17 +226,38 @@ const OrderDetailModal: React.FC<{
             display: "flex",
             gap: 8,
             justifyContent: "flex-end",
+            flexWrap: "wrap",
           }}
         >
           <button className="st-btn" onClick={onClose}>
             Close
           </button>
           <button
+            className="st-btn"
+            style={{
+              borderColor: "#dc2626",
+              color: "#dc2626",
+              background: "#fee2e2",
+            }}
+            onClick={handleReturn}
+            disabled={loadingReturn || loadingDeliver}
+          >
+            {loadingReturn ? (
+              <>
+                <i className="fa-solid fa-spinner fa-spin" /> Processing…
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-rotate-left" /> Mark Returned
+              </>
+            )}
+          </button>
+          <button
             className="st-btn st-btn-primary"
             onClick={handleDeliver}
-            disabled={loading}
+            disabled={loadingDeliver || loadingReturn}
           >
-            {loading ? (
+            {loadingDeliver ? (
               <>
                 <i className="fa-solid fa-spinner fa-spin" /> Marking…
               </>
@@ -338,6 +369,24 @@ const ShippedTab: React.FC = () => {
     } catch (e: any) {
       showToast(
         e?.response?.data?.message ?? "Failed to update status.",
+        "error",
+      );
+      throw e;
+    }
+  };
+
+  const handleMarkReturned = async (orderId: string) => {
+    try {
+      await ordersAPI.updateStatus(
+        orderId,
+        "Returned",
+        "Marked returned from Shipped tab",
+      );
+      showToast("Order marked as Returned!", "success");
+      fetchOrders();
+    } catch (e: any) {
+      showToast(
+        e?.response?.data?.message ?? "Failed to mark as returned.",
         "error",
       );
       throw e;
@@ -472,13 +521,34 @@ const ShippedTab: React.FC = () => {
                       {fmtDate(o.createdAt)}
                     </td>
                     <td>
-                      <button
-                        className="st-btn st-btn-primary"
-                        style={{ fontSize: 10, padding: "4px 10px" }}
-                        onClick={() => setDetail(o)}
-                      >
-                        <i className="fa-solid fa-circle-check" /> Deliver
-                      </button>
+                      <div style={{ display: "flex", gap: 5 }}>
+                        <button
+                          className="st-btn"
+                          style={{
+                            fontSize: 10,
+                            padding: "4px 10px",
+                            borderColor: "#dc2626",
+                            color: "#dc2626",
+                            background: "#fee2e2",
+                          }}
+                          onClick={async () => {
+                            if (
+                              !window.confirm(`Mark ${o.orderId} as Returned?`)
+                            )
+                              return;
+                            await handleMarkReturned(o._id);
+                          }}
+                        >
+                          <i className="fa-solid fa-rotate-left" /> Return
+                        </button>
+                        <button
+                          className="st-btn st-btn-primary"
+                          style={{ fontSize: 10, padding: "4px 10px" }}
+                          onClick={() => setDetail(o)}
+                        >
+                          <i className="fa-solid fa-circle-check" /> Deliver
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -495,6 +565,7 @@ const ShippedTab: React.FC = () => {
           order={detail}
           onClose={() => setDetail(null)}
           onMarkDelivered={handleMarkDelivered}
+          onMarkReturned={handleMarkReturned}
         />
       )}
 

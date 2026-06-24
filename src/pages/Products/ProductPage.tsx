@@ -796,466 +796,529 @@ const ProductPanel: React.FC<ProductPanelProps> = ({
   );
 
   const renderVariants = () => {
-  const variants = product?.variants ?? [];
+    const variants = product?.variants ?? [];
 
-  const getVariantLabel = (variantId: string): string => {
-    const parts = variantId.split("-");
-    const filtered = parts.filter((p) => !/^[a-f0-9]{24}$/i.test(p));
-    return filtered.length > 0 ? filtered.join("-") : variantId;
-  };
+    const getVariantLabel = (variantId: string): string => {
+      const parts = variantId.split("-");
+      const filtered = parts.filter((p) => !/^[a-f0-9]{24}$/i.test(p));
+      return filtered.length > 0 ? filtered.join("-") : variantId;
+    };
 
-  const isHexColor = (val: string): boolean =>
-    /^#([0-9a-f]{3}){1,2}$/i.test(val.trim());
+    const isHexColor = (val: string): boolean =>
+      /^#([0-9a-f]{3}){1,2}$/i.test(val.trim());
 
-  const isCssColor = (val: string): boolean => {
-    const cssColors = ["red","blue","green","black","white","yellow","pink",
-      "grey","gray","brown","navy","purple","orange","violet","indigo","teal",
-      "cyan","magenta","maroon","olive","coral","salmon","gold","silver","lime"];
-    return cssColors.includes(val.trim().toLowerCase());
-  };
+    const isCssColor = (val: string): boolean => {
+      const cssColors = [
+        "red",
+        "blue",
+        "green",
+        "black",
+        "white",
+        "yellow",
+        "pink",
+        "grey",
+        "gray",
+        "brown",
+        "navy",
+        "purple",
+        "orange",
+        "violet",
+        "indigo",
+        "teal",
+        "cyan",
+        "magenta",
+        "maroon",
+        "olive",
+        "coral",
+        "salmon",
+        "gold",
+        "silver",
+        "lime",
+      ];
+      return cssColors.includes(val.trim().toLowerCase());
+    };
 
-  const isColor = (val: string) => isHexColor(val) || isCssColor(val);
+    const isColor = (val: string) => isHexColor(val) || isCssColor(val);
 
-  const getColorValue = (val: string): string => {
-    if (isHexColor(val)) return val.trim();
-    if (isCssColor(val)) return val.trim().toLowerCase();
-    return "";
-  };
+    const getColorValue = (val: string): string => {
+      if (isHexColor(val)) return val.trim();
+      if (isCssColor(val)) return val.trim().toLowerCase();
+      return "";
+    };
 
-  // luminance check — dark color pe white text, light color pe dark text
-  const getTextColorForBg = (hex: string): string => {
-    const clean = hex.replace("#", "");
-    const r = parseInt(clean.slice(0, 2), 16);
-    const g = parseInt(clean.slice(2, 4), 16);
-    const b = parseInt(clean.slice(4, 6), 16);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.55 ? "#1F2937" : "#ffffff";
-  };
+    // luminance check — dark color pe white text, light color pe dark text
+    const getTextColorForBg = (hex: string): string => {
+      const clean = hex.replace("#", "");
+      const r = parseInt(clean.slice(0, 2), 16);
+      const g = parseInt(clean.slice(2, 4), 16);
+      const b = parseInt(clean.slice(4, 6), 16);
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance > 0.55 ? "#1F2937" : "#ffffff";
+    };
 
-  const getAttrPairs = (
-    attributes: Record<string, string>
-  ): { key: string; val: string }[] =>
-    Object.entries(attributes ?? {}).map(([k, v]) => ({ key: k, val: v }));
+    const getAttrPairs = (
+      attributes: Record<string, string>,
+    ): { key: string; val: string }[] =>
+      Object.entries(attributes ?? {}).map(([k, v]) => ({ key: k, val: v }));
 
-  const getAvatarInfo = (
-    attributes: Record<string, string>,
-    variantId: string
-  ): { text: string; bg: string; textColor: string } => {
-    const entries = Object.entries(attributes ?? {});
-    const colorEntry = entries.find(([k]) =>
-      ["color", "colour"].includes(k.toLowerCase())
-    );
+    const getAvatarInfo = (
+      attributes: Record<string, string>,
+      variantId: string,
+    ): { text: string; bg: string; textColor: string } => {
+      const entries = Object.entries(attributes ?? {});
 
-    if (colorEntry) {
-      const colorVal = colorEntry[1];
-      const bg = getColorValue(colorVal);
-      if (bg) {
-        const textColor = isHexColor(bg)
-          ? getTextColorForBg(bg)
-          : "#ffffff";
-        // size attribute se avatar text
-        const sizeEntry = entries.find(([k]) => k.toLowerCase() === "size");
-        const text = sizeEntry
-          ? sizeEntry[1].slice(0, 3).toUpperCase()
-          : entries
-              .filter(([k]) => !["color","colour"].includes(k.toLowerCase()))
-              .map(([, v]) => v)[0]
-              ?.slice(0, 2)
-              .toUpperCase() ?? "V";
-        return { text, bg, textColor };
+      const colorEntry = entries.find(([k]) =>
+        ["color", "colour"].includes(k.toLowerCase()),
+      );
+
+      if (colorEntry) {
+        const rawVal = colorEntry[1].trim();
+
+        // Hex color directly use karo
+        const resolvedBg = isHexColor(rawVal)
+          ? rawVal
+          : isCssColor(rawVal)
+            ? rawVal.toLowerCase()
+            : null;
+
+        if (resolvedBg) {
+          // Text color: hex pe luminance check, CSS color name pe always white
+          const textColor = isHexColor(resolvedBg)
+            ? getTextColorForBg(resolvedBg)
+            : "#ffffff";
+
+          // Avatar text: size se lo, warna doosra non-color attribute
+          const sizeEntry = entries.find(([k]) => k.toLowerCase() === "size");
+          const otherEntry = entries.find(
+            ([k]) => !["color", "colour"].includes(k.toLowerCase()),
+          );
+          const text = sizeEntry
+            ? sizeEntry[1].slice(0, 3).toUpperCase()
+            : otherEntry
+              ? otherEntry[1].slice(0, 2).toUpperCase()
+              : "V";
+
+          return { text, bg: resolvedBg, textColor };
+        }
       }
-    }
 
-    // no color — normal avatar
-    const label = getVariantLabel(variantId);
-    const nonColor = entries.filter(
-      ([k]) => !["color","colour"].includes(k.toLowerCase())
-    );
-    const text =
-      nonColor.length > 0
-        ? nonColor[0][1].slice(0, 3).toUpperCase()
-        : label.slice(0, 3).toUpperCase();
-    return { text, bg: "var(--accent-bg, #FFF5EE)", textColor: "var(--accent, #F97316)" };
-  };
+      // Color attribute nahi mila — orange default
+      const label = getVariantLabel(variantId);
+      const nonColor = entries.filter(
+        ([k]) => !["color", "colour"].includes(k.toLowerCase()),
+      );
+      const text =
+        nonColor.length > 0
+          ? nonColor[0][1].slice(0, 3).toUpperCase()
+          : label.slice(0, 3).toUpperCase();
 
-  return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 12,
-        }}
-      >
-        <div className="stock-log-section-label" style={{ margin: 0 }}>
-          Product Variants
-          <span
-            style={{
-              marginLeft: 8,
-              background: "var(--accent)",
-              color: "#fff",
-              borderRadius: 20,
-              padding: "1px 8px",
-              fontSize: 10,
-              fontWeight: 700,
-            }}
-          >
-            {variants.length}
-          </span>
-        </div>
-      </div>
+      return {
+        text,
+        bg: "#FFF5EE",
+        textColor: "#F97316",
+      };
+    };
 
-      {variants.length === 0 ? (
+    return (
+      <>
         <div
           style={{
-            textAlign: "center",
-            padding: "28px 16px",
-            color: "var(--text-muted)",
-            background: "var(--bg-soft, #F9FAFB)",
-            borderRadius: 10,
-            border: "1.5px dashed var(--border)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 12,
           }}
         >
-          <i
-            className="fa-solid fa-layer-group"
-            style={{ fontSize: 22, marginBottom: 8, display: "block", opacity: 0.3 }}
-          />
-          No variants yet. Add one from Variants tab.
+          <div className="stock-log-section-label" style={{ margin: 0 }}>
+            Product Variants
+            <span
+              style={{
+                marginLeft: 8,
+                background: "var(--accent)",
+                color: "#fff",
+                borderRadius: 20,
+                padding: "1px 8px",
+                fontSize: 10,
+                fontWeight: 700,
+              }}
+            >
+              {variants.length}
+            </span>
+          </div>
         </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {variants.map((v) => {
-            const threshold = v.lowStockThreshold ?? 10;
-            const st =
-              v.stock === 0
-                ? "Out of Stock"
-                : v.stock < threshold
-                  ? "Low Stock"
-                  : "In Stock";
 
-            const pairs = getAttrPairs(v.attributes);
-            const cleanId = getVariantLabel(v.variantId);
-            const avatar = getAvatarInfo(v.attributes, v.variantId);
+        {variants.length === 0 ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "28px 16px",
+              color: "var(--text-muted)",
+              background: "var(--bg-soft, #F9FAFB)",
+              borderRadius: 10,
+              border: "1.5px dashed var(--border)",
+            }}
+          >
+            <i
+              className="fa-solid fa-layer-group"
+              style={{
+                fontSize: 22,
+                marginBottom: 8,
+                display: "block",
+                opacity: 0.3,
+              }}
+            />
+            No variants yet. Add one from Variants tab.
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {variants.map((v) => {
+              const threshold = v.lowStockThreshold ?? 10;
+              const st =
+                v.stock === 0
+                  ? "Out of Stock"
+                  : v.stock < threshold
+                    ? "Low Stock"
+                    : "In Stock";
 
-            // color entry for swatch row
-            const colorEntry = pairs.find(({ key }) =>
-              ["color", "colour"].includes(key.toLowerCase())
-            );
-            const colorVal = colorEntry
-              ? getColorValue(colorEntry.val)
-              : null;
+              const pairs = getAttrPairs(v.attributes);
+              const cleanId = getVariantLabel(v.variantId);
+              const avatar = getAvatarInfo(v.attributes, v.variantId);
 
-            const stockPct = Math.min(
-              100,
-              (v.stock / Math.max((threshold) * 3, 1)) * 100
-            );
-            const stockBarColor =
-              v.stock === 0
-                ? "#EF4444"
-                : v.stock < threshold
-                  ? "#F59E0B"
-                  : "#10B981";
+              // color entry for swatch row
+              const colorEntry = pairs.find(({ key }) =>
+                ["color", "colour"].includes(key.toLowerCase()),
+              );
+              const colorVal = colorEntry
+                ? getColorValue(colorEntry.val)
+                : null;
 
-            const stBadgeBg =
-              v.stock === 0
-                ? "var(--red-bg)"
-                : v.stock < threshold
-                  ? "var(--yellow-bg)"
-                  : "var(--green-bg)";
-            const stBadgeColor =
-              v.stock === 0
-                ? "var(--red)"
-                : v.stock < threshold
-                  ? "#B45309"
-                  : "var(--green)";
+              const stockPct = Math.min(
+                100,
+                (v.stock / Math.max(threshold * 3, 1)) * 100,
+              );
+              const stockBarColor =
+                v.stock === 0
+                  ? "#EF4444"
+                  : v.stock < threshold
+                    ? "#F59E0B"
+                    : "#10B981";
 
-            return (
-              <div
-                key={v.variantId}
-                style={{
-                  background: "#fff",
-                  border: "1.5px solid var(--border)",
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  display: "flex",
-                  gap: 12,
-                  alignItems: "flex-start",
-                  transition: "box-shadow 0.15s",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.boxShadow =
-                    "0 4px 12px rgba(0,0,0,0.08)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.boxShadow =
-                    "0 1px 3px rgba(0,0,0,0.04)")
-                }
-              >
-                {/* ── Avatar ── */}
+              const stBadgeBg =
+                v.stock === 0
+                  ? "var(--red-bg)"
+                  : v.stock < threshold
+                    ? "var(--yellow-bg)"
+                    : "var(--green-bg)";
+              const stBadgeColor =
+                v.stock === 0
+                  ? "var(--red)"
+                  : v.stock < threshold
+                    ? "#B45309"
+                    : "var(--green)";
+
+              return (
                 <div
+                  key={v.variantId}
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 10,
-                    background: avatar.bg,
-                    color: avatar.textColor,
+                    background: "#fff",
+                    border: "1.5px solid var(--border)",
+                    borderRadius: 12,
+                    padding: "12px 14px",
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 800,
-                    fontSize: 13,
-                    flexShrink: 0,
-                    border: "1.5px solid rgba(0,0,0,0.08)",
-                    letterSpacing: 0.5,
-                    position: "relative",
-                    overflow: "hidden",
+                    gap: 12,
+                    alignItems: "flex-start",
+                    transition: "box-shadow 0.15s",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
                   }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.boxShadow =
+                      "0 4px 12px rgba(0,0,0,0.08)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.boxShadow =
+                      "0 1px 3px rgba(0,0,0,0.04)")
+                  }
                 >
-                  {/* subtle shine overlay */}
+                  {/* ── Avatar ── */}
                   <div
                     style={{
-                      position: "absolute",
-                      inset: 0,
-                      background:
-                        "linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 60%)",
-                      pointerEvents: "none",
-                    }}
-                  />
-                  {avatar.text}
-                </div>
-
-                {/* ── Content ── */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* Top row: ID + price */}
-                  <div
-                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 10,
+                      background: avatar.bg,
+                      color: avatar.textColor,
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 8,
-                      marginBottom: 6,
+                      justifyContent: "center",
+                      fontWeight: 800,
+                      fontSize: 13,
+                      flexShrink: 0,
+                      border: "1.5px solid rgba(0,0,0,0.08)",
+                      letterSpacing: 0.5,
+                      position: "relative",
+                      overflow: "hidden",
                     }}
                   >
+                    {/* subtle shine overlay */}
                     <div
                       style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: "var(--text-primary)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        position: "absolute",
+                        inset: 0,
+                        background:
+                          "linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 60%)",
+                        pointerEvents: "none",
                       }}
-                      title={v.variantId}
-                    >
-                      {cleanId || v.variantId}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 800,
-                        color: "var(--accent, #F97316)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {fmt(v.price)}
-                    </div>
+                    />
+                    {avatar.text}
                   </div>
 
-                  {/* Attribute pills */}
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 5,
-                      marginBottom: 10,
-                    }}
-                  >
-                    {pairs.map(({ key, val }) => {
-                      const cv = getColorValue(val);
-                      const isCol = isColor(val);
-                      return (
-                        <span
-                          key={key}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 5,
-                            fontSize: 10,
-                            padding: "3px 8px",
-                            borderRadius: 20,
-                            background: "var(--bg-soft, #F3F4F6)",
-                            color: "var(--text-secondary)",
-                            border: "1px solid var(--border)",
-                            fontWeight: 500,
-                          }}
-                        >
-                          <span
-                            style={{
-                              color: "var(--text-muted)",
-                              textTransform: "capitalize",
-                              fontSize: 9,
-                            }}
-                          >
-                            {key}
-                          </span>
-                          {isCol && cv ? (
-                            <>
-                              <span
-                                style={{
-                                  display: "inline-block",
-                                  width: 11,
-                                  height: 11,
-                                  borderRadius: "50%",
-                                  background: cv,
-                                  border: "1.5px solid rgba(0,0,0,0.15)",
-                                  flexShrink: 0,
-                                }}
-                              />
-                              <strong style={{ color: "var(--text-primary)" }}>
-                                {val}
-                              </strong>
-                            </>
-                          ) : (
-                            <strong style={{ color: "var(--text-primary)" }}>
-                              {val}
-                            </strong>
-                          )}
-                        </span>
-                      );
-                    })}
-
-                    {/* barcode chip */}
-                    {v.barcode && (
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          fontSize: 10,
-                          padding: "3px 8px",
-                          borderRadius: 20,
-                          background: "var(--blue-bg, #EFF6FF)",
-                          color: "var(--blue, #3B82F6)",
-                          border: "1px solid var(--blue-bg, #EFF6FF)",
-                        }}
-                      >
-                        <i className="fa-solid fa-barcode" style={{ fontSize: 9 }} />
-                        {v.barcode}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Stock bar + info row */}
-                  <div>
+                  {/* ── Content ── */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Top row: ID + price */}
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        marginBottom: 4,
+                        gap: 8,
+                        marginBottom: 6,
                       }}
                     >
                       <div
                         style={{
-                          fontSize: 11,
-                          color: "var(--text-secondary)",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: "var(--text-primary)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                         }}
+                        title={v.variantId}
                       >
-                        <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>
-                          {v.stock}
-                        </span>{" "}
-                        / {threshold * 3} units
+                        {cleanId || v.variantId}
                       </div>
-                      <span
+                      <div
                         style={{
-                          fontSize: 10,
-                          fontWeight: 600,
-                          padding: "2px 8px",
-                          borderRadius: 20,
-                          background: stBadgeBg,
-                          color: stBadgeColor,
+                          fontSize: 13,
+                          fontWeight: 800,
+                          color: "var(--accent, #F97316)",
+                          flexShrink: 0,
                         }}
                       >
-                        {st}
-                      </span>
+                        {fmt(v.price)}
+                      </div>
                     </div>
 
-                    {/* Progress bar */}
+                    {/* Attribute pills */}
                     <div
                       style={{
-                        height: 5,
-                        borderRadius: 99,
-                        background: "var(--bg-soft, #F3F4F6)",
-                        overflow: "hidden",
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 5,
+                        marginBottom: 10,
                       }}
                     >
-                      <div
-                        style={{
-                          height: "100%",
-                          width: `${stockPct}%`,
-                          background: stockBarColor,
-                          borderRadius: 99,
-                          transition: "width 0.4s ease",
-                        }}
-                      />
+                      {pairs.map(({ key, val }) => {
+                        const cv = getColorValue(val);
+                        const isCol = isColor(val);
+                        return (
+                          <span
+                            key={key}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                              fontSize: 10,
+                              padding: "3px 8px",
+                              borderRadius: 20,
+                              background: "var(--bg-soft, #F3F4F6)",
+                              color: "var(--text-secondary)",
+                              border: "1px solid var(--border)",
+                              fontWeight: 500,
+                            }}
+                          >
+                            <span
+                              style={{
+                                color: "var(--text-muted)",
+                                textTransform: "capitalize",
+                                fontSize: 9,
+                              }}
+                            >
+                              {key}
+                            </span>
+                            {isCol && cv ? (
+                              <>
+                                <span
+                                  style={{
+                                    display: "inline-block",
+                                    width: 11,
+                                    height: 11,
+                                    borderRadius: "50%",
+                                    background: cv,
+                                    border: "1.5px solid rgba(0,0,0,0.15)",
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <strong
+                                  style={{ color: "var(--text-primary)" }}
+                                >
+                                  {val}
+                                </strong>
+                              </>
+                            ) : (
+                              <strong style={{ color: "var(--text-primary)" }}>
+                                {val}
+                              </strong>
+                            )}
+                          </span>
+                        );
+                      })}
+
+                      {/* barcode chip */}
+                      {v.barcode && (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: 10,
+                            padding: "3px 8px",
+                            borderRadius: 20,
+                            background: "var(--blue-bg, #EFF6FF)",
+                            color: "var(--blue, #3B82F6)",
+                            border: "1px solid var(--blue-bg, #EFF6FF)",
+                          }}
+                        >
+                          <i
+                            className="fa-solid fa-barcode"
+                            style={{ fontSize: 9 }}
+                          />
+                          {v.barcode}
+                        </span>
+                      )}
                     </div>
 
-                    {/* Low threshold note */}
-                    {v.stock < threshold && v.stock > 0 && (
+                    {/* Stock bar + info row */}
+                    <div>
                       <div
                         style={{
-                          marginTop: 5,
-                          fontSize: 10,
-                          color: "#B45309",
                           display: "flex",
                           alignItems: "center",
-                          gap: 4,
+                          justifyContent: "space-between",
+                          marginBottom: 4,
                         }}
                       >
-                        <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 9 }} />
-                        {threshold - v.stock} units below threshold ({threshold})
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "var(--text-secondary)",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontWeight: 700,
+                              color: "var(--text-primary)",
+                            }}
+                          >
+                            {v.stock}
+                          </span>{" "}
+                          / {threshold * 3} units
+                        </div>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            padding: "2px 8px",
+                            borderRadius: 20,
+                            background: stBadgeBg,
+                            color: stBadgeColor,
+                          }}
+                        >
+                          {st}
+                        </span>
                       </div>
-                    )}
 
-                    {v.stock === 0 && (
+                      {/* Progress bar */}
                       <div
                         style={{
-                          marginTop: 5,
-                          fontSize: 10,
-                          color: "var(--red)",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
+                          height: 5,
+                          borderRadius: 99,
+                          background: "var(--bg-soft, #F3F4F6)",
+                          overflow: "hidden",
                         }}
                       >
-                        <i className="fa-solid fa-circle-xmark" style={{ fontSize: 9 }} />
-                        Out of stock — reorder needed
+                        <div
+                          style={{
+                            height: "100%",
+                            width: `${stockPct}%`,
+                            background: stockBarColor,
+                            borderRadius: 99,
+                            transition: "width 0.4s ease",
+                          }}
+                        />
                       </div>
-                    )}
+
+                      {/* Low threshold note */}
+                      {v.stock < threshold && v.stock > 0 && (
+                        <div
+                          style={{
+                            marginTop: 5,
+                            fontSize: 10,
+                            color: "#B45309",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <i
+                            className="fa-solid fa-triangle-exclamation"
+                            style={{ fontSize: 9 }}
+                          />
+                          {threshold - v.stock} units below threshold (
+                          {threshold})
+                        </div>
+                      )}
+
+                      {v.stock === 0 && (
+                        <div
+                          style={{
+                            marginTop: 5,
+                            fontSize: 10,
+                            color: "var(--red)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <i
+                            className="fa-solid fa-circle-xmark"
+                            style={{ fontSize: 9 }}
+                          />
+                          Out of stock — reorder needed
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
 
-      <hr style={{ margin: "16px 0 12px" }} />
-      <button
-        className="header-btn primary"
-        style={{ width: "100%", justifyContent: "center" }}
-        onClick={() => {
-          onClose();
-          if (onSwitchToVariants) onSwitchToVariants();
-        }}
-      >
-        <i className="fa-solid fa-layer-group" /> Manage Variants
-      </button>
-    </>
-  );
-};
+        <hr style={{ margin: "16px 0 12px" }} />
+        <button
+          className="header-btn primary"
+          style={{ width: "100%", justifyContent: "center" }}
+          onClick={() => {
+            onClose();
+            if (onSwitchToVariants) onSwitchToVariants();
+          }}
+        >
+          <i className="fa-solid fa-layer-group" /> Manage Variants
+        </button>
+      </>
+    );
+  };
 
   return (
     <>
