@@ -1696,6 +1696,7 @@ return {
                 <th>Parent Product</th>
                 <th>Type</th>
                 <th>Value</th>
+                <th>Attributes</th>
                 <th>Stock</th>
                 <th>Sale Price</th>
                 <th>Status</th>
@@ -3335,13 +3336,17 @@ const BulkImportTab: React.FC = () => {
                       <td>
                         <code>{c.col}</code>
                       </td>
-                      <td>
-                        <span className={`badge ${c.req ? "red" : "yellow"}`}>
-                          {c.req ? "Required" : "Optional"}
-                        </span>
-                      </td>
-                      <td>{c.example}</td>
-                      <td>{c.note}</td>
+                      // ✅ CORRECT — BulkImportTab ke tbody mein sirf yeh hona chahiye
+<td>
+  <code>{c.col}</code>
+</td>
+<td>
+  <span className={`badge ${c.req ? "red" : "yellow"}`}>
+    {c.req ? "Required" : "Optional"}
+  </span>
+</td>
+<td>{c.example}</td>
+<td>{c.note}</td>
                     </tr>
                   ))}
                 </tbody>
