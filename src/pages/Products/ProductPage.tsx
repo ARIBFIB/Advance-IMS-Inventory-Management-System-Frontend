@@ -374,8 +374,14 @@ interface ProductPanelProps {
 }
 
 const ProductPanel: React.FC<ProductPanelProps> = ({
-  product, mode, categories, suppliers,
-  onClose, onModeChange, onSaved, onSwitchToVariants,
+  product,
+  mode,
+  categories,
+  suppliers,
+  onClose,
+  onModeChange,
+  onSaved,
+  onSwitchToVariants,
 }) => {
   const [panelTab, setPanelTab] = useState<"overview" | "stock" | "variants">(
     "overview",
@@ -792,231 +798,454 @@ const ProductPanel: React.FC<ProductPanelProps> = ({
   const renderVariants = () => {
   const variants = product?.variants ?? [];
 
-  // Helper: variant ID se clean label banao
   const getVariantLabel = (variantId: string): string => {
-    // Pattern: <mongoId>-ATTR1-ATTR2 → sirf ATTR1-ATTR2 rakhna
     const parts = variantId.split("-");
-    // MongoDB ObjectId = 24 hex chars
     const filtered = parts.filter((p) => !/^[a-f0-9]{24}$/i.test(p));
     return filtered.length > 0 ? filtered.join("-") : variantId;
   };
 
-  // Helper: attributes object → readable string
-  const getAttrDisplay = (
-    attributes: Record<string, string>,
-    variantId: string,
-  ): { label: string; pairs: { key: string; val: string }[] } => {
-    const entries = Object.entries(attributes ?? {});
-    if (entries.length === 0) {
-      const clean = getVariantLabel(variantId);
-      return { label: clean, pairs: [] };
-    }
-    const pairs = entries.map(([k, v]) => ({ key: k, val: v }));
-    const label = pairs.map((p) => p.val).join(" / ");
-    return { label, pairs };
+  const isHexColor = (val: string): boolean =>
+    /^#([0-9a-f]{3}){1,2}$/i.test(val.trim());
+
+  const isCssColor = (val: string): boolean => {
+    const cssColors = ["red","blue","green","black","white","yellow","pink",
+      "grey","gray","brown","navy","purple","orange","violet","indigo","teal",
+      "cyan","magenta","maroon","olive","coral","salmon","gold","silver","lime"];
+    return cssColors.includes(val.trim().toLowerCase());
   };
 
-  // Helper: color value detect karo (hex ya CSS color)
-  const isHexColor = (val: string): boolean =>
-    /^#([0-9a-f]{3}){1,2}$/i.test(val);
+  const isColor = (val: string) => isHexColor(val) || isCssColor(val);
 
-  // Helper: avatar text — attribute values se, ID se nahi
-  const getAvatarText = (
+  const getColorValue = (val: string): string => {
+    if (isHexColor(val)) return val.trim();
+    if (isCssColor(val)) return val.trim().toLowerCase();
+    return "";
+  };
+
+  // luminance check — dark color pe white text, light color pe dark text
+  const getTextColorForBg = (hex: string): string => {
+    const clean = hex.replace("#", "");
+    const r = parseInt(clean.slice(0, 2), 16);
+    const g = parseInt(clean.slice(2, 4), 16);
+    const b = parseInt(clean.slice(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.55 ? "#1F2937" : "#ffffff";
+  };
+
+  const getAttrPairs = (
+    attributes: Record<string, string>
+  ): { key: string; val: string }[] =>
+    Object.entries(attributes ?? {}).map(([k, v]) => ({ key: k, val: v }));
+
+  const getAvatarInfo = (
     attributes: Record<string, string>,
-    variantId: string,
-  ): string => {
+    variantId: string
+  ): { text: string; bg: string; textColor: string } => {
     const entries = Object.entries(attributes ?? {});
-    if (entries.length > 0) {
-      // color attribute ho tu skip karo avatar ke liye, size/other use karo
-      const nonColor = entries.filter(
-        ([k]) => !["color", "colour"].includes(k.toLowerCase()),
-      );
-      const use = nonColor.length > 0 ? nonColor : entries;
-      return use[0][1].slice(0, 3).toUpperCase();
+    const colorEntry = entries.find(([k]) =>
+      ["color", "colour"].includes(k.toLowerCase())
+    );
+
+    if (colorEntry) {
+      const colorVal = colorEntry[1];
+      const bg = getColorValue(colorVal);
+      if (bg) {
+        const textColor = isHexColor(bg)
+          ? getTextColorForBg(bg)
+          : "#ffffff";
+        // size attribute se avatar text
+        const sizeEntry = entries.find(([k]) => k.toLowerCase() === "size");
+        const text = sizeEntry
+          ? sizeEntry[1].slice(0, 3).toUpperCase()
+          : entries
+              .filter(([k]) => !["color","colour"].includes(k.toLowerCase()))
+              .map(([, v]) => v)[0]
+              ?.slice(0, 2)
+              .toUpperCase() ?? "V";
+        return { text, bg, textColor };
+      }
     }
-    return getVariantLabel(variantId).slice(0, 3).toUpperCase();
+
+    // no color — normal avatar
+    const label = getVariantLabel(variantId);
+    const nonColor = entries.filter(
+      ([k]) => !["color","colour"].includes(k.toLowerCase())
+    );
+    const text =
+      nonColor.length > 0
+        ? nonColor[0][1].slice(0, 3).toUpperCase()
+        : label.slice(0, 3).toUpperCase();
+    return { text, bg: "var(--accent-bg, #FFF5EE)", textColor: "var(--accent, #F97316)" };
   };
 
   return (
     <>
-      <div className="stock-log-section-label">
-        Product Variants ({variants.length})
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 12,
+        }}
+      >
+        <div className="stock-log-section-label" style={{ margin: 0 }}>
+          Product Variants
+          <span
+            style={{
+              marginLeft: 8,
+              background: "var(--accent)",
+              color: "#fff",
+              borderRadius: 20,
+              padding: "1px 8px",
+              fontSize: 10,
+              fontWeight: 700,
+            }}
+          >
+            {variants.length}
+          </span>
+        </div>
       </div>
 
       {variants.length === 0 ? (
         <div
           style={{
             textAlign: "center",
-            padding: 20,
+            padding: "28px 16px",
             color: "var(--text-muted)",
+            background: "var(--bg-soft, #F9FAFB)",
+            borderRadius: 10,
+            border: "1.5px dashed var(--border)",
           }}
         >
-          No variants. Add one below.
+          <i
+            className="fa-solid fa-layer-group"
+            style={{ fontSize: 22, marginBottom: 8, display: "block", opacity: 0.3 }}
+          />
+          No variants yet. Add one from Variants tab.
         </div>
       ) : (
-        variants.map((v) => {
-          const threshold = v.lowStockThreshold ?? 10;
-          const st =
-            v.stock === 0
-              ? "Out of Stock"
-              : v.stock < threshold
-                ? "Low Stock"
-                : "In Stock";
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {variants.map((v) => {
+            const threshold = v.lowStockThreshold ?? 10;
+            const st =
+              v.stock === 0
+                ? "Out of Stock"
+                : v.stock < threshold
+                  ? "Low Stock"
+                  : "In Stock";
 
-          const { label: attrLabel, pairs } = getAttrDisplay(
-            v.attributes,
-            v.variantId,
-          );
-          const avatarText = getAvatarText(v.attributes, v.variantId);
-          const cleanId = getVariantLabel(v.variantId);
+            const pairs = getAttrPairs(v.attributes);
+            const cleanId = getVariantLabel(v.variantId);
+            const avatar = getAvatarInfo(v.attributes, v.variantId);
 
-          // Color attribute dhundo display ke liye
-          const colorEntry = Object.entries(v.attributes ?? {}).find(([k]) =>
-            ["color", "colour"].includes(k.toLowerCase()),
-          );
-          const colorVal = colorEntry?.[1];
-          const hasHexColor = colorVal && isHexColor(colorVal);
+            // color entry for swatch row
+            const colorEntry = pairs.find(({ key }) =>
+              ["color", "colour"].includes(key.toLowerCase())
+            );
+            const colorVal = colorEntry
+              ? getColorValue(colorEntry.val)
+              : null;
 
-          return (
-            <div
-              key={v.variantId}
-              className="list-item"
-              style={{
-                padding: "10px 0",
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              {/* Avatar */}
+            const stockPct = Math.min(
+              100,
+              (v.stock / Math.max((threshold) * 3, 1)) * 100
+            );
+            const stockBarColor =
+              v.stock === 0
+                ? "#EF4444"
+                : v.stock < threshold
+                  ? "#F59E0B"
+                  : "#10B981";
+
+            const stBadgeBg =
+              v.stock === 0
+                ? "var(--red-bg)"
+                : v.stock < threshold
+                  ? "var(--yellow-bg)"
+                  : "var(--green-bg)";
+            const stBadgeColor =
+              v.stock === 0
+                ? "var(--red)"
+                : v.stock < threshold
+                  ? "#B45309"
+                  : "var(--green)";
+
+            return (
               <div
-                className="variant-size-icon"
+                key={v.variantId}
                 style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  background: hasHexColor ? colorVal : "var(--accent-bg)",
-                  color: hasHexColor ? "#fff" : "var(--accent)",
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
+                  background: "#fff",
+                  border: "1.5px solid var(--border)",
+                  borderRadius: 12,
+                  padding: "12px 14px",
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  border: "1px solid var(--border)",
+                  gap: 12,
+                  alignItems: "flex-start",
+                  transition: "box-shadow 0.15s",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
                 }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.boxShadow =
+                    "0 4px 12px rgba(0,0,0,0.08)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.boxShadow =
+                    "0 1px 3px rgba(0,0,0,0.04)")
+                }
               >
-                {avatarText}
-              </div>
-
-              <div className="list-content" style={{ flex: 1, minWidth: 0 }}>
-                {/* Clean Variant ID */}
-                <div
-                  className="list-title"
-                  style={{ fontSize: 12, fontWeight: 700 }}
-                >
-                  {cleanId || v.variantId}
-                </div>
-
-                {/* Attribute pills */}
+                {/* ── Avatar ── */}
                 <div
                   style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 10,
+                    background: avatar.bg,
+                    color: avatar.textColor,
                     display: "flex",
-                    flexWrap: "wrap",
-                    gap: 4,
-                    marginTop: 4,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 800,
+                    fontSize: 13,
+                    flexShrink: 0,
+                    border: "1.5px solid rgba(0,0,0,0.08)",
+                    letterSpacing: 0.5,
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
-                  {pairs.length > 0 ? (
-                    pairs.map(({ key, val }) => (
+                  {/* subtle shine overlay */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background:
+                        "linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 60%)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  {avatar.text}
+                </div>
+
+                {/* ── Content ── */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Top row: ID + price */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      marginBottom: 6,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "var(--text-primary)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                      title={v.variantId}
+                    >
+                      {cleanId || v.variantId}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 800,
+                        color: "var(--accent, #F97316)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {fmt(v.price)}
+                    </div>
+                  </div>
+
+                  {/* Attribute pills */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 5,
+                      marginBottom: 10,
+                    }}
+                  >
+                    {pairs.map(({ key, val }) => {
+                      const cv = getColorValue(val);
+                      const isCol = isColor(val);
+                      return (
+                        <span
+                          key={key}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            fontSize: 10,
+                            padding: "3px 8px",
+                            borderRadius: 20,
+                            background: "var(--bg-soft, #F3F4F6)",
+                            color: "var(--text-secondary)",
+                            border: "1px solid var(--border)",
+                            fontWeight: 500,
+                          }}
+                        >
+                          <span
+                            style={{
+                              color: "var(--text-muted)",
+                              textTransform: "capitalize",
+                              fontSize: 9,
+                            }}
+                          >
+                            {key}
+                          </span>
+                          {isCol && cv ? (
+                            <>
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  width: 11,
+                                  height: 11,
+                                  borderRadius: "50%",
+                                  background: cv,
+                                  border: "1.5px solid rgba(0,0,0,0.15)",
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <strong style={{ color: "var(--text-primary)" }}>
+                                {val}
+                              </strong>
+                            </>
+                          ) : (
+                            <strong style={{ color: "var(--text-primary)" }}>
+                              {val}
+                            </strong>
+                          )}
+                        </span>
+                      );
+                    })}
+
+                    {/* barcode chip */}
+                    {v.barcode && (
                       <span
-                        key={key}
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
                           gap: 4,
                           fontSize: 10,
-                          padding: "2px 7px",
+                          padding: "3px 8px",
                           borderRadius: 20,
-                          background: "var(--bg-soft, #F3F4F6)",
-                          color: "var(--text-secondary)",
-                          border: "1px solid var(--border)",
+                          background: "var(--blue-bg, #EFF6FF)",
+                          color: "var(--blue, #3B82F6)",
+                          border: "1px solid var(--blue-bg, #EFF6FF)",
                         }}
                       >
-                        <span style={{ color: "var(--text-muted)", textTransform: "capitalize" }}>
-                          {key}:
-                        </span>{" "}
-                        {isHexColor(val) ? (
-                          <>
-                            <span
-                              style={{
-                                display: "inline-block",
-                                width: 10,
-                                height: 10,
-                                borderRadius: "50%",
-                                background: val,
-                                border: "1px solid var(--border)",
-                              }}
-                            />
-                            {val}
-                          </>
-                        ) : (
-                          <strong>{val}</strong>
-                        )}
+                        <i className="fa-solid fa-barcode" style={{ fontSize: 9 }} />
+                        {v.barcode}
                       </span>
-                    ))
-                  ) : (
-                    <span
-                      style={{ fontSize: 10, color: "var(--text-muted)" }}
+                    )}
+                  </div>
+
+                  {/* Stock bar + info row */}
+                  <div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginBottom: 4,
+                      }}
                     >
-                      {attrLabel}
-                    </span>
-                  )}
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "var(--text-secondary)",
+                        }}
+                      >
+                        <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>
+                          {v.stock}
+                        </span>{" "}
+                        / {threshold * 3} units
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 600,
+                          padding: "2px 8px",
+                          borderRadius: 20,
+                          background: stBadgeBg,
+                          color: stBadgeColor,
+                        }}
+                      >
+                        {st}
+                      </span>
+                    </div>
 
-                  {/* Price pill */}
-                  <span
-                    style={{
-                      fontSize: 10,
-                      padding: "2px 7px",
-                      borderRadius: 20,
-                      background: "var(--green-bg)",
-                      color: "var(--green)",
-                      border: "1px solid var(--green-bg)",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {fmt(v.price)}
-                  </span>
+                    {/* Progress bar */}
+                    <div
+                      style={{
+                        height: 5,
+                        borderRadius: 99,
+                        background: "var(--bg-soft, #F3F4F6)",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${stockPct}%`,
+                          background: stockBarColor,
+                          borderRadius: 99,
+                          transition: "width 0.4s ease",
+                        }}
+                      />
+                    </div>
+
+                    {/* Low threshold note */}
+                    {v.stock < threshold && v.stock > 0 && (
+                      <div
+                        style={{
+                          marginTop: 5,
+                          fontSize: 10,
+                          color: "#B45309",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 9 }} />
+                        {threshold - v.stock} units below threshold ({threshold})
+                      </div>
+                    )}
+
+                    {v.stock === 0 && (
+                      <div
+                        style={{
+                          marginTop: 5,
+                          fontSize: 10,
+                          color: "var(--red)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <i className="fa-solid fa-circle-xmark" style={{ fontSize: 9 }} />
+                        Out of stock — reorder needed
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              {/* Right side: stock + badge */}
-              <div
-                className="list-right"
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-end",
-                  gap: 4,
-                  flexShrink: 0,
-                }}
-              >
-                <div style={{ fontSize: 12, fontWeight: 700 }}>
-                  {v.stock}{" "}
-                  <span
-                    style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 400 }}
-                  >
-                    units
-                  </span>
-                </div>
-                <Badge label={st} />
-              </div>
-            </div>
-          );
-        })
+            );
+          })}
+        </div>
       )}
 
-      <hr />
+      <hr style={{ margin: "16px 0 12px" }} />
       <button
         className="header-btn primary"
+        style={{ width: "100%", justifyContent: "center" }}
         onClick={() => {
           onClose();
           if (onSwitchToVariants) onSwitchToVariants();
@@ -1082,7 +1311,9 @@ type SortDir = "asc" | "desc";
 
 const PROD_PER_PAGE = 15;
 
-const AllProductsTab: React.FC<{ onSwitchToVariants: () => void }> = ({ onSwitchToVariants }) => {
+const AllProductsTab: React.FC<{ onSwitchToVariants: () => void }> = ({
+  onSwitchToVariants,
+}) => {
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     currentPage: 1,
@@ -1622,9 +1853,10 @@ const VariantsTab: React.FC = () => {
         .map(([k, val]) => `${k}: ${val}`)
         .join(", ");
       // Mongoose Map JSON mein object banta hai, but kabhi kabhi Map instance hota hai
-const attrEntries = v.attributes instanceof Map
-  ? Array.from(v.attributes.entries())
-  : Object.entries(v.attributes ?? {});
+      const attrEntries =
+        v.attributes instanceof Map
+          ? Array.from(v.attributes.entries())
+          : Object.entries(v.attributes ?? {});
       const firstAttrKey = attrEntries.map(([k]) => k).join(", ") || "—";
       const firstAttrVal =
         attrEntries.map(([, val]) => val).join(" / ") || v.variantId;
@@ -1659,58 +1891,58 @@ const attrEntries = v.attributes instanceof Map
   });
 
   const handleSaveVariant = async () => {
-  const parentId = parentRef.current?.value;
-  if (
-    !parentId ||
-    attributes.filter((a) => a.key.trim() && a.value.trim()).length === 0
-  ) {
-    alert("Parent product aur kam az kam ek attribute required hai.");
-    return;
-  }
-  setSaving(true);
-
-  const attrObj = Object.fromEntries(
-    attributes
-      .filter((a) => a.key.trim() && a.value.trim())
-      .map((a) => [a.key.trim().toLowerCase(), a.value.trim()]),
-  );
-
-  const autoId = `${parentId}-${Object.values(attrObj).join("-").toUpperCase()}`;
-  const finalVariantId = varSkuRef.current?.value?.trim() || autoId;
-
-  const payload = {
-    variant: {
-      variantId: finalVariantId,
-      attributes: attrObj,
-      price: parseFloat(priceRef.current?.value ?? "0"),
-      stock: parseInt(stockRef.current?.value ?? "0", 10),
-      lowStockThreshold: 10,
-    },
-  };
-
-  // Debug — remove karo baad mein
-  console.log("Saving variant payload:", JSON.stringify(payload, null, 2));
-
-  try {
-    if (editingVariant) {
-      await productsAPI.updateVariant(
-        editingVariant.product._id,
-        editingVariant.variant.variantId,
-        payload.variant,
-      );
-    } else {
-      await productsAPI.addVariant(parentId, payload);
+    const parentId = parentRef.current?.value;
+    if (
+      !parentId ||
+      attributes.filter((a) => a.key.trim() && a.value.trim()).length === 0
+    ) {
+      alert("Parent product aur kam az kam ek attribute required hai.");
+      return;
     }
-    await fetchProducts();
-    setShowPanel(false);
-    setAttributes([{ key: "", value: "" }]);
-  } catch (e: any) {
-    alert(e?.response?.data?.message ?? "Failed to save variant.");
-    console.error("Variant save error:", e?.response?.data);
-  } finally {
-    setSaving(false);
-  }
-};
+    setSaving(true);
+
+    const attrObj = Object.fromEntries(
+      attributes
+        .filter((a) => a.key.trim() && a.value.trim())
+        .map((a) => [a.key.trim().toLowerCase(), a.value.trim()]),
+    );
+
+    const autoId = `${parentId}-${Object.values(attrObj).join("-").toUpperCase()}`;
+    const finalVariantId = varSkuRef.current?.value?.trim() || autoId;
+
+    const payload = {
+      variant: {
+        variantId: finalVariantId,
+        attributes: attrObj,
+        price: parseFloat(priceRef.current?.value ?? "0"),
+        stock: parseInt(stockRef.current?.value ?? "0", 10),
+        lowStockThreshold: 10,
+      },
+    };
+
+    // Debug — remove karo baad mein
+    console.log("Saving variant payload:", JSON.stringify(payload, null, 2));
+
+    try {
+      if (editingVariant) {
+        await productsAPI.updateVariant(
+          editingVariant.product._id,
+          editingVariant.variant.variantId,
+          payload.variant,
+        );
+      } else {
+        await productsAPI.addVariant(parentId, payload);
+      }
+      await fetchProducts();
+      setShowPanel(false);
+      setAttributes([{ key: "", value: "" }]);
+    } catch (e: any) {
+      alert(e?.response?.data?.message ?? "Failed to save variant.");
+      console.error("Variant save error:", e?.response?.data);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleDeleteVariant = async (prod: ApiProduct, variantId: string) => {
     if (!window.confirm("Remove this variant?")) return;
@@ -3830,7 +4062,9 @@ const ProductPage: React.FC = () => {
         ))}
       </div>
 
-      {activeTab === "all" && <AllProductsTab onSwitchToVariants={() => switchTab("variants")} />}
+      {activeTab === "all" && (
+        <AllProductsTab onSwitchToVariants={() => switchTab("variants")} />
+      )}
       {activeTab === "variants" && <VariantsTab />}
       {activeTab === "cats" && <CategoriesTab />}
       {activeTab === "suppliers" && <SuppliersTab />}
