@@ -1791,11 +1791,11 @@ const attrEntries = v.attributes instanceof Map
                                 }
                               },
                             },
-                            {
-                              label: "Add Stock",
-                              icon: "fa-plus",
-                              onClick: () => {},
-                            },
+                            // {
+                            //   label: "Add Stock",
+                            //   icon: "fa-plus",
+                            //   onClick: () => {},
+                            // },
                             { label: "---", icon: "", onClick: () => {} },
                             {
                               label: "Delete",
