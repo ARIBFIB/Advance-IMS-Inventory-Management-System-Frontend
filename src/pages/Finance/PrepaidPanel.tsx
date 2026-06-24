@@ -50,7 +50,7 @@ const PrepaidPanel: React.FC = () => {
     ? orders.filter(
         (o) =>
           o.orderId.toLowerCase().includes(search.toLowerCase()) ||
-          o.customer.fullName.toLowerCase().includes(search.toLowerCase()),
+          (o.customer?.fullName ?? "").toLowerCase().includes(search.toLowerCase()),
       )
     : orders;
 
@@ -178,7 +178,7 @@ const PrepaidPanel: React.FC = () => {
                       <code className="ref">{p.orderId}</code>
                     </td>
                     <td>
-                      <strong>{p.customer.fullName}</strong>
+                      <strong>{p.customer?.fullName ?? "—"}</strong>
                     </td>
                     <td>
                       <strong>{fmt(p.totalAmount)}</strong>
