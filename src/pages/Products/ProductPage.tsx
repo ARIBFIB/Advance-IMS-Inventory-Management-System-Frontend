@@ -1737,14 +1737,17 @@ return {
                         <span className="tag">{v.type}</span>
                       </td>
                       <td>
-                        <span
-                          className={`badge ${v.type === "color" ? "blue" : "gray"}`}
-                        >
-                          {v.value}
-                        </span>
-                      </td>
-                      <td>{v.stock}</td>
-                      <td>{fmt(v.price)}</td>
+  <span className={`badge ${v.type === "color" ? "blue" : "gray"}`}>
+    {v.value}
+  </span>
+</td>
+<td>
+  <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+    {v.attributes}
+  </span>
+</td>
+<td>{v.stock}</td>
+<td>{fmt(v.price)}</td>
                       <td>
                         <Badge label={st} />
                       </td>
@@ -3333,21 +3336,17 @@ const BulkImportTab: React.FC = () => {
                 <tbody>
                   {csvCols.map((c) => (
                     <tr key={c.col}>
-                      <td>
-                        <code>{c.col}</code>
-                      </td>
-                      // ✅ CORRECT — BulkImportTab ke tbody mein sirf yeh hona chahiye
-<td>
-  <code>{c.col}</code>
-</td>
-<td>
-  <span className={`badge ${c.req ? "red" : "yellow"}`}>
-    {c.req ? "Required" : "Optional"}
-  </span>
-</td>
-<td>{c.example}</td>
-<td>{c.note}</td>
-                    </tr>
+  <td>
+    <code>{c.col}</code>
+  </td>
+  <td>
+    <span className={`badge ${c.req ? "red" : "yellow"}`}>
+      {c.req ? "Required" : "Optional"}
+    </span>
+  </td>
+  <td>{c.example}</td>
+  <td>{c.note}</td>
+</tr>
                   ))}
                 </tbody>
               </table>
