@@ -50,7 +50,9 @@ const CODLogPanel: React.FC = () => {
 
   const filtered = search
     ? orders.filter((o) =>
-        (o.customer?.fullName ?? "").toLowerCase().includes(search.toLowerCase()),
+        (o.customer?.fullName ?? "")
+          .toLowerCase()
+          .includes(search.toLowerCase()),
       )
     : orders;
 

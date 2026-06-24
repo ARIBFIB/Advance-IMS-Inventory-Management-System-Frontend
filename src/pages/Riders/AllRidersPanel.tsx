@@ -23,8 +23,13 @@ import {
 import { ridersAPI } from "../../services/api";
 
 // ── Rider Documents Tab ──────────────────────────────────────────────────────
-const DOC_TYPES = ["CNIC", "License", "VehicleRegistration", "Insurance"] as const;
-type DocType = typeof DOC_TYPES[number];
+const DOC_TYPES = [
+  "CNIC",
+  "License",
+  "VehicleRegistration",
+  "Insurance",
+] as const;
+type DocType = (typeof DOC_TYPES)[number];
 
 interface RiderDoc {
   _id?: string;
@@ -39,7 +44,9 @@ interface RiderWithDocs {
   documents: RiderDoc[];
 }
 
-const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAPI }) => {
+const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({
+  ridersAPI,
+}) => {
   const [riders, setRiders] = useState<RiderWithDocs[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -58,11 +65,13 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
     try {
       const res = await ridersAPI.getAll({ limit: 100 });
       const data = res.data?.data?.riders ?? [];
-      setRiders(data.map((r: any) => ({
-        _id: r._id,
-        fullName: r.fullName,
-        documents: r.documents ?? [],
-      })));
+      setRiders(
+        data.map((r: any) => ({
+          _id: r._id,
+          fullName: r.fullName,
+          documents: r.documents ?? [],
+        })),
+      );
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Failed to load riders.");
     } finally {
@@ -70,11 +79,19 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
     }
   };
 
-  useEffect(() => { fetchRidersWithDocs(); }, []);
+  useEffect(() => {
+    fetchRidersWithDocs();
+  }, []);
 
   const handleUpload = async () => {
-    if (!selectedRiderId) { setUploadError("Please select a rider."); return; }
-    if (!selectedFile)    { setUploadError("Please select a file."); return; }
+    if (!selectedRiderId) {
+      setUploadError("Please select a rider.");
+      return;
+    }
+    if (!selectedFile) {
+      setUploadError("Please select a file.");
+      return;
+    }
     setUploading(true);
     setUploadError("");
     setUploadSuccess("");
@@ -97,7 +114,11 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
     }
   };
 
-  const handleDelete = async (riderId: string, docIndex: number, docType: string) => {
+  const handleDelete = async (
+    riderId: string,
+    docIndex: number,
+    docType: string,
+  ) => {
     if (!window.confirm(`Delete ${docType} document?`)) return;
     try {
       await ridersAPI.deleteDocument(riderId, docIndex);
@@ -107,7 +128,8 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
     }
   };
 
-  const allRows: { rider: RiderWithDocs; doc: RiderDoc; docIndex: number }[] = [];
+  const allRows: { rider: RiderWithDocs; doc: RiderDoc; docIndex: number }[] =
+    [];
   riders.forEach((r) => {
     r.documents.forEach((doc, i) => {
       allRows.push({ rider: r, doc, docIndex: i });
@@ -117,7 +139,9 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
   const getDocStatus = (doc: RiderDoc): string => {
     const uploaded = new Date(doc.uploadedAt);
     const now = new Date();
-    const diffDays = Math.floor((now.getTime() - uploaded.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(
+      (now.getTime() - uploaded.getTime()) / (1000 * 60 * 60 * 24),
+    );
     if (diffDays > 365) return "Expired";
     if (diffDays > 300) return "Expiring Soon";
     return "Valid";
@@ -127,7 +151,9 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
     try {
       const parts = url.split("/");
       return parts[parts.length - 1].split("?")[0];
-    } catch { return "document"; }
+    } catch {
+      return "document";
+    }
   };
 
   return (
@@ -142,7 +168,11 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
           </button>
           <button
             className="c-btn primary"
-            onClick={() => { setShowUpload(true); setUploadError(""); setUploadSuccess(""); }}
+            onClick={() => {
+              setShowUpload(true);
+              setUploadError("");
+              setUploadSuccess("");
+            }}
           >
             <i className="fa-solid fa-upload" /> Upload Document
           </button>
@@ -156,15 +186,27 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
       )}
 
       {showUpload && (
-        <div style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          borderRadius: 8,
-          padding: 16,
-          margin: "0 0 12px 0",
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "var(--text-primary)" }}>
-            <i className="fa-solid fa-upload" style={{ marginRight: 6, color: "var(--accent)" }} />
+        <div
+          style={{
+            background: "var(--bg-card)",
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+            padding: 16,
+            margin: "0 0 12px 0",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              marginBottom: 12,
+              color: "var(--text-primary)",
+            }}
+          >
+            <i
+              className="fa-solid fa-upload"
+              style={{ marginRight: 6, color: "var(--accent)" }}
+            />
             Upload Document
           </div>
           <div className="c-form-row">
@@ -177,7 +219,9 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
               >
                 <option value="">— Choose Rider —</option>
                 {riders.map((r) => (
-                  <option key={r._id} value={r._id}>{r.fullName}</option>
+                  <option key={r._id} value={r._id}>
+                    {r.fullName}
+                  </option>
                 ))}
               </select>
             </div>
@@ -188,12 +232,16 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
                 value={selectedDocType}
                 onChange={(e) => setSelectedDocType(e.target.value as DocType)}
               >
-                {DOC_TYPES.map((t) => <option key={t}>{t}</option>)}
+                {DOC_TYPES.map((t) => (
+                  <option key={t}>{t}</option>
+                ))}
               </select>
             </div>
           </div>
           <div className="c-form-group" style={{ marginBottom: 12 }}>
-            <div className="c-form-label">File * (JPG, PNG, WebP, PDF — max 10MB)</div>
+            <div className="c-form-label">
+              File * (JPG, PNG, WebP, PDF — max 10MB)
+            </div>
             <input
               ref={fileInputRef}
               type="file"
@@ -203,30 +251,51 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
               style={{ padding: "4px 8px" }}
             />
             {selectedFile && (
-              <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "var(--text-muted)",
+                  marginTop: 4,
+                }}
+              >
                 <i className="fa-solid fa-file" style={{ marginRight: 4 }} />
                 {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
               </div>
             )}
           </div>
           {uploadError && (
-            <div className="alert-strip danger" style={{ marginBottom: 8, fontSize: 11 }}>
+            <div
+              className="alert-strip danger"
+              style={{ marginBottom: 8, fontSize: 11 }}
+            >
               <i className="fa-solid fa-circle-exclamation" /> {uploadError}
             </div>
           )}
           <div style={{ display: "flex", gap: 8 }}>
-            <button className="c-btn primary" onClick={handleUpload} disabled={uploading}>
-              {uploading
-                ? <><i className="fa-solid fa-spinner fa-spin" /> Uploading…</>
-                : <><i className="fa-solid fa-check" /> Upload</>
-              }
+            <button
+              className="c-btn primary"
+              onClick={handleUpload}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin" /> Uploading…
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-check" /> Upload
+                </>
+              )}
             </button>
-            <button className="c-btn" onClick={() => {
-              setShowUpload(false);
-              setSelectedFile(null);
-              setUploadError("");
-              if (fileInputRef.current) fileInputRef.current.value = "";
-            }}>
+            <button
+              className="c-btn"
+              onClick={() => {
+                setShowUpload(false);
+                setSelectedFile(null);
+                setUploadError("");
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+            >
               Cancel
             </button>
           </div>
@@ -234,14 +303,30 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
       )}
 
       {loading ? (
-        <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
-          <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: 8 }} />
+        <div
+          style={{
+            padding: 32,
+            textAlign: "center",
+            color: "var(--text-muted)",
+            fontSize: 13,
+          }}
+        >
+          <i
+            className="fa-solid fa-spinner fa-spin"
+            style={{ marginRight: 8 }}
+          />
           Loading documents…
         </div>
       ) : error ? (
         <div className="alert-strip danger" style={{ margin: 12 }}>
           <i className="fa-solid fa-circle-exclamation" /> {error}
-          <button className="c-btn" style={{ marginLeft: "auto" }} onClick={fetchRidersWithDocs}>Retry</button>
+          <button
+            className="c-btn"
+            style={{ marginLeft: "auto" }}
+            onClick={fetchRidersWithDocs}
+          >
+            Retry
+          </button>
         </div>
       ) : (
         <div className="tbl-wrap">
@@ -272,17 +357,26 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
                   const status = getDocStatus(doc);
                   return (
                     <tr key={`${rider._id}-${docIndex}`}>
-                      <td><strong>{rider.fullName}</strong></td>
+                      <td>
+                        <strong>{rider.fullName}</strong>
+                      </td>
                       <td>
                         <span className="tag">
-                          <i className="fa-solid fa-file" style={{ fontSize: 9, marginRight: 4 }} />
+                          <i
+                            className="fa-solid fa-file"
+                            style={{ fontSize: 9, marginRight: 4 }}
+                          />
                           {doc.type}
                         </span>
                       </td>
                       <td>
-                        <code className="sku">{getFileNameFromUrl(doc.url)}</code>
+                        <code className="sku">
+                          {getFileNameFromUrl(doc.url)}
+                        </code>
                       </td>
-                      <td><Badge label={status} /></td>
+                      <td>
+                        <Badge label={status} />
+                      </td>
                       <td>{new Date(doc.uploadedAt).toLocaleDateString()}</td>
                       <td style={{ display: "flex", gap: 4 }}>
                         <a
@@ -297,9 +391,15 @@ const RiderDocumentsTab: React.FC<{ ridersAPI: typeof ridersAPI }> = ({ ridersAP
                         </a>
                         <button
                           className="c-btn"
-                          style={{ height: 22, fontSize: 9.5, color: "var(--red)" }}
+                          style={{
+                            height: 22,
+                            fontSize: 9.5,
+                            color: "var(--red)",
+                          }}
                           title="Delete"
-                          onClick={() => handleDelete(rider._id, docIndex, doc.type)}
+                          onClick={() =>
+                            handleDelete(rider._id, docIndex, doc.type)
+                          }
                         >
                           <i className="fa-solid fa-trash" />
                         </button>
@@ -933,9 +1033,7 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
         </div>
       )} */}
       {/* ── DOCUMENTS (dynamic) ── */}
-      {innerTab === "docs" && (
-        <RiderDocumentsTab ridersAPI={ridersAPI} />
-      )}
+      {innerTab === "docs" && <RiderDocumentsTab ridersAPI={ridersAPI} />}
 
       {/* ── SCHEDULE (static) ── */}
       {innerTab === "schedule" && (

@@ -1410,7 +1410,20 @@ const VariantsTab: React.FC = () => {
   const priceRef = useRef<HTMLInputElement>(null);
   const stockRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
-  const [variantType, setVariantType] = useState("size");
+  const [attributes, setAttributes] = useState<
+    { key: string; value: string }[]
+  >([{ key: "", value: "" }]);
+
+  const addAttribute = () =>
+    setAttributes((prev) => [...prev, { key: "", value: "" }]);
+
+  const removeAttribute = (idx: number) =>
+    setAttributes((prev) => prev.filter((_, i) => i !== idx));
+
+  const updateAttribute = (idx: number, field: "key" | "value", val: string) =>
+    setAttributes((prev) =>
+      prev.map((a, i) => (i === idx ? { ...a, [field]: val } : a)),
+    );
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -1462,14 +1475,18 @@ const VariantsTab: React.FC = () => {
     const parentId = parentRef.current?.value;
     if (!parentId || !valueRef.current?.value) return;
     setSaving(true);
+    const attrObj = Object.fromEntries(
+      attributes
+        .filter((a) => a.key.trim() && a.value.trim())
+        .map((a) => [a.key.trim().toLowerCase(), a.value.trim()]),
+    );
+
+    const autoId = `${parentId}-${Object.values(attrObj).join("-").toUpperCase()}`;
+
     const payload = {
       variant: {
-        variantId:
-          varSkuRef.current?.value ||
-          `${parentId}-${valueRef.current.value.toUpperCase()}`,
-        attributes: {
-          [typeRef.current?.value ?? "size"]: valueRef.current.value,
-        },
+        variantId: varSkuRef.current?.value || autoId,
+        attributes: attrObj,
         price: parseFloat(priceRef.current?.value ?? "0"),
         stock: parseInt(stockRef.current?.value ?? "0", 10),
         lowStockThreshold: 10,
@@ -1487,15 +1504,13 @@ const VariantsTab: React.FC = () => {
       }
       fetchProducts();
       setShowPanel(false);
-      setVariantType("size");
-      setTimeout(() => {
-        if (parentRef.current) parentRef.current.value = "";
-        if (typeRef.current) typeRef.current.value = "size";
-        if (valueRef.current) valueRef.current.value = "";
-        if (varSkuRef.current) varSkuRef.current.value = "";
-        if (priceRef.current) priceRef.current.value = "";
-        if (stockRef.current) stockRef.current.value = "0";
-      }, 0);
+      setAttributes(
+        editingVariant
+          ? Object.entries(editingVariant.variant.attributes).map(
+              ([key, value]) => ({ key, value }),
+            )
+          : [{ key: "", value: "" }],
+      );
     } catch {
       /* ignore */
     } finally {
@@ -1640,15 +1655,13 @@ const VariantsTab: React.FC = () => {
               className="header-btn primary"
               onClick={() => {
                 setEditingVariant(null);
-                setVariantType("size");
-                setTimeout(() => {
-                  if (parentRef.current) parentRef.current.value = "";
-                  if (typeRef.current) typeRef.current.value = "size";
-                  if (valueRef.current) valueRef.current.value = "";
-                  if (varSkuRef.current) varSkuRef.current.value = "";
-                  if (priceRef.current) priceRef.current.value = "";
-                  if (stockRef.current) stockRef.current.value = "0";
-                }, 0);
+                setAttributes(
+                  editingVariant
+                    ? Object.entries(editingVariant.variant.attributes).map(
+                        ([key, value]) => ({ key, value }),
+                      )
+                    : [{ key: "", value: "" }],
+                );
                 setShowPanel(true);
               }}
             >
@@ -1875,133 +1888,170 @@ const VariantsTab: React.FC = () => {
                 ))}
               </select>
             </div>
-            <div className="form-row">
-              <div className="form-group">
-                <div className="form-label">Variant Type *</div>
-                <select
-                  ref={typeRef}
-                  className="form-select"
-                  defaultValue={
-                    editingVariant
-                      ? Object.keys(editingVariant.variant.attributes)[0]
-                      : "size"
-                  }
-                  onChange={(e) => setVariantType(e.target.value)}
+            <div className="form-group" style={{ marginBottom: 10 }}>
+              <div className="form-label">
+                Attributes *
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: "var(--text-muted)",
+                    marginLeft: 6,
+                  }}
                 >
-                  <option value="size">Size</option>
-                  <option value="color">Color</option>
-                  <option value="weight">Weight</option>
-                </select>
+                  (e.g. size: M, color: Red, storage: 128GB)
+                </span>
               </div>
-              <div className="form-group">
-                <div className="form-label">Value *</div>
-                {variantType === "color" ? (
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    <input
-                      ref={valueRef}
-                      type="color"
-                      defaultValue={
-                        editingVariant
-                          ? Object.values(editingVariant.variant.attributes)[0]
-                          : "#000000"
-                      }
-                      style={{
-                        width: 40,
-                        height: 36,
-                        padding: 2,
-                        border: "1px solid var(--border)",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                        background: "var(--bg)",
-                      }}
-                      onChange={(e) => {
-                        if (valueRef.current)
-                          valueRef.current.value = e.target.value;
-                      }}
-                    />
-                    <input
-                      className="form-input"
-                      defaultValue={
-                        editingVariant
-                          ? Object.values(editingVariant.variant.attributes)[0]
-                          : ""
-                      }
-                      placeholder="e.g. Red, #FF0000"
-                      onChange={(e) => {
-                        if (valueRef.current)
-                          valueRef.current.value = e.target.value;
-                      }}
-                      style={{ flex: 1 }}
-                    />
-                    <input
-                      ref={valueRef}
-                      type="hidden"
-                      defaultValue={
-                        editingVariant
-                          ? Object.values(editingVariant.variant.attributes)[0]
-                          : ""
-                      }
-                    />
-                  </div>
-                ) : variantType === "size" ? (
-                  <select
-                    ref={valueRef as any}
-                    className="form-select"
-                    defaultValue={
-                      editingVariant
-                        ? Object.values(editingVariant.variant.attributes)[0]
-                        : ""
+
+              {attributes.map((attr, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    marginBottom: 6,
+                    alignItems: "center",
+                  }}
+                >
+                  <input
+                    className="form-input"
+                    placeholder="Attribute (e.g. size)"
+                    value={attr.key}
+                    onChange={(e) =>
+                      updateAttribute(idx, "key", e.target.value)
                     }
-                  >
-                    <option value="">— Select Size —</option>
-                    {[
-                      "XS",
-                      "S",
-                      "M",
-                      "L",
-                      "XL",
-                      "XXL",
-                      "XXXL",
-                      "28",
-                      "30",
-                      "32",
-                      "34",
-                      "36",
-                      "38",
-                      "40",
-                    ].map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    <input
-                      ref={valueRef}
-                      className="form-input"
-                      type="number"
-                      defaultValue={
-                        editingVariant
-                          ? Object.values(editingVariant.variant.attributes)[0]
-                          : ""
-                      }
-                      placeholder="e.g. 500"
-                      style={{ flex: 1 }}
-                    />
-                    <select className="form-select" style={{ width: 70 }}>
-                      <option>g</option>
-                      <option>kg</option>
-                      <option>ml</option>
-                      <option>L</option>
-                    </select>
-                  </div>
+                    style={{ flex: 1 }}
+                    list="attr-key-suggestions"
+                  />
+                  <input
+                    className="form-input"
+                    placeholder="Value (e.g. M)"
+                    value={attr.value}
+                    onChange={(e) =>
+                      updateAttribute(idx, "value", e.target.value)
+                    }
+                    style={{ flex: 1 }}
+                    list={`attr-val-${attr.key}`}
+                  />
+                  {attributes.length > 1 && (
+                    <button
+                      className="header-btn"
+                      style={{
+                        height: 28,
+                        width: 28,
+                        padding: 0,
+                        color: "var(--red)",
+                      }}
+                      onClick={() => removeAttribute(idx)}
+                    >
+                      <i className="fa-solid fa-xmark" />
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              <button
+                className="header-btn"
+                style={{ fontSize: 11, marginTop: 4 }}
+                onClick={addAttribute}
+              >
+                <i className="fa-solid fa-plus" /> Add Attribute
+              </button>
+
+              {/* Datalist suggestions */}
+              <datalist id="attr-key-suggestions">
+                {[
+                  "size",
+                  "color",
+                  "material",
+                  "weight",
+                  "flavor",
+                  "storage",
+                  "ram",
+                  "voltage",
+                  "fit",
+                  "sleeve",
+                  "pattern",
+                  "finish",
+                  "capacity",
+                  "length",
+                  "frame_size",
+                  "gear_count",
+                  "dosage",
+                  "form",
+                  "pack_size",
+                  "wattage",
+                ].map((k) => (
+                  <option key={k} value={k} />
+                ))}
+              </datalist>
+
+              {/* Value suggestions per key */}
+              <datalist id="attr-val-size">
+                {[
+                  "XS",
+                  "S",
+                  "M",
+                  "L",
+                  "XL",
+                  "XXL",
+                  "XXXL",
+                  "28",
+                  "30",
+                  "32",
+                  "34",
+                  "36",
+                  "38",
+                  "40",
+                ].map((v) => (
+                  <option key={v} value={v} />
+                ))}
+              </datalist>
+              <datalist id="attr-val-color">
+                {[
+                  "Red",
+                  "Blue",
+                  "Green",
+                  "Black",
+                  "White",
+                  "Yellow",
+                  "Pink",
+                  "Grey",
+                  "Brown",
+                  "Navy",
+                ].map((v) => (
+                  <option key={v} value={v} />
+                ))}
+              </datalist>
+              <datalist id="attr-val-material">
+                {[
+                  "Cotton",
+                  "Polyester",
+                  "Wool",
+                  "Silk",
+                  "Leather",
+                  "Denim",
+                  "Linen",
+                ].map((v) => (
+                  <option key={v} value={v} />
+                ))}
+              </datalist>
+              <datalist id="attr-val-storage">
+                {["32GB", "64GB", "128GB", "256GB", "512GB", "1TB"].map((v) => (
+                  <option key={v} value={v} />
+                ))}
+              </datalist>
+              <datalist id="attr-val-ram">
+                {["2GB", "4GB", "6GB", "8GB", "12GB", "16GB"].map((v) => (
+                  <option key={v} value={v} />
+                ))}
+              </datalist>
+              <datalist id="attr-val-fit">
+                {["Slim Fit", "Regular Fit", "Loose Fit", "Oversized"].map(
+                  (v) => (
+                    <option key={v} value={v} />
+                  ),
                 )}
-              </div>
+              </datalist>
             </div>
             <div className="form-row">
               <div className="form-group">
@@ -2058,15 +2108,13 @@ const VariantsTab: React.FC = () => {
                 className="header-btn"
                 onClick={() => {
                   setShowPanel(false);
-                  setVariantType("size");
-                  setTimeout(() => {
-                    if (parentRef.current) parentRef.current.value = "";
-                    if (typeRef.current) typeRef.current.value = "size";
-                    if (valueRef.current) valueRef.current.value = "";
-                    if (varSkuRef.current) varSkuRef.current.value = "";
-                    if (priceRef.current) priceRef.current.value = "";
-                    if (stockRef.current) stockRef.current.value = "0";
-                  }, 0);
+                  setAttributes(
+                    editingVariant
+                      ? Object.entries(editingVariant.variant.attributes).map(
+                          ([key, value]) => ({ key, value }),
+                        )
+                      : [{ key: "", value: "" }],
+                  );
                 }}
               >
                 Cancel

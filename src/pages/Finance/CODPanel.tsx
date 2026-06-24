@@ -86,7 +86,9 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
     ? orders.filter(
         (o) =>
           o.orderId.toLowerCase().includes(search.toLowerCase()) ||
-          (o.customer?.fullName ?? "").toLowerCase().includes(search.toLowerCase()),
+          (o.customer?.fullName ?? "")
+            .toLowerCase()
+            .includes(search.toLowerCase()),
       )
     : orders;
 

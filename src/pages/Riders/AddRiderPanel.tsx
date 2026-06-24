@@ -48,7 +48,8 @@ const validators: Record<string, (v: string, form?: any) => string> = {
   cnic: (v) => {
     if (!v.trim()) return ""; // optional
     const digits = v.replace(/\D/g, "");
-    if (digits.length !== 13) return "CNIC must be 13 digits (XXXXX-XXXXXXX-X).";
+    if (digits.length !== 13)
+      return "CNIC must be 13 digits (XXXXX-XXXXXXX-X).";
     return "";
   },
   licenseNumber: (v) => {
@@ -88,7 +89,8 @@ const validators: Record<string, (v: string, form?: any) => string> = {
   bankAccountTitle: (v, form) => {
     // required only if account number is filled
     if (!form?.bankAccountNumber?.trim()) return "";
-    if (!v.trim()) return "Account title is required when account number is provided.";
+    if (!v.trim())
+      return "Account title is required when account number is provided.";
     return "";
   },
 };
@@ -167,15 +169,20 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
     const msg = fieldErrors[field];
     if (!msg || !touched[field]) return null;
     return (
-      <div style={{
-        color: "#ef4444",
-        fontSize: 11,
-        marginTop: 3,
-        display: "flex",
-        alignItems: "center",
-        gap: 4,
-      }}>
-        <i className="fa-solid fa-circle-exclamation" style={{ fontSize: 10 }} />
+      <div
+        style={{
+          color: "#ef4444",
+          fontSize: 11,
+          marginTop: 3,
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}
+      >
+        <i
+          className="fa-solid fa-circle-exclamation"
+          style={{ fontSize: 10 }}
+        />
         {msg}
       </div>
     );
@@ -192,7 +199,7 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
     const allFields = Object.keys(validators);
     const allTouched = allFields.reduce(
       (acc, k) => ({ ...acc, [k]: true }),
-      {} as Record<string, boolean>
+      {} as Record<string, boolean>,
     );
     setTouched(allTouched);
 
@@ -203,10 +210,17 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
     const errorCount = Object.values(errs).filter(Boolean).length;
     if (errorCount > 0) {
       setSubmitError(
-        `Please fix ${errorCount} error${errorCount > 1 ? "s" : ""} before submitting.`
+        `Please fix ${errorCount} error${errorCount > 1 ? "s" : ""} before submitting.`,
       );
       // Scroll to summary
-      setTimeout(() => summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+      setTimeout(
+        () =>
+          summaryRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          }),
+        50,
+      );
       return;
     }
 
@@ -219,7 +233,8 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
         form.fullName.trim().toLowerCase().replace(/\s+/g, "_") +
         "_" +
         Date.now().toString().slice(-4);
-      const password = "Rider@" + form.phone.trim().replace(/\D/g, "").slice(-4) + "2024!";
+      const password =
+        "Rider@" + form.phone.trim().replace(/\D/g, "").slice(-4) + "2024!";
 
       const userRes = await authAPI.register({
         username,
@@ -233,15 +248,17 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
 
       const userId =
         userRes.data?.data?.user?._id ?? userRes.data?.data?.user?.id;
-      if (!userId) throw new Error("User creation failed — no userId returned.");
+      if (!userId)
+        throw new Error("User creation failed — no userId returned.");
 
       // Step 2: Create Rider profile
       const vehicle: Record<string, any> = { type: form.vehicleType };
-      if (form.vehicleMake.trim())         vehicle.make               = form.vehicleMake.trim();
-      if (form.vehicleModel.trim())        vehicle.model              = form.vehicleModel.trim();
-      if (form.vehicleYear)                vehicle.year               = parseInt(form.vehicleYear);
-      if (form.vehicleRegistration.trim()) vehicle.registrationNumber = form.vehicleRegistration.trim();
-      if (form.vehicleColor.trim())        vehicle.color              = form.vehicleColor.trim();
+      if (form.vehicleMake.trim()) vehicle.make = form.vehicleMake.trim();
+      if (form.vehicleModel.trim()) vehicle.model = form.vehicleModel.trim();
+      if (form.vehicleYear) vehicle.year = parseInt(form.vehicleYear);
+      if (form.vehicleRegistration.trim())
+        vehicle.registrationNumber = form.vehicleRegistration.trim();
+      if (form.vehicleColor.trim()) vehicle.color = form.vehicleColor.trim();
 
       const payload: Record<string, any> = {
         userId,
@@ -257,26 +274,31 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
         paymentMethod: form.paymentMethod,
       };
 
-      if (form.cnic.trim())          payload.cnic          = form.cnic.trim();
-      if (form.licenseNumber.trim()) payload.licenseNumber = form.licenseNumber.trim();
-      if (form.licenseExpiry)        payload.licenseExpiry = form.licenseExpiry;
+      if (form.cnic.trim()) payload.cnic = form.cnic.trim();
+      if (form.licenseNumber.trim())
+        payload.licenseNumber = form.licenseNumber.trim();
+      if (form.licenseExpiry) payload.licenseExpiry = form.licenseExpiry;
 
       if (form.bankAccountNumber.trim() || form.bankAccountTitle.trim()) {
         payload.bankDetails = {
-          ...(form.bankAccountTitle.trim() && { accountTitle: form.bankAccountTitle.trim() }),
-          ...(form.bankAccountNumber.trim() && { accountNumber: form.bankAccountNumber.trim() }),
+          ...(form.bankAccountTitle.trim() && {
+            accountTitle: form.bankAccountTitle.trim(),
+          }),
+          ...(form.bankAccountNumber.trim() && {
+            accountNumber: form.bankAccountNumber.trim(),
+          }),
           ...(form.bankName.trim() && { bankName: form.bankName.trim() }),
         };
       }
 
       await ridersAPI.create(payload);
       setSuccess(
-        `Rider registered successfully! Login: ${form.email.trim()} | Password: ${password}`
+        `Rider registered successfully! Login: ${form.email.trim()} | Password: ${password}`,
       );
       setTimeout(() => onNav("all"), 3500);
     } catch (e: any) {
-      const msg    = e?.response?.data?.message ?? "";
-      const err    = e?.response?.data?.error   ?? "";
+      const msg = e?.response?.data?.message ?? "";
+      const err = e?.response?.data?.error ?? "";
       const status = e?.response?.status;
 
       // ── Parse server-side errors[] array and show on fields ──────────────
@@ -285,10 +307,10 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
 
       if (serverErrors.length > 0) {
         const newFieldErrs: Record<string, string> = {};
-        const newTouched: Record<string, boolean>  = {};
+        const newTouched: Record<string, boolean> = {};
         serverErrors.forEach(({ field, message }) => {
           newFieldErrs[field] = message;
-          newTouched[field]   = true;
+          newTouched[field] = true;
         });
         setFieldErrors((p) => ({ ...p, ...newFieldErrs }));
         setTouched((p) => ({ ...p, ...newTouched }));
@@ -296,17 +318,33 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
           .map((se) => `${se.field}: ${se.message}`)
           .join(", ");
         setSubmitError(`Please fix the following: ${fieldList}`);
-      } else if (status === 409 || err.toLowerCase().includes("email") || msg.toLowerCase().includes("email")) {
-        setFieldErrors((p) => ({ ...p, email: "This email is already registered. Use a different email." }));
+      } else if (
+        status === 409 ||
+        err.toLowerCase().includes("email") ||
+        msg.toLowerCase().includes("email")
+      ) {
+        setFieldErrors((p) => ({
+          ...p,
+          email: "This email is already registered. Use a different email.",
+        }));
         setTouched((p) => ({ ...p, email: true }));
-        setSubmitError("Email is already registered. Please use a different email address.");
+        setSubmitError(
+          "Email is already registered. Please use a different email address.",
+        );
       } else if (msg.toLowerCase().includes("username")) {
         setSubmitError("Username conflict — please try again.");
       } else {
         setSubmitError(msg || "Failed to register rider. Please try again.");
       }
 
-      setTimeout(() => summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+      setTimeout(
+        () =>
+          summaryRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          }),
+        50,
+      );
     } finally {
       setLoading(false);
     }
@@ -318,17 +356,17 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
     .map(([k, v]) => ({ field: k, msg: v }));
 
   const fieldLabels: Record<string, string> = {
-    fullName:            "Full Name",
-    phone:               "Phone Number",
-    email:               "Email",
-    cnic:                "CNIC",
-    licenseNumber:       "License Number",
-    licenseExpiry:       "License Expiry",
-    vehicleYear:         "Vehicle Year",
+    fullName: "Full Name",
+    phone: "Phone Number",
+    email: "Email",
+    cnic: "CNIC",
+    licenseNumber: "License Number",
+    licenseExpiry: "License Expiry",
+    vehicleYear: "Vehicle Year",
     vehicleRegistration: "Registration Number",
-    serviceCities:       "Service Cities",
-    bankAccountNumber:   "Account Number",
-    bankAccountTitle:    "Account Title",
+    serviceCities: "Service Cities",
+    bankAccountNumber: "Account Number",
+    bankAccountTitle: "Account Title",
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -344,7 +382,10 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
       <div ref={summaryRef}>
         {submitError && !success && (
           <div className="alert-strip danger" style={{ marginBottom: 8 }}>
-            <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: 6 }} />
+            <i
+              className="fa-solid fa-triangle-exclamation"
+              style={{ marginRight: 6 }}
+            />
             <strong>{submitError}</strong>
             {summaryErrors.length > 0 && (
               <ul style={{ margin: "6px 0 0 16px", padding: 0, fontSize: 12 }}>
@@ -360,7 +401,10 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
 
         {success && (
           <div className="alert-strip success" style={{ marginBottom: 8 }}>
-            <i className="fa-solid fa-circle-check" style={{ marginRight: 6 }} />
+            <i
+              className="fa-solid fa-circle-check"
+              style={{ marginRight: 6 }}
+            />
             {success}
           </div>
         )}
@@ -369,15 +413,20 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
       <div className="card">
         <div className="card-header">
           <div className="card-title">
-            <i className="fa-solid fa-bolt" style={{ color: "#f59e0b", marginRight: 6 }} />
+            <i
+              className="fa-solid fa-bolt"
+              style={{ color: "#f59e0b", marginRight: 6 }}
+            />
             Rider Registration
           </div>
         </div>
         <div className="card-body">
-
           {/* ══ Personal Info ══ */}
           <div className="section-label">
-            <i className="fa-solid fa-bolt" style={{ color: "#f59e0b", fontSize: 10, marginRight: 5 }} />
+            <i
+              className="fa-solid fa-bolt"
+              style={{ color: "#f59e0b", fontSize: 10, marginRight: 5 }}
+            />
             Personal Information
           </div>
 
@@ -412,7 +461,14 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
             <div className="c-form-group">
               <div className="c-form-label">
                 Email *
-                <span style={{ fontSize: 10, color: "#6B7280", marginLeft: 6, fontWeight: 400 }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: "#6B7280",
+                    marginLeft: 6,
+                    fontWeight: 400,
+                  }}
+                >
                   (must be unique per rider)
                 </span>
               </div>
@@ -430,7 +486,9 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
             <div className="c-form-group">
               <div className="c-form-label">
                 CNIC Number
-                <span style={{ color: "#6B7280", fontSize: 10, marginLeft: 6 }}>(optional — auto-formatted)</span>
+                <span style={{ color: "#6B7280", fontSize: 10, marginLeft: 6 }}>
+                  (optional — auto-formatted)
+                </span>
               </div>
               <input
                 className="c-form-input"
@@ -494,11 +552,20 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
             </div>
           </div>
 
-          <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "12px 0" }} />
+          <hr
+            style={{
+              border: "none",
+              borderTop: "1px solid var(--divider)",
+              margin: "12px 0",
+            }}
+          />
 
           {/* ══ Vehicle & Assignment ══ */}
           <div className="section-label">
-            <i className="fa-solid fa-bolt" style={{ color: "#f59e0b", fontSize: 10, marginRight: 5 }} />
+            <i
+              className="fa-solid fa-bolt"
+              style={{ color: "#f59e0b", fontSize: 10, marginRight: 5 }}
+            />
             Vehicle &amp; Assignment
           </div>
 
@@ -593,7 +660,9 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
 
           <div className="c-form-row">
             <div className="c-form-group">
-              <div className="c-form-label">Service Cities (comma-separated)</div>
+              <div className="c-form-label">
+                Service Cities (comma-separated)
+              </div>
               <input
                 className="c-form-input"
                 placeholder="Lahore, Islamabad"
@@ -619,11 +688,20 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
             </div>
           </div>
 
-          <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "12px 0" }} />
+          <hr
+            style={{
+              border: "none",
+              borderTop: "1px solid var(--divider)",
+              margin: "12px 0",
+            }}
+          />
 
           {/* ══ Payment Details ══ */}
           <div className="section-label">
-            <i className="fa-solid fa-bolt" style={{ color: "#f59e0b", fontSize: 10, marginRight: 5 }} />
+            <i
+              className="fa-solid fa-bolt"
+              style={{ color: "#f59e0b", fontSize: 10, marginRight: 5 }}
+            />
             Payment Details
           </div>
 
@@ -683,7 +761,13 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
             </div>
           </div>
 
-          <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "12px 0" }} />
+          <hr
+            style={{
+              border: "none",
+              borderTop: "1px solid var(--divider)",
+              margin: "12px 0",
+            }}
+          />
 
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button
@@ -709,21 +793,26 @@ const AddRiderPanel: React.FC<Props> = ({ onNav }) => {
               Cancel
             </button>
             {/* Live error count badge */}
-            {Object.values(fieldErrors).filter(Boolean).length > 0 && !success && (
-              <span style={{
-                fontSize: 11,
-                color: "#ef4444",
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-              }}>
-                <i className="fa-solid fa-circle-exclamation" />
-                {Object.values(fieldErrors).filter(Boolean).length} issue
-                {Object.values(fieldErrors).filter(Boolean).length > 1 ? "s" : ""} to fix
-              </span>
-            )}
+            {Object.values(fieldErrors).filter(Boolean).length > 0 &&
+              !success && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "#ef4444",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <i className="fa-solid fa-circle-exclamation" />
+                  {Object.values(fieldErrors).filter(Boolean).length} issue
+                  {Object.values(fieldErrors).filter(Boolean).length > 1
+                    ? "s"
+                    : ""}{" "}
+                  to fix
+                </span>
+              )}
           </div>
-
         </div>
       </div>
     </>

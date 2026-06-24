@@ -85,7 +85,6 @@ export interface ApiRider {
   createdAt?: string;
 }
 
-
 export interface ApiDelivery {
   _id: string;
   trackingNumber?: string;

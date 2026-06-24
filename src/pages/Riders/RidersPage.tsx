@@ -66,7 +66,14 @@ const CredentialRow: React.FC<{
         borderBottom: "1px solid var(--divider)",
       }}
     >
-      <div style={{ width: 72, fontSize: 10, color: "var(--text-muted)", flexShrink: 0 }}>
+      <div
+        style={{
+          width: 72,
+          fontSize: 10,
+          color: "var(--text-muted)",
+          flexShrink: 0,
+        }}
+      >
         {label}
       </div>
       <div
@@ -119,7 +126,9 @@ const CredentialRow: React.FC<{
   );
 };
 
-const CopyAllButton: React.FC<{ creds: ApiRider["loginCredentials"] }> = ({ creds }) => {
+const CopyAllButton: React.FC<{ creds: ApiRider["loginCredentials"] }> = ({
+  creds,
+}) => {
   const [copied, setCopied] = useState(false);
   const handleCopyAll = () => {
     const text = `Rider Login Credentials\nEmail: ${creds?.email || "—"}\nUsername: ${creds?.username || "—"}\nPassword: ${creds?.password || "—"}`;
@@ -139,9 +148,13 @@ const CopyAllButton: React.FC<{ creds: ApiRider["loginCredentials"] }> = ({ cred
       onClick={handleCopyAll}
     >
       {copied ? (
-        <><i className="fa-solid fa-check" /> All Copied!</>
+        <>
+          <i className="fa-solid fa-check" /> All Copied!
+        </>
       ) : (
-        <><i className="fa-solid fa-copy" /> Copy All Credentials</>
+        <>
+          <i className="fa-solid fa-copy" /> Copy All Credentials
+        </>
       )}
     </button>
   );
@@ -200,7 +213,14 @@ const RidersPage: React.FC = () => {
       content: (
         <div>
           {/* Header */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              marginBottom: 14,
+            }}
+          >
             <ApiRiderAvatar rider={r} size={44} fontSize={14} />
             <div>
               <div style={{ fontSize: 14, fontWeight: 800 }}>{r.fullName}</div>
@@ -209,25 +229,63 @@ const RidersPage: React.FC = () => {
                 {r.vehicle?.registrationNumber ?? "—"}
               </div>
             </div>
-            <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
+            <div
+              style={{
+                marginLeft: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                alignItems: "flex-end",
+              }}
+            >
               <Badge label={riderStatusLabel(r.status)} />
               <Badge label={r.isAvailable ? "Online" : "Offline"} />
             </div>
           </div>
 
           {/* Key stats */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              gap: 8,
+              marginBottom: 14,
+            }}
+          >
             {[
-              { val: metrics?.totalDeliveries ?? r.activeDeliveries ?? "—", lbl: "MTD Deliveries", color: "var(--text-primary)" },
-              { val: completionRate, lbl: "Completion", color: "var(--accent)" },
+              {
+                val: metrics?.totalDeliveries ?? r.activeDeliveries ?? "—",
+                lbl: "MTD Deliveries",
+                color: "var(--text-primary)",
+              },
+              {
+                val: completionRate,
+                lbl: "Completion",
+                color: "var(--accent)",
+              },
               { val: "—", lbl: "Rating ★", color: "var(--yellow)" },
             ].map((s) => (
               <div
                 key={s.lbl}
-                style={{ background: "var(--bg)", borderRadius: 6, padding: 8, textAlign: "center" }}
+                style={{
+                  background: "var(--bg)",
+                  borderRadius: 6,
+                  padding: 8,
+                  textAlign: "center",
+                }}
               >
-                <div style={{ fontSize: 16, fontWeight: 900, color: s.color }}>{s.val}</div>
-                <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>{s.lbl}</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: s.color }}>
+                  {s.val}
+                </div>
+                <div
+                  style={{
+                    fontSize: 9,
+                    color: "var(--text-muted)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {s.lbl}
+                </div>
               </div>
             ))}
           </div>
@@ -237,13 +295,22 @@ const RidersPage: React.FC = () => {
             [
               ["Phone", r.phone],
               ["CNIC", r.cnic ?? "—"],
-              ["Vehicle", `${r.vehicle?.type ?? "—"} · ${r.vehicle?.registrationNumber ?? "—"}`],
+              [
+                "Vehicle",
+                `${r.vehicle?.type ?? "—"} · ${r.vehicle?.registrationNumber ?? "—"}`,
+              ],
               ["Zone", r.assignedZone ?? "—"],
               ["License Status", r.licenseStatus ?? "—"],
-              ["Avg. Delivery Time", r.recentPerformance?.last30Days?.avgDeliveryHours ?? "—"],
+              [
+                "Avg. Delivery Time",
+                r.recentPerformance?.last30Days?.avgDeliveryHours ?? "—",
+              ],
               ["Payment Method", r.paymentMethod ?? "—"],
               ["Bank", r.bankDetails?.bankName ?? "—"],
-              ["Join Date", r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "—"],
+              [
+                "Join Date",
+                r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "—",
+              ],
             ] as [string, React.ReactNode][]
           ).map(([k, v], i) => (
             <div className="detail-row" key={i}>
@@ -252,7 +319,13 @@ const RidersPage: React.FC = () => {
             </div>
           ))}
 
-          <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "12px 0" }} />
+          <hr
+            style={{
+              border: "none",
+              borderTop: "1px solid var(--divider)",
+              margin: "12px 0",
+            }}
+          />
 
           {/* 🔐 Login Credentials Section */}
           {hasCredentials ? (
@@ -269,7 +342,13 @@ const RidersPage: React.FC = () => {
                   className="fa-solid fa-key"
                   style={{ color: "var(--yellow)", fontSize: 11 }}
                 />
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                  }}
+                >
                   Login Credentials
                 </div>
                 {creds?.sharedWithRider && (
@@ -305,11 +384,24 @@ const RidersPage: React.FC = () => {
                   <CredentialRow label="Username" value={creds.username} />
                 )}
                 {creds?.password && (
-                  <CredentialRow label="Password" value={creds.password} secret />
+                  <CredentialRow
+                    label="Password"
+                    value={creds.password}
+                    secret
+                  />
                 )}
                 {creds?.generatedAt && (
-                  <div style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 6 }}>
-                    <i className="fa-solid fa-clock" style={{ marginRight: 4 }} />
+                  <div
+                    style={{
+                      fontSize: 9,
+                      color: "var(--text-muted)",
+                      marginTop: 6,
+                    }}
+                  >
+                    <i
+                      className="fa-solid fa-clock"
+                      style={{ marginRight: 4 }}
+                    />
                     Generated: {new Date(creds.generatedAt).toLocaleString()}
                   </div>
                 )}
@@ -327,8 +419,12 @@ const RidersPage: React.FC = () => {
                   gap: 4,
                 }}
               >
-                <i className="fa-solid fa-triangle-exclamation" style={{ color: "var(--orange)" }} />
-                Share credentials with rider and ask them to change password on first login.
+                <i
+                  className="fa-solid fa-triangle-exclamation"
+                  style={{ color: "var(--orange)" }}
+                />
+                Share credentials with rider and ask them to change password on
+                first login.
               </div>
             </div>
           ) : (
@@ -347,7 +443,13 @@ const RidersPage: React.FC = () => {
             </div>
           )}
 
-          <hr style={{ border: "none", borderTop: "1px solid var(--divider)", margin: "12px 0" }} />
+          <hr
+            style={{
+              border: "none",
+              borderTop: "1px solid var(--divider)",
+              margin: "12px 0",
+            }}
+          />
 
           {/* Actions */}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -374,7 +476,9 @@ const RidersPage: React.FC = () => {
                 color: r.status === "Active" ? "var(--red)" : "var(--green)",
               }}
             >
-              <i className={`fa-solid fa-${r.status === "Active" ? "pause" : "play"}`} />
+              <i
+                className={`fa-solid fa-${r.status === "Active" ? "pause" : "play"}`}
+              />
               {r.status === "Active" ? " Deactivate" : " Activate"}
             </button>
           </div>
@@ -405,16 +509,41 @@ const RidersPage: React.FC = () => {
       items: [
         { panel: "all", icon: "fa-person-biking", label: "All Riders" },
         { panel: "add", icon: "fa-user-plus", label: "Add Rider" },
-        { panel: "availability", icon: "fa-calendar-check", label: "Availability" },
+        {
+          panel: "availability",
+          icon: "fa-calendar-check",
+          label: "Availability",
+        },
       ],
     },
     {
       heading: "Deliveries",
       items: [
-        { panel: "active", icon: "fa-map-location-dot", label: "Active Deliveries", badge: 8 },
-        { panel: "assign", icon: "fa-clipboard-list", label: "Assign Tasks", badge: 5 },
-        { panel: "completed", icon: "fa-circle-check", label: "Completed", badge: 34, badgeGray: true },
-        { panel: "failed-del", icon: "fa-circle-xmark", label: "Failed / RTO", badge: 3 },
+        {
+          panel: "active",
+          icon: "fa-map-location-dot",
+          label: "Active Deliveries",
+          badge: 8,
+        },
+        {
+          panel: "assign",
+          icon: "fa-clipboard-list",
+          label: "Assign Tasks",
+          badge: 5,
+        },
+        {
+          panel: "completed",
+          icon: "fa-circle-check",
+          label: "Completed",
+          badge: 34,
+          badgeGray: true,
+        },
+        {
+          panel: "failed-del",
+          icon: "fa-circle-xmark",
+          label: "Failed / RTO",
+          badge: 3,
+        },
       ],
     },
   ];
@@ -434,23 +563,50 @@ const RidersPage: React.FC = () => {
       );
     }
     switch (activePanel) {
-      case "overview":   return <OverviewPanel onNav={setActivePanel} onOpenRider={openRiderOverlay} />;
-      case "all":        return <AllRidersPanel onNav={setActivePanel} onOpenRider={openRiderOverlay} />;
-      case "add":        return <AddRiderPanel onNav={setActivePanel} />;
-      case "availability": return <AvailabilityPanel />;
-      case "active":     return <ActiveDeliveriesPanel />;
-      case "assign":     return <AssignTasksPanel />;
-      case "completed":  return <CompletedPanel />;
-      case "failed-del": return <FailedDeliveriesPanel />;
-      case "livemap":    return <LiveMapPanel />;
-      case "routes":     return <RouteHistoryPanel />;
-      case "performance":return <PerformancePanel onOpenRider={openRiderOverlay} />;
-      case "earnings":   return <EarningsPanel />;
-      case "reports":    return <ReportsPanel />;
-      case "integrations": return <IntegrationsPanel />;
-      case "settings":   return <SettingsPanel />;
-      case "zones":      return <ZonesPanel />;
-      default:           return null;
+      case "overview":
+        return (
+          <OverviewPanel
+            onNav={setActivePanel}
+            onOpenRider={openRiderOverlay}
+          />
+        );
+      case "all":
+        return (
+          <AllRidersPanel
+            onNav={setActivePanel}
+            onOpenRider={openRiderOverlay}
+          />
+        );
+      case "add":
+        return <AddRiderPanel onNav={setActivePanel} />;
+      case "availability":
+        return <AvailabilityPanel />;
+      case "active":
+        return <ActiveDeliveriesPanel />;
+      case "assign":
+        return <AssignTasksPanel />;
+      case "completed":
+        return <CompletedPanel />;
+      case "failed-del":
+        return <FailedDeliveriesPanel />;
+      case "livemap":
+        return <LiveMapPanel />;
+      case "routes":
+        return <RouteHistoryPanel />;
+      case "performance":
+        return <PerformancePanel onOpenRider={openRiderOverlay} />;
+      case "earnings":
+        return <EarningsPanel />;
+      case "reports":
+        return <ReportsPanel />;
+      case "integrations":
+        return <IntegrationsPanel />;
+      case "settings":
+        return <SettingsPanel />;
+      case "zones":
+        return <ZonesPanel />;
+      default:
+        return null;
     }
   };
 
@@ -482,7 +638,9 @@ const RidersPage: React.FC = () => {
                   <i className={`fa-solid ${item.icon}`} />
                   {item.label}
                   {item.badge !== undefined && (
-                    <span className={`vnav-badge ${item.badgeGray ? "gray" : ""}`}>
+                    <span
+                      className={`vnav-badge ${item.badgeGray ? "gray" : ""}`}
+                    >
                       {item.badge}
                     </span>
                   )}
