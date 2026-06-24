@@ -37,7 +37,10 @@ const fmtDate = (d: string) =>
     year: "numeric",
   });
 
-const Badge: React.FC<{ label: string; color: string }> = ({ label, color }) => (
+const Badge: React.FC<{ label: string; color: string }> = ({
+  label,
+  color,
+}) => (
   <span
     style={{
       display: "inline-block",
@@ -95,7 +98,12 @@ const EmptyState: React.FC<{ msg: string }> = ({ msg }) => (
   >
     <i
       className="fa-solid fa-truck"
-      style={{ fontSize: 28, marginBottom: 10, display: "block", opacity: 0.35 }}
+      style={{
+        fontSize: 28,
+        marginBottom: 10,
+        display: "block",
+        opacity: 0.35,
+      }}
     />
     <div style={{ fontSize: 13 }}>{msg}</div>
   </div>
@@ -268,7 +276,9 @@ const OrderSidePanel: React.FC<{
   const [loadingReturn, setLoadingReturn] = useState(false);
 
   // Rider assignment states
-  const [deliveryMode, setDeliveryMode] = useState<"courier" | "rider">("courier");
+  const [deliveryMode, setDeliveryMode] = useState<"courier" | "rider">(
+    "courier",
+  );
   const [riders, setRiders] = useState<ApiRiderBasic[]>([]);
   const [ridersLoading, setRidersLoading] = useState(false);
   const [selectedRiderId, setSelectedRiderId] = useState("");
@@ -295,7 +305,7 @@ const OrderSidePanel: React.FC<{
       const all: ApiRiderBasic[] = res.data?.data?.riders ?? [];
       // Sirf Active ya OnDelivery riders show karo, OnLeave/Inactive nahi
       const available = all.filter(
-        (r) => r.status === "Active" || r.status === "OnDelivery"
+        (r) => r.status === "Active" || r.status === "OnDelivery",
       );
       setRiders(available);
     } catch {
@@ -333,25 +343,21 @@ const OrderSidePanel: React.FC<{
     setAssigningRider(true);
     try {
       // Rider ko delivery assign karo — status "out_for_delivery"
-      await ridersAPI.updateDeliveryStatus(
-        selectedRiderId,
-        order._id,
-        {
-          status: "out_for_delivery",
-          notes: `Assigned from Shipped tab for order ${order.orderId}`,
-        }
-      );
+      await ridersAPI.updateDeliveryStatus(selectedRiderId, order._id, {
+        status: "out_for_delivery",
+        notes: `Assigned from Shipped tab for order ${order.orderId}`,
+      });
       // Order ko bhi Shipped status confirm karo (already shipped hai)
       showToast(
         `Rider assigned for ${order.orderId} — Out for delivery!`,
-        "success"
+        "success",
       );
       onClose();
     } catch (e: any) {
       // Agar rider delivery endpoint fail ho tu direct deliver karo
       showToast(
         e?.response?.data?.message ?? "Failed to assign rider.",
-        "error"
+        "error",
       );
     } finally {
       setAssigningRider(false);
@@ -416,7 +422,9 @@ const OrderSidePanel: React.FC<{
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 11, color: "#6366f1", fontWeight: 700 }}>
+                  <div
+                    style={{ fontSize: 11, color: "#6366f1", fontWeight: 700 }}
+                  >
                     IN TRANSIT
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>
@@ -424,7 +432,9 @@ const OrderSidePanel: React.FC<{
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: "#6366f1" }}>
+                  <div
+                    style={{ fontSize: 16, fontWeight: 800, color: "#6366f1" }}
+                  >
                     {fmt(order.totalAmount)}
                   </div>
                   <div style={{ fontSize: 10, color: "#6366f1", marginTop: 2 }}>
@@ -463,7 +473,9 @@ const OrderSidePanel: React.FC<{
                   <span className="st-drow-label">Courier</span>
                   <span className="st-drow-val">
                     {order.courier?.name ?? (
-                      <span style={{ color: "var(--text-muted)" }}>Not assigned</span>
+                      <span style={{ color: "var(--text-muted)" }}>
+                        Not assigned
+                      </span>
                     )}
                   </span>
                 </div>
@@ -489,7 +501,9 @@ const OrderSidePanel: React.FC<{
                 </div>
                 <div className="st-drow" style={{ paddingBottom: 0 }}>
                   <span className="st-drow-label">Shipped On</span>
-                  <span className="st-drow-val">{fmtDate(order.createdAt)}</span>
+                  <span className="st-drow-val">
+                    {fmtDate(order.createdAt)}
+                  </span>
                 </div>
               </div>
 
@@ -502,7 +516,9 @@ const OrderSidePanel: React.FC<{
                 </div>
                 <div className="st-drow">
                   <span className="st-drow-label">Status</span>
-                  <span className="st-drow-val">{payBadge(order.paymentStatus)}</span>
+                  <span className="st-drow-val">
+                    {payBadge(order.paymentStatus)}
+                  </span>
                 </div>
                 <div className="st-drow" style={{ paddingBottom: 0 }}>
                   <span className="st-drow-label">Amount</span>
@@ -532,8 +548,10 @@ const OrderSidePanel: React.FC<{
                   }}
                 >
                   <i className="fa-solid fa-coins" />
-                  COD order — collect{" "}
-                  <strong>{fmt(order.totalAmount)}</strong> on delivery.
+                  COD order — collect <strong>
+                    {fmt(order.totalAmount)}
+                  </strong>{" "}
+                  on delivery.
                 </div>
               )}
 
@@ -553,8 +571,12 @@ const OrderSidePanel: React.FC<{
                     padding: "8px 10px",
                     borderRadius: 8,
                     border: `2px solid ${deliveryMode === "courier" ? "#6366f1" : "var(--border)"}`,
-                    background: deliveryMode === "courier" ? "#eef2ff" : "var(--bg-2)",
-                    color: deliveryMode === "courier" ? "#6366f1" : "var(--text-muted)",
+                    background:
+                      deliveryMode === "courier" ? "#eef2ff" : "var(--bg-2)",
+                    color:
+                      deliveryMode === "courier"
+                        ? "#6366f1"
+                        : "var(--text-muted)",
                     fontWeight: 700,
                     fontSize: 11,
                     cursor: "pointer",
@@ -575,8 +597,12 @@ const OrderSidePanel: React.FC<{
                     padding: "8px 10px",
                     borderRadius: 8,
                     border: `2px solid ${deliveryMode === "rider" ? "#16a34a" : "var(--border)"}`,
-                    background: deliveryMode === "rider" ? "#f0fdf4" : "var(--bg-2)",
-                    color: deliveryMode === "rider" ? "#16a34a" : "var(--text-muted)",
+                    background:
+                      deliveryMode === "rider" ? "#f0fdf4" : "var(--bg-2)",
+                    color:
+                      deliveryMode === "rider"
+                        ? "#16a34a"
+                        : "var(--text-muted)",
                     fontWeight: 700,
                     fontSize: 11,
                     cursor: "pointer",
@@ -604,11 +630,13 @@ const OrderSidePanel: React.FC<{
                     color: "#4338ca",
                   }}
                 >
-                  <i className="fa-solid fa-circle-info" style={{ marginRight: 6 }} />
-                  Courier{" "}
-                  <strong>{order.courier?.name ?? "assigned"}</strong> is
-                  handling this delivery. Use{" "}
-                  <strong>Mark Delivered</strong> below to confirm delivery.
+                  <i
+                    className="fa-solid fa-circle-info"
+                    style={{ marginRight: 6 }}
+                  />
+                  Courier <strong>{order.courier?.name ?? "assigned"}</strong>{" "}
+                  is handling this delivery. Use <strong>Mark Delivered</strong>{" "}
+                  below to confirm delivery.
                 </div>
               )}
 
@@ -638,7 +666,10 @@ const OrderSidePanel: React.FC<{
                         border: "1px solid var(--border)",
                       }}
                     >
-                      <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: 6 }} />
+                      <i
+                        className="fa-solid fa-spinner fa-spin"
+                        style={{ marginRight: 6 }}
+                      />
                       Loading riders…
                     </div>
                   ) : riders.length === 0 ? (
@@ -653,7 +684,10 @@ const OrderSidePanel: React.FC<{
                         border: "1px solid #fca5a5",
                       }}
                     >
-                      <i className="fa-solid fa-circle-exclamation" style={{ marginRight: 6, color: "#dc2626" }} />
+                      <i
+                        className="fa-solid fa-circle-exclamation"
+                        style={{ marginRight: 6, color: "#dc2626" }}
+                      />
                       No active riders available right now.
                     </div>
                   ) : (
@@ -681,7 +715,9 @@ const OrderSidePanel: React.FC<{
                               padding: "9px 12px",
                               borderRadius: 9,
                               border: `2px solid ${isSelected ? "#16a34a" : "var(--border)"}`,
-                              background: isSelected ? "#f0fdf4" : "var(--bg-2)",
+                              background: isSelected
+                                ? "#f0fdf4"
+                                : "var(--bg-2)",
                               cursor: "pointer",
                               transition: "all .15s",
                             }}
@@ -978,7 +1014,9 @@ const ShippedTab: React.FC = () => {
             />
             Shipped Orders
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+          <div
+            style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}
+          >
             Orders in transit — track and mark delivered.
           </div>
         </div>
@@ -1074,7 +1112,9 @@ const ShippedTab: React.FC = () => {
                           {o.trackingNumber}
                         </code>
                       ) : (
-                        <span style={{ color: "var(--text-muted)", fontSize: 10 }}>
+                        <span
+                          style={{ color: "var(--text-muted)", fontSize: 10 }}
+                        >
                           —
                         </span>
                       )}
@@ -1091,7 +1131,9 @@ const ShippedTab: React.FC = () => {
                           className="st-btn st-btn-red"
                           style={{ fontSize: 10, padding: "4px 10px" }}
                           onClick={async () => {
-                            if (!window.confirm(`Mark ${o.orderId} as Returned?`))
+                            if (
+                              !window.confirm(`Mark ${o.orderId} as Returned?`)
+                            )
                               return;
                             await handleMarkReturned(o._id);
                           }}

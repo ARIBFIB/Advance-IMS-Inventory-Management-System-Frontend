@@ -15,7 +15,8 @@ import { expensesAPI } from "../../services/api";
 export const ExpenseDetailContent: React.FC<{
   e: ApiExpense;
   onDelete?: () => void;
-}> = ({ e, onDelete }) => (
+  onEdit?: () => void;
+}> = ({ e, onDelete, onEdit }) => (
   <div>
     {(
       [
@@ -39,7 +40,7 @@ export const ExpenseDetailContent: React.FC<{
     ))}
     <hr />
     <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-      <button className="f-btn primary">
+      <button className="f-btn primary" onClick={onEdit}>
         <i className="fa-solid fa-pen" /> Edit
       </button>
       {onDelete && (
@@ -55,6 +56,7 @@ export const ExpenseDetailContent: React.FC<{
 interface Props {
   onNav: (p: NavPanel) => void;
   onOpenOverlay: (title: string, content: React.ReactNode) => void;
+  onEdit: (expense: ApiExpense) => void;
 }
 
 const CHIPS = [
@@ -69,7 +71,7 @@ const CHIPS = [
 ];
 const PER_PAGE = 10;
 
-const ExpensesPanel: React.FC<Props> = ({ onNav, onOpenOverlay }) => {
+const ExpensesPanel: React.FC<Props> = ({ onNav, onOpenOverlay, onEdit }) => {
   const [expenses, setExpenses] = useState<ApiExpense[]>([]);
   const [search, setSearch] = useState("");
   const [chip, setChip] = useState("All Categories");
@@ -79,7 +81,7 @@ const ExpensesPanel: React.FC<Props> = ({ onNav, onOpenOverlay }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [analytics, setAnalytics] = useState<any>(null);
-const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const load = useCallback(async (pg: number, category: string) => {
     setLoading(true);
@@ -215,7 +217,10 @@ const [refreshKey, setRefreshKey] = useState(0);
             </button>
           </div>
           <div className="f-toolbar-right">
-            <button className="f-btn" onClick={() => setRefreshKey(k => k + 1)}>
+            <button
+              className="f-btn"
+              onClick={() => setRefreshKey((k) => k + 1)}
+            >
               <i className="fa-solid fa-rotate-right" /> Refresh
             </button>
             <button className="f-btn">
@@ -263,6 +268,7 @@ const [refreshKey, setRefreshKey] = useState(0);
                         <ExpenseDetailContent
                           e={e}
                           onDelete={() => handleDelete(e._id)}
+                          onEdit={() => onEdit(e)}
                         />,
                       )
                     }
@@ -290,6 +296,7 @@ const [refreshKey, setRefreshKey] = useState(0);
                       <button
                         className="f-btn"
                         style={{ height: 22, fontSize: 9.5 }}
+                        onClick={() => onEdit(e)}
                       >
                         <i className="fa-solid fa-pen" />
                       </button>

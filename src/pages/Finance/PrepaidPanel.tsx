@@ -50,7 +50,9 @@ const PrepaidPanel: React.FC = () => {
     ? orders.filter(
         (o) =>
           o.orderId.toLowerCase().includes(search.toLowerCase()) ||
-          (o.customer?.fullName ?? "").toLowerCase().includes(search.toLowerCase()),
+          (o.customer?.fullName ?? "")
+            .toLowerCase()
+            .includes(search.toLowerCase()),
       )
     : orders;
 

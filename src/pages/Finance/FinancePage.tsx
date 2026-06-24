@@ -2,9 +2,6 @@ import React, { useState, useCallback } from "react";
 import "./FinancePage.css";
 import TopLoadingBar from "../../components/ui/TopLoadingBar";
 import { useTabLoading } from "../../hooks/useTabLoading";
-
-import type { NavPanel, OverlayState } from "./types";
-
 import OverviewPanel from "./OverviewPanel";
 import CODPanel from "./CODPanel";
 import CODLogPanel from "./CODLogPanel";
@@ -19,6 +16,7 @@ import ReportsPanel from "./ReportsPanel";
 import PLPanel from "./PLPanel";
 import IntegrationsPanel from "./IntegrationsPanel";
 import SettingsPanel from "./SettingsPanel";
+import type { NavPanel, OverlayState, ApiExpense } from "./types";
 
 // ═══════════════════════════════════════════════════════════
 // MAIN PAGE COMPONENT
@@ -26,6 +24,7 @@ import SettingsPanel from "./SettingsPanel";
 
 const FinancePage: React.FC = () => {
   const [activePanel, setActivePanel] = useState<NavPanel>("overview");
+  const [editExpense, setEditExpense] = useState<ApiExpense | null>(null);
   const { isLoading, loadingProgress, switchTab } = useTabLoading(
     setActivePanel,
     activePanel,
@@ -127,10 +126,21 @@ const FinancePage: React.FC = () => {
         return <PrepaidPanel />;
       case "expenses":
         return (
-          <ExpensesPanel onNav={setActivePanel} onOpenOverlay={openOverlay} />
+          <ExpensesPanel
+            onNav={setActivePanel}
+            onOpenOverlay={openOverlay}
+            onEdit={(expense) => {
+              setEditExpense(expense);
+              setActivePanel("exp-edit");
+            }}
+          />
         );
       case "exp-add":
         return <LogExpensePanel onNav={setActivePanel} />;
+      case "exp-edit":
+        return (
+          <LogExpensePanel onNav={setActivePanel} editData={editExpense} />
+        );
       case "exp-categories":
         return <CategoriesPanel />;
       case "suppliers":

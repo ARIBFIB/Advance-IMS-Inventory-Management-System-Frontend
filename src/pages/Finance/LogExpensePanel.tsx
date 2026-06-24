@@ -5,6 +5,7 @@ import { expensesAPI } from "../../services/api";
 
 interface Props {
   onNav: (p: NavPanel) => void;
+  editData?: ApiExpense | null;
 }
 
 const CATEGORIES: ExpenseCategoryName[] = [
@@ -17,11 +18,18 @@ const CATEGORIES: ExpenseCategoryName[] = [
   "Other",
 ];
 
-const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<ExpenseCategoryName>("Supplies");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+const LogExpensePanel: React.FC<Props> = ({ onNav, editData }) => {
+  const isEdit = !!editData;
+  const [description, setDescription] = useState(editData?.description || "");
+  const [category, setCategory] = useState<ExpenseCategoryName>(
+    editData?.category || "Supplies",
+  );
+  const [amount, setAmount] = useState(editData?.amount?.toString() || "");
+  const [date, setDate] = useState(
+    editData?.date
+      ? new Date(editData.date).toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10),
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -45,16 +53,27 @@ const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
     setError("");
     setSuccess(false);
     try {
-      console.log("Sending:", { description, category, amount: Number(amount), date });
-      await expensesAPI.create({
-        description,
-        category,
-        amount: Number(amount),
-        date,
-      });
+      if (isEdit && editData) {
+        await expensesAPI.update(editData._id, {
+          description,
+          category,
+          amount: Number(amount),
+          date,
+        });
+      } else {
+        await expensesAPI.create({
+          description,
+          category,
+          amount: Number(amount),
+          date,
+        });
+      }
       setSuccess(true);
-      setDescription("");
-      setAmount("");
+      if (!isEdit) {
+        setDescription("");
+        setAmount("");
+      }
+      setTimeout(() => onNav("expenses"), 1500);
     } catch (e: any) {
       setError(e?.response?.data?.message || "Failed to save expense.");
     } finally {
@@ -67,17 +86,24 @@ const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
 
   return (
     <>
-      <div className="panel-heading">Log Expense</div>
+      <div className="panel-heading">
+        {isEdit ? "Edit Expense" : "Log Expense"}
+      </div>
       <div className="panel-desc">
-        Record a new business expense. Provide category, amount, and payment
-        method for accurate financial tracking.
+        {isEdit
+          ? "Update the expense details below."
+          : "Record a new business expense. Provide category, amount, and payment method for accurate financial tracking."}
       </div>
 
       {error && <ErrorBanner message={error} />}
       {success && (
         <div className="alert-strip success" style={{ marginBottom: 14 }}>
           <i className="fa-solid fa-circle-check" />
-          <div>Expense saved successfully.</div>
+          <div>
+            {isEdit
+              ? "Expense updated successfully."
+              : "Expense saved successfully."}
+          </div>
           <button
             className="f-btn"
             style={{ marginLeft: "auto", fontSize: 9.5 }}
@@ -94,10 +120,10 @@ const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
           <div className="card-header">
             <div className="card-title">
               <i
-                className="fa-solid fa-circle-plus"
+                className={`fa-solid ${isEdit ? "fa-pen" : "fa-circle-plus"}`}
                 style={{ color: "var(--accent)" }}
               />{" "}
-              New Expense Entry
+              {isEdit ? "Edit Expense Entry" : "New Expense Entry"}
             </div>
           </div>
           <div className="card-body">
@@ -157,7 +183,11 @@ const LogExpensePanel: React.FC<Props> = ({ onNav }) => {
                 disabled={saving || !description || !amount}
               >
                 <i className="fa-solid fa-check" />{" "}
-                {saving ? "Saving…" : "Save Expense"}
+                {saving
+                  ? "Saving…"
+                  : isEdit
+                    ? "Update Expense"
+                    : "Save Expense"}
               </button>
               <button className="f-btn" onClick={() => onNav("expenses")}>
                 Cancel

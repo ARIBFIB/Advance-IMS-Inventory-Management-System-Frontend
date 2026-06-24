@@ -8,6 +8,7 @@ export type NavPanel =
   | "prepaid"
   | "expenses"
   | "exp-add"
+  | "exp-edit"
   | "exp-categories"
   | "suppliers"
   | "sup-payments"
