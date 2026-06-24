@@ -1451,7 +1451,10 @@ const VariantsTab: React.FC = () => {
       const allAttrs = Object.entries(v.attributes)
         .map(([k, val]) => `${k}: ${val}`)
         .join(", ");
-      const attrEntries = Object.entries(v.attributes);
+      // Mongoose Map JSON mein object banta hai, but kabhi kabhi Map instance hota hai
+const attrEntries = v.attributes instanceof Map
+  ? Array.from(v.attributes.entries())
+  : Object.entries(v.attributes ?? {});
       const firstAttrKey = attrEntries.map(([k]) => k).join(", ") || "—";
       const firstAttrVal =
         attrEntries.map(([, val]) => val).join(" / ") || v.variantId;

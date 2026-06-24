@@ -145,7 +145,7 @@ export const productsAPI = {
   updateVariant: (id: string, variantId: string, data: object) =>
     api.put(`/products/${id}/variants/${variantId}`, data),
   deleteVariant: (id: string, variantId: string) =>
-    api.delete(`/products/${id}/variants/${variantId}`),
+    api.delete(`/products/${id}/variants/${encodeURIComponent(variantId)}`),
   getVariantStock: (id: string, variantId: string, params?: object) =>
     api.get(`/products/${id}/variants/${variantId}/stock`, { params }),
   // Images
