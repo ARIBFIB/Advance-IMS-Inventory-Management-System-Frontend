@@ -31,6 +31,8 @@ const [error, setError] = useState("");
 const [kpis, setKpis] = useState<any>(null);
 const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 const [bulkLoading, setBulkLoading] = useState(false);
+const [toast, setToast] = useState("");
+
 
   const deliveryStatusFilter: Record<string, string | undefined> = {
     pending: "InTransit",
@@ -123,8 +125,13 @@ const toggleSelectAll = () => {
 };
 
 const handleBulkSubmit = async () => {
-  if (selectedIds.size === 0) return;
+  if (selectedIds.size === 0) {
+    setToast("Please select at least one order from the list.");
+    setTimeout(() => setToast(""), 3000);
+    return;
+  }
   if (!window.confirm(`Mark ${selectedIds.size} order(s) as Paid?`)) return;
+
   setBulkLoading(true);
   try {
     await Promise.all(
@@ -143,6 +150,26 @@ const handleBulkSubmit = async () => {
 
   return (
     <>
+      {toast && (
+        <div style={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          background: "var(--accent)",
+          color: "#fff",
+          padding: "10px 18px",
+          borderRadius: 8,
+          fontSize: 13,
+          zIndex: 9999,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}>
+          <i className="fa-solid fa-triangle-exclamation" />
+          {toast}
+        </div>
+      )}
       <div className="panel-heading">COD Tracking</div>
       <div className="panel-desc">
         Monitor cash-on-delivery collections per order and per rider. Submit
