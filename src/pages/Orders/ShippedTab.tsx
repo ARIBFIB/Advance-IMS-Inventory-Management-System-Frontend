@@ -37,10 +37,7 @@ const fmtDate = (d: string) =>
     year: "numeric",
   });
 
-const Badge: React.FC<{ label: string; color: string }> = ({
-  label,
-  color,
-}) => (
+const Badge: React.FC<{ label: string; color: string }> = ({ label, color }) => (
   <span
     style={{
       display: "inline-block",
@@ -98,12 +95,7 @@ const EmptyState: React.FC<{ msg: string }> = ({ msg }) => (
   >
     <i
       className="fa-solid fa-truck"
-      style={{
-        fontSize: 28,
-        marginBottom: 10,
-        display: "block",
-        opacity: 0.35,
-      }}
+      style={{ fontSize: 28, marginBottom: 10, display: "block", opacity: 0.35 }}
     />
     <div style={{ fontSize: 13 }}>{msg}</div>
   </div>
@@ -112,133 +104,360 @@ const EmptyState: React.FC<{ msg: string }> = ({ msg }) => (
 /* ─── Styles ─────────────────────────────────────────────── */
 const styles = `
   @keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:.3} }
-  @keyframes slideIn { from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
+  @keyframes stSlideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+  }
+  @keyframes stFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Table */
   .st-table { width:100%; border-collapse:collapse; font-size:12px; }
-  .st-table th { background:var(--bg-2); color:var(--text-muted); font-size:10px; font-weight:700;
-    text-transform:uppercase; letter-spacing:.6px; padding:8px 10px; text-align:left; white-space:nowrap; }
-  .st-table td { padding:10px 10px; border-bottom:1px solid var(--border); color:var(--text); vertical-align:middle; }
+  .st-table th {
+    background:var(--bg-2); color:var(--text-muted); font-size:10px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.6px; padding:8px 10px;
+    text-align:left; white-space:nowrap;
+  }
+  .st-table td {
+    padding:10px 10px; border-bottom:1px solid var(--border);
+    color:var(--text); vertical-align:middle;
+  }
   .st-table tr:hover td { background:var(--bg-2); }
-  .st-search { background:var(--bg-2); border:1px solid var(--border); border-radius:7px;
-    padding:7px 12px; font-size:12px; color:var(--text); outline:none; width:220px; }
+
+  /* Search */
+  .st-search {
+    background:var(--bg-2); border:1px solid var(--border); border-radius:7px;
+    padding:7px 12px; font-size:12px; color:var(--text); outline:none; width:220px;
+  }
   .st-search:focus { border-color:var(--primary); }
-  .st-btn { padding:5px 12px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer;
-    border:1px solid var(--border); background:var(--bg-2); color:var(--text); transition:all .15s; }
+
+  /* Buttons */
+  .st-btn {
+    padding:5px 12px; border-radius:6px; font-size:11px; font-weight:600;
+    cursor:pointer; border:1px solid var(--border); background:var(--bg-2);
+    color:var(--text); transition:all .15s; display:inline-flex;
+    align-items:center; gap:5px;
+  }
   .st-btn:hover { border-color:var(--primary); color:var(--primary); }
-  .st-btn-primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .st-btn-primary {
+    background:var(--primary,#6366f1); color:#fff;
+    border-color:var(--primary,#6366f1);
+  }
   .st-btn-primary:hover { opacity:.88; color:#fff; }
+  .st-btn-green {
+    background:#16a34a; color:#fff; border-color:#16a34a;
+  }
+  .st-btn-green:hover { opacity:.88; color:#fff; }
+  .st-btn-red {
+    background:#fee2e2; color:#dc2626; border-color:#fca5a5;
+  }
+  .st-btn-red:hover { background:#dc2626; color:#fff; border-color:#dc2626; }
   .st-btn:disabled { opacity:.4; cursor:not-allowed; }
-  .st-toast { position:fixed; bottom:24px; right:24px; z-index:9999; padding:10px 16px;
-    border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center;
-    gap:8px; box-shadow:0 4px 16px rgba(0,0,0,.18); animation:slideIn .3s ease; }
+
+  /* Toast */
+  .st-toast {
+    position:fixed; bottom:24px; right:24px; z-index:9999; padding:10px 16px;
+    border-radius:8px; font-size:12px; font-weight:600; display:flex;
+    align-items:center; gap:8px; box-shadow:0 4px 16px rgba(0,0,0,.18);
+    animation:stFadeIn .3s ease;
+  }
   .st-toast.success { background:#dcfce7; color:#16a34a; border:1px solid #86efac; }
   .st-toast.error   { background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; }
-  .st-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000;
-    display:flex; align-items:center; justify-content:center; }
-  .st-modal { background:var(--bg); border-radius:12px; padding:24px; min-width:360px;
-    max-width:480px; width:90%; box-shadow:0 8px 40px rgba(0,0,0,.22); animation:slideIn .25s ease; }
-  .st-detail-row { display:flex; justify-content:space-between; padding:7px 0;
-    border-bottom:1px solid var(--border); font-size:12px; }
-  .st-detail-row:last-child { border-bottom:none; }
-  .st-detail-label { color:var(--text-muted); font-weight:500; }
-  .st-detail-val { color:var(--text); font-weight:600; text-align:right; }
+
+  /* Side Panel Backdrop */
+  .st-backdrop {
+    position:fixed; inset:0; background:rgba(0,0,0,0);
+    z-index:1000; pointer-events:none; transition:background .3s ease;
+  }
+  .st-backdrop.open {
+    background:rgba(0,0,0,.35); pointer-events:all;
+  }
+
+  /* Side Panel */
+  .st-panel {
+    position:fixed; top:0; right:0; height:100vh; width:380px; max-width:95vw;
+    background:var(--bg, #fff); z-index:1001;
+    box-shadow:-8px 0 32px rgba(0,0,0,.15);
+    display:flex; flex-direction:column;
+    transform:translateX(100%);
+    transition:transform .32s cubic-bezier(.4,0,.2,1);
+    border-left:1px solid var(--border);
+  }
+  .st-panel.open {
+    transform:translateX(0);
+  }
+
+  /* Panel Header */
+  .st-panel-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px; border-bottom:1px solid var(--border);
+    background:var(--bg-2); flex-shrink:0;
+  }
+  .st-panel-title { font-size:14px; font-weight:800; color:var(--text); }
+  .st-panel-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .st-panel-close {
+    width:30px; height:30px; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text-muted); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:14px;
+    transition:all .15s;
+  }
+  .st-panel-close:hover { background:var(--border); color:var(--text); }
+
+  /* Panel Body */
+  .st-panel-body {
+    flex:1; overflow-y:auto; padding:16px 20px;
+  }
+
+  /* Panel Footer */
+  .st-panel-footer {
+    padding:14px 20px; border-top:1px solid var(--border);
+    background:var(--bg-2); display:flex; gap:8px; flex-shrink:0;
+  }
+
+  /* Detail rows inside panel */
+  .st-drow {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:9px 0; border-bottom:1px solid var(--border); font-size:12px;
+  }
+  .st-drow:last-child { border-bottom:none; }
+  .st-drow-label { color:var(--text-muted); font-weight:500; font-size:11px; }
+  .st-drow-val { color:var(--text); font-weight:600; text-align:right; }
+
+  /* Section label inside panel */
+  .st-section {
+    font-size:10px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.7px; color:var(--text-muted); margin:14px 0 6px;
+  }
+
+  /* Info card inside panel */
+  .st-info-card {
+    background:var(--bg-2); border:1px solid var(--border);
+    border-radius:10px; padding:12px 14px; margin-bottom:14px;
+  }
+
+  /* Action buttons in table */
+  .st-action-group { display:flex; gap:5px; align-items:center; }
 `;
 
-/* ─── Detail Modal ───────────────────────────────────────── */
-const OrderDetailModal: React.FC<{
-  order: ApiOrder;
+/* ─── Side Panel ─────────────────────────────────────────── */
+const OrderSidePanel: React.FC<{
+  order: ApiOrder | null;
   onClose: () => void;
   onMarkDelivered: (id: string) => Promise<void>;
   onMarkReturned: (id: string) => Promise<void>;
 }> = ({ order, onClose, onMarkDelivered, onMarkReturned }) => {
   const [loadingDeliver, setLoadingDeliver] = useState(false);
   const [loadingReturn, setLoadingReturn] = useState(false);
+  const isOpen = !!order;
+
+  // Reset loading states when panel closes
+  useEffect(() => {
+    if (!isOpen) {
+      setLoadingDeliver(false);
+      setLoadingReturn(false);
+    }
+  }, [isOpen]);
 
   const handleDeliver = async () => {
+    if (!order) return;
     setLoadingDeliver(true);
-    await onMarkDelivered(order._id);
-    setLoadingDeliver(false);
-    onClose();
+    try {
+      await onMarkDelivered(order._id);
+      onClose();
+    } finally {
+      setLoadingDeliver(false);
+    }
   };
 
   const handleReturn = async () => {
+    if (!order) return;
     if (!window.confirm(`Mark ${order.orderId} as Returned?`)) return;
     setLoadingReturn(true);
-    await onMarkReturned(order._id);
-    setLoadingReturn(false);
-    onClose();
+    try {
+      await onMarkReturned(order._id);
+      onClose();
+    } finally {
+      setLoadingReturn(false);
+    }
   };
 
   return (
-    <div className="st-modal-overlay" onClick={onClose}>
-      <div className="st-modal" onClick={(e) => e.stopPropagation()}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
+    <>
+      {/* Backdrop */}
+      <div
+        className={`st-backdrop ${isOpen ? "open" : ""}`}
+        onClick={onClose}
+      />
+
+      {/* Panel */}
+      <div className={`st-panel ${isOpen ? "open" : ""}`}>
+        {/* Header */}
+        <div className="st-panel-header">
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>{order.orderId}</div>
-            <div
-              style={{ color: "var(--text-muted)", fontSize: 11, marginTop: 2 }}
-            >
+            <div className="st-panel-title">
+              <i
+                className="fa-solid fa-truck-fast"
+                style={{ color: "#6366f1", marginRight: 7, fontSize: 12 }}
+              />
               Shipment Detail
             </div>
+            <div className="st-panel-sub">
+              {order?.orderId ?? "—"}
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--text-muted)",
-              fontSize: 16,
-            }}
-          >
+          <button className="st-panel-close" onClick={onClose}>
             <i className="fa-solid fa-xmark" />
           </button>
         </div>
 
-        <div>
-          {[
-            ["Customer", order.customer?.fullName ?? "—"],
-            ["Phone", order.customer?.phone ?? "—"],
-            ["City", order.shippingAddress?.city ?? "—"],
-            ["Courier", order.courier?.name ?? "—"],
-            ["Tracking #", order.trackingNumber ?? "—"],
-            ["Payment", order.paymentMethod],
-            ["Pay Status", order.paymentStatus],
-            ["Amount", fmt(order.totalAmount)],
-            ["Shipped On", fmtDate(order.createdAt)],
-          ].map(([label, val]) => (
-            <div className="st-detail-row" key={label as string}>
-              <span className="st-detail-label">{label}</span>
-              <span className="st-detail-val">{val}</span>
-            </div>
-          ))}
+        {/* Body */}
+        <div className="st-panel-body">
+          {order ? (
+            <>
+              {/* Status strip */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: "#eef2ff",
+                  border: "1px solid #c7d2fe",
+                  borderRadius: 9,
+                  padding: "10px 14px",
+                  marginBottom: 16,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 11, color: "#6366f1", fontWeight: 700 }}>
+                    IN TRANSIT
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>
+                    {order.orderId}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "#6366f1" }}>
+                    {fmt(order.totalAmount)}
+                  </div>
+                  <div style={{ fontSize: 10, color: "#6366f1", marginTop: 2 }}>
+                    {order.paymentMethod}
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer */}
+              <div className="st-section">Customer</div>
+              <div className="st-info-card">
+                <div className="st-drow" style={{ paddingTop: 0 }}>
+                  <span className="st-drow-label">Name</span>
+                  <span className="st-drow-val">
+                    {order.customer?.fullName ?? "—"}
+                  </span>
+                </div>
+                <div className="st-drow">
+                  <span className="st-drow-label">Phone</span>
+                  <span className="st-drow-val">
+                    {order.customer?.phone ?? "—"}
+                  </span>
+                </div>
+                <div className="st-drow" style={{ paddingBottom: 0 }}>
+                  <span className="st-drow-label">City</span>
+                  <span className="st-drow-val">
+                    {order.shippingAddress?.city ?? "—"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Shipment */}
+              <div className="st-section">Shipment</div>
+              <div className="st-info-card">
+                <div className="st-drow" style={{ paddingTop: 0 }}>
+                  <span className="st-drow-label">Courier</span>
+                  <span className="st-drow-val">
+                    {order.courier?.name ?? (
+                      <span style={{ color: "var(--text-muted)" }}>Not assigned</span>
+                    )}
+                  </span>
+                </div>
+                <div className="st-drow">
+                  <span className="st-drow-label">Tracking #</span>
+                  <span className="st-drow-val">
+                    {order.trackingNumber ? (
+                      <code
+                        style={{
+                          fontSize: 10,
+                          background: "var(--bg-2)",
+                          padding: "2px 7px",
+                          borderRadius: 5,
+                          border: "1px solid var(--border)",
+                        }}
+                      >
+                        {order.trackingNumber}
+                      </code>
+                    ) : (
+                      <span style={{ color: "var(--text-muted)" }}>—</span>
+                    )}
+                  </span>
+                </div>
+                <div className="st-drow" style={{ paddingBottom: 0 }}>
+                  <span className="st-drow-label">Shipped On</span>
+                  <span className="st-drow-val">{fmtDate(order.createdAt)}</span>
+                </div>
+              </div>
+
+              {/* Payment */}
+              <div className="st-section">Payment</div>
+              <div className="st-info-card">
+                <div className="st-drow" style={{ paddingTop: 0 }}>
+                  <span className="st-drow-label">Method</span>
+                  <span className="st-drow-val">{order.paymentMethod}</span>
+                </div>
+                <div className="st-drow">
+                  <span className="st-drow-label">Status</span>
+                  <span className="st-drow-val">{payBadge(order.paymentStatus)}</span>
+                </div>
+                <div className="st-drow" style={{ paddingBottom: 0 }}>
+                  <span className="st-drow-label">Amount</span>
+                  <span
+                    className="st-drow-val"
+                    style={{ fontSize: 14, color: "#6366f1" }}
+                  >
+                    {fmt(order.totalAmount)}
+                  </span>
+                </div>
+              </div>
+
+              {/* COD warning */}
+              {order.paymentMethod === "COD" && (
+                <div
+                  style={{
+                    background: "#fef3c7",
+                    border: "1px solid #fde68a",
+                    borderRadius: 8,
+                    padding: "9px 12px",
+                    fontSize: 11,
+                    color: "#92400e",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 7,
+                  }}
+                >
+                  <i className="fa-solid fa-coins" />
+                  COD order — collect{" "}
+                  <strong>{fmt(order.totalAmount)}</strong> on delivery.
+                </div>
+              )}
+            </>
+          ) : null}
         </div>
 
-        <div
-          style={{
-            marginTop: 18,
-            display: "flex",
-            gap: 8,
-            justifyContent: "flex-end",
-            flexWrap: "wrap",
-          }}
-        >
-          <button className="st-btn" onClick={onClose}>
-            Close
-          </button>
+        {/* Footer — Action Buttons */}
+        <div className="st-panel-footer">
           <button
-            className="st-btn"
-            style={{
-              borderColor: "#dc2626",
-              color: "#dc2626",
-              background: "#fee2e2",
-            }}
+            className="st-btn st-btn-red"
+            style={{ flex: 1, justifyContent: "center" }}
             onClick={handleReturn}
             disabled={loadingReturn || loadingDeliver}
           >
@@ -253,7 +472,8 @@ const OrderDetailModal: React.FC<{
             )}
           </button>
           <button
-            className="st-btn st-btn-primary"
+            className="st-btn st-btn-green"
+            style={{ flex: 1, justifyContent: "center" }}
             onClick={handleDeliver}
             disabled={loadingDeliver || loadingReturn}
           >
@@ -269,7 +489,7 @@ const OrderDetailModal: React.FC<{
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -319,7 +539,7 @@ const ShippedTab: React.FC = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [detail, setDetail] = useState<ApiOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
   const [toast, setToast] = useState<{
     msg: string;
     type: "success" | "error";
@@ -414,9 +634,7 @@ const ShippedTab: React.FC = () => {
             />
             Shipped Orders
           </div>
-          <div
-            style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}
-          >
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
             Orders in transit — track and mark delivered.
           </div>
         </div>
@@ -462,17 +680,21 @@ const ShippedTab: React.FC = () => {
                   <th>Amount</th>
                   <th>Payment</th>
                   <th>Shipped On</th>
-                  <th>Action</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.map((o) => (
-                  <tr key={o._id}>
-                    <td>
+                  <tr
+                    key={o._id}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setSelectedOrder(o)}
+                  >
+                    <td onClick={(e) => e.stopPropagation()}>
                       <span
-                        onClick={() => setDetail(o)}
+                        onClick={() => setSelectedOrder(o)}
                         style={{
-                          color: "var(--primary)",
+                          color: "var(--primary,#6366f1)",
                           fontWeight: 700,
                           cursor: "pointer",
                           fontSize: 11,
@@ -508,9 +730,7 @@ const ShippedTab: React.FC = () => {
                           {o.trackingNumber}
                         </code>
                       ) : (
-                        <span
-                          style={{ color: "var(--text-muted)", fontSize: 10 }}
-                        >
+                        <span style={{ color: "var(--text-muted)", fontSize: 10 }}>
                           —
                         </span>
                       )}
@@ -520,31 +740,25 @@ const ShippedTab: React.FC = () => {
                     <td style={{ color: "var(--text-muted)", fontSize: 11 }}>
                       {fmtDate(o.createdAt)}
                     </td>
-                    <td>
-                      <div style={{ display: "flex", gap: 5 }}>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <div className="st-action-group">
+                        {/* Return button */}
                         <button
-                          className="st-btn"
-                          style={{
-                            fontSize: 10,
-                            padding: "4px 10px",
-                            borderColor: "#dc2626",
-                            color: "#dc2626",
-                            background: "#fee2e2",
-                          }}
+                          className="st-btn st-btn-red"
+                          style={{ fontSize: 10, padding: "4px 10px" }}
                           onClick={async () => {
-                            if (
-                              !window.confirm(`Mark ${o.orderId} as Returned?`)
-                            )
+                            if (!window.confirm(`Mark ${o.orderId} as Returned?`))
                               return;
                             await handleMarkReturned(o._id);
                           }}
                         >
                           <i className="fa-solid fa-rotate-left" /> Return
                         </button>
+                        {/* Deliver button */}
                         <button
-                          className="st-btn st-btn-primary"
+                          className="st-btn st-btn-green"
                           style={{ fontSize: 10, padding: "4px 10px" }}
-                          onClick={() => setDetail(o)}
+                          onClick={() => setSelectedOrder(o)}
                         >
                           <i className="fa-solid fa-circle-check" /> Deliver
                         </button>
@@ -559,21 +773,23 @@ const ShippedTab: React.FC = () => {
         </>
       )}
 
-      {/* Detail Modal */}
-      {detail && (
-        <OrderDetailModal
-          order={detail}
-          onClose={() => setDetail(null)}
-          onMarkDelivered={handleMarkDelivered}
-          onMarkReturned={handleMarkReturned}
-        />
-      )}
+      {/* Side Panel — replaces modal */}
+      <OrderSidePanel
+        order={selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        onMarkDelivered={handleMarkDelivered}
+        onMarkReturned={handleMarkReturned}
+      />
 
       {/* Toast */}
       {toast && (
         <div className={`st-toast ${toast.type}`}>
           <i
-            className={`fa-solid ${toast.type === "success" ? "fa-circle-check" : "fa-circle-exclamation"}`}
+            className={`fa-solid ${
+              toast.type === "success"
+                ? "fa-circle-check"
+                : "fa-circle-exclamation"
+            }`}
           />
           {toast.msg}
         </div>
