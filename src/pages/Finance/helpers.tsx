@@ -133,7 +133,13 @@ export const ToggleSwitch: React.FC<{
 }> = ({ defaultChecked = false, onChange, disabled = false }) => {
   const [on, setOn] = useState(defaultChecked);
   return (
-    <label className="toggle-switch" style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? "none" : "auto" }}>
+    <label
+      className="toggle-switch"
+      style={{
+        opacity: disabled ? 0.5 : 1,
+        pointerEvents: disabled ? "none" : "auto",
+      }}
+    >
       <input
         type="checkbox"
         checked={on}

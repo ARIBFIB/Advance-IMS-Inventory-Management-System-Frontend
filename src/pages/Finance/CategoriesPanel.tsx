@@ -29,9 +29,18 @@ interface CategoryModalProps {
 }
 
 const PRESET_COLORS = [
-  "#FF6A00", "#7C3AED", "#D97706", "#16A34A",
-  "#2563EB", "#0891B2", "#EF4444", "#9CA3AF",
-  "#F59E0B", "#10B981", "#6366F1", "#EC4899",
+  "#FF6A00",
+  "#7C3AED",
+  "#D97706",
+  "#16A34A",
+  "#2563EB",
+  "#0891B2",
+  "#EF4444",
+  "#9CA3AF",
+  "#F59E0B",
+  "#10B981",
+  "#6366F1",
+  "#EC4899",
 ];
 
 const CategoryModal: React.FC<CategoryModalProps> = ({
@@ -62,7 +71,10 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
     setErr("");
     try {
       if (editData) {
-        await api.put(`/expense-categories/${editData._id}`, { name: name.trim(), color });
+        await api.put(`/expense-categories/${editData._id}`, {
+          name: name.trim(),
+          color,
+        });
       } else {
         await api.post("/expense-categories", { name: name.trim(), color });
       }
@@ -83,7 +95,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
       <div
         onClick={onClose}
         style={{
-          position: "fixed", inset: 0,
+          position: "fixed",
+          inset: 0,
           background: "rgba(0,0,0,0.45)",
           zIndex: 1000,
         }}
@@ -92,7 +105,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
       <div
         style={{
           position: "fixed",
-          top: "50%", left: "50%",
+          top: "50%",
+          left: "50%",
           transform: "translate(-50%, -50%)",
           background: "var(--card)",
           border: "1px solid var(--divider)",
@@ -104,14 +118,30 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
         }}
       >
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 20,
+          }}
+        >
           <div style={{ fontWeight: 700, fontSize: 14 }}>
-            <i className={`fa-solid ${editData ? "fa-pen" : "fa-plus"}`} style={{ marginRight: 8, color: "var(--accent)" }} />
+            <i
+              className={`fa-solid ${editData ? "fa-pen" : "fa-plus"}`}
+              style={{ marginRight: 8, color: "var(--accent)" }}
+            />
             {editData ? "Edit Category" : "Add Category"}
           </div>
           <button
             onClick={onClose}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: 16 }}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--text-muted)",
+              fontSize: 16,
+            }}
           >
             <i className="fa-solid fa-xmark" />
           </button>
@@ -119,7 +149,14 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
 
         {/* Name Input */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
+          <label
+            style={{
+              fontSize: 11,
+              color: "var(--text-muted)",
+              display: "block",
+              marginBottom: 6,
+            }}
+          >
             Category Name *
           </label>
           <input
@@ -129,17 +166,28 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
             placeholder="e.g. Rent, Travel, Packaging"
             maxLength={50}
             style={{
-              width: "100%", padding: "8px 10px",
-              borderRadius: 6, border: "1px solid var(--divider)",
-              background: "var(--bg)", color: "var(--text)",
-              fontSize: 12, boxSizing: "border-box",
+              width: "100%",
+              padding: "8px 10px",
+              borderRadius: 6,
+              border: "1px solid var(--divider)",
+              background: "var(--bg)",
+              color: "var(--text)",
+              fontSize: 12,
+              boxSizing: "border-box",
             }}
           />
         </div>
 
         {/* Color Picker */}
         <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 8 }}>
+          <label
+            style={{
+              fontSize: 11,
+              color: "var(--text-muted)",
+              display: "block",
+              marginBottom: 8,
+            }}
+          >
             Color
           </label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -148,28 +196,60 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                 key={c}
                 onClick={() => setColor(c)}
                 style={{
-                  width: 24, height: 24,
+                  width: 24,
+                  height: 24,
                   borderRadius: "50%",
                   background: c,
                   cursor: "pointer",
-                  border: color === c ? "2px solid var(--text)" : "2px solid transparent",
+                  border:
+                    color === c
+                      ? "2px solid var(--text)"
+                      : "2px solid transparent",
                   boxSizing: "border-box",
                 }}
               />
             ))}
           </div>
           {/* Preview */}
-          <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 10, height: 10, borderRadius: "50%", background: color }} />
-            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Preview: </span>
+          <div
+            style={{
+              marginTop: 10,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: color,
+              }}
+            />
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+              Preview:{" "}
+            </span>
             <strong style={{ fontSize: 12 }}>{name || "Category Name"}</strong>
           </div>
         </div>
 
         {/* Error */}
         {err && (
-          <div style={{ marginBottom: 12, fontSize: 11, color: "#EF4444", background: "rgba(239,68,68,0.1)", padding: "8px 10px", borderRadius: 6 }}>
-            <i className="fa-solid fa-circle-exclamation" style={{ marginRight: 6 }} />
+          <div
+            style={{
+              marginBottom: 12,
+              fontSize: 11,
+              color: "#EF4444",
+              background: "rgba(239,68,68,0.1)",
+              padding: "8px 10px",
+              borderRadius: 6,
+            }}
+          >
+            <i
+              className="fa-solid fa-circle-exclamation"
+              style={{ marginRight: 6 }}
+            />
             {err}
           </div>
         )}
@@ -179,11 +259,21 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
           <button className="f-btn" onClick={onClose} disabled={saving}>
             Cancel
           </button>
-          <button className="f-btn primary" onClick={handleSave} disabled={saving}>
-            {saving
-              ? <><i className="fa-solid fa-spinner fa-spin" /> Saving…</>
-              : <><i className="fa-solid fa-check" /> {editData ? "Update" : "Add"}</>
-            }
+          <button
+            className="f-btn primary"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <>
+                <i className="fa-solid fa-spinner fa-spin" /> Saving…
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-check" />{" "}
+                {editData ? "Update" : "Add"}
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -216,7 +306,7 @@ const CategoriesPanel: React.FC = () => {
       // Merge analytics data into category rows
       const rows: CategoryRow[] = cats.map((c) => {
         const match = breakdown.find(
-          (b) => b.category.toLowerCase() === c.name.toLowerCase()
+          (b) => b.category.toLowerCase() === c.name.toLowerCase(),
         );
         return {
           _id: c._id,
@@ -249,8 +339,8 @@ const CategoriesPanel: React.FC = () => {
       });
       setCategories((prev) =>
         prev.map((c) =>
-          c._id === cat._id ? { ...c, isActive: !cat.isActive } : c
-        )
+          c._id === cat._id ? { ...c, isActive: !cat.isActive } : c,
+        ),
       );
     } catch (e: any) {
       setError(e?.response?.data?.message || "Failed to update status.");
@@ -320,7 +410,8 @@ const CategoriesPanel: React.FC = () => {
                         <td key={j}>
                           <div
                             style={{
-                              height: 10, borderRadius: 3,
+                              height: 10,
+                              borderRadius: 3,
                               background: "var(--divider)",
                               width: j === 0 ? "70%" : "50%",
                             }}
@@ -331,7 +422,15 @@ const CategoriesPanel: React.FC = () => {
                   ))
                 ) : categories.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: "center", padding: 24, color: "var(--text-muted)", fontSize: 11 }}>
+                    <td
+                      colSpan={5}
+                      style={{
+                        textAlign: "center",
+                        padding: 24,
+                        color: "var(--text-muted)",
+                        fontSize: 11,
+                      }}
+                    >
                       No categories found.
                     </td>
                   </tr>
@@ -340,12 +439,22 @@ const CategoriesPanel: React.FC = () => {
                     <tr key={c._id} style={{ opacity: c.isActive ? 1 : 0.5 }}>
                       <td>
                         <div className="td-flex">
-                          <div style={{ width: 10, height: 10, borderRadius: "50%", background: c.color, flexShrink: 0 }} />
+                          <div
+                            style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: "50%",
+                              background: c.color,
+                              flexShrink: 0,
+                            }}
+                          />
                           <strong>{c.name}</strong>
                         </div>
                       </td>
                       <td>{c.count}</td>
-                      <td><strong>{fmt(c.amount)}</strong></td>
+                      <td>
+                        <strong>{fmt(c.amount)}</strong>
+                      </td>
                       <td>
                         <ToggleSwitch
                           defaultChecked={c.isActive}
@@ -386,29 +495,43 @@ const CategoriesPanel: React.FC = () => {
             </div>
           </div>
           <div className="card-body">
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginBottom: 12,
+              }}
+            >
               <div
                 style={{
-                  width: 110, height: 110,
+                  width: 110,
+                  height: 110,
                   borderRadius: "50%",
                   background: `conic-gradient(${gradient})`,
                   position: "relative",
-                  display: "flex", alignItems: "center", justifyContent: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
                 <div
                   style={{
-                    width: 70, height: 70,
+                    width: 70,
+                    height: 70,
                     borderRadius: "50%",
                     background: "var(--card)",
-                    display: "flex", flexDirection: "column",
-                    alignItems: "center", justifyContent: "center",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   <div style={{ fontSize: 12, fontWeight: 900 }}>
                     {loading ? "…" : `₨${(total / 1000).toFixed(0)}k`}
                   </div>
-                  <div style={{ fontSize: 8.5, color: "var(--text-muted)" }}>Total</div>
+                  <div style={{ fontSize: 8.5, color: "var(--text-muted)" }}>
+                    Total
+                  </div>
                 </div>
               </div>
             </div>
@@ -417,10 +540,19 @@ const CategoriesPanel: React.FC = () => {
                 .filter((c) => c.amount > 0)
                 .map((c) => (
                   <div className="donut-legend-item" key={c._id}>
-                    <div className="donut-dot" style={{ background: c.color }} />
+                    <div
+                      className="donut-dot"
+                      style={{ background: c.color }}
+                    />
                     <span style={{ flex: 1 }}>{c.name}</span>
                     <strong>{fmt(c.amount)}</strong>
-                    <span style={{ color: "var(--text-muted)", marginLeft: 6, fontSize: 9.5 }}>
+                    <span
+                      style={{
+                        color: "var(--text-muted)",
+                        marginLeft: 6,
+                        fontSize: 9.5,
+                      }}
+                    >
                       {total > 0 ? ((c.amount / total) * 100).toFixed(1) : "0"}%
                     </span>
                   </div>

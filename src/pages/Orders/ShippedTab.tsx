@@ -342,21 +342,28 @@ const OrderSidePanel: React.FC<{
     if (!order || !selectedRiderId) return;
     setAssigningRider(true);
     try {
-      // Rider ko delivery assign karo — status "out_for_delivery"
-      await ridersAPI.updateDeliveryStatus(selectedRiderId, order._id, {
-        status: "out_for_delivery",
-        notes: `Assigned from Shipped tab for order ${order.orderId}`,
-      });
-      // Order ko bhi Shipped status confirm karo (already shipped hai)
+      // Step 1: Order ko Delivered mark karo
+      await onMarkDelivered(order._id);
+
+      // Step 2: Rider delivery status update karo (best effort — fail ho tu bhi chalega)
+      try {
+        await ridersAPI.updateDeliveryStatus(selectedRiderId, order._id, {
+          status: "delivered",
+          notes: `Delivered via rider from Shipped tab — ${order.orderId}`,
+        });
+      } catch {
+        // silent — rider update fail ho tu order already delivered hai
+      }
+
+      const selectedRider = riders.find((r) => r._id === selectedRiderId);
       showToast(
-        `Rider assigned for ${order.orderId} — Out for delivery!`,
+        `Order ${order.orderId} delivered via ${selectedRider?.fullName ?? "rider"}!`,
         "success",
       );
       onClose();
     } catch (e: any) {
-      // Agar rider delivery endpoint fail ho tu direct deliver karo
       showToast(
-        e?.response?.data?.message ?? "Failed to assign rider.",
+        e?.response?.data?.message ?? "Failed to mark delivered.",
         "error",
       );
     } finally {
@@ -822,7 +829,7 @@ const OrderSidePanel: React.FC<{
                       ) : (
                         <>
                           <i className="fa-solid fa-person-biking" /> Assign
-                          Rider &amp; Dispatch
+                          Rider & Mark Delivered
                         </>
                       )}
                     </button>
