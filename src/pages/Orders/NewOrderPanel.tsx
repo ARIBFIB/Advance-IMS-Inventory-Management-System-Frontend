@@ -517,15 +517,28 @@ const addVariantItem = (
   v: { variantId: string; price: number; stock: number; attributes: Record<string, string> }
 ) => {
   const uniqueId = `${p._id}-${v.variantId}`;
-  const attrLabel = Object.values(v.attributes ?? {}).join(" / ");
+
+  // variantId se readable label nikalo — productId prefix hata do
+  const rawParts = v.variantId.replace(`${p._id}-`, "").split("-");
+  const readableParts = rawParts.filter((part) => part.length > 0);
+  const variantLabel = readableParts.join(" / ");
+
   const existing = items.find((i) => i.id === uniqueId);
   if (existing) {
-    setItems(items.map((i) => (i.id === uniqueId ? { ...i, qty: i.qty + 1 } : i)));
+    // Stock limit check
+    if (existing.qty >= v.stock) return;
+    setItems(items.map((i) =>
+      i.id === uniqueId ? { ...i, qty: i.qty + 1 } : i
+    ));
   } else {
     setItems([...items, {
-      id: uniqueId, sku: v.variantId,
-      name: `${p.name}${attrLabel ? ` — ${attrLabel}` : ""}`,
-      qty: 1, price: v.price, productId: p._id, variantId: v.variantId,
+      id: uniqueId,
+      sku: v.variantId,
+      name: `${p.name} — ${variantLabel}`,
+      qty: 1,
+      price: v.price,
+      productId: p._id,
+      variantId: v.variantId,
     }]);
   }
   setVariantPickerProduct(null);
@@ -533,9 +546,16 @@ const addVariantItem = (
 
   const removeItem = (id: string) => setItems(items.filter((i) => i.id !== id));
   const updateQty = (id: string, qty: number) => {
-    if (qty < 1) return;
-    setItems(items.map((i) => (i.id === id ? { ...i, qty } : i)));
-  };
+  if (qty < 1) return;
+  setItems(items.map((i) => {
+    if (i.id !== id) return i;
+    // stock limit find karo — variantId se match karo products mein
+    const prod = apiProducts.find((p) => p._id === i.productId);
+    const variant = prod?.variants?.find((v) => v.variantId === i.variantId);
+    const maxStock = variant?.stock ?? 9999;
+    return { ...i, qty: Math.min(qty, maxStock) };
+  }));
+};
   const updatePrice = (id: string, price: number) =>
     setItems(items.map((i) => (i.id === id ? { ...i, price } : i)));
 
@@ -772,11 +792,11 @@ const addVariantItem = (
 
       {/* Stock */}
       <span style={{
-        fontSize: 9, fontWeight: 600,
-        color: isOutOfStock ? "#EF4444" : "var(--text-muted)",
-      }}>
-        {isOutOfStock ? "Out of Stock" : `Stock: ${v.stock}`}
-      </span>
+  fontSize: 9, fontWeight: 600,
+  color: isOutOfStock ? "#EF4444" : v.stock <= 5 ? "#D97706" : "var(--text-muted)",
+}}>
+  {isOutOfStock ? "Out of Stock" : v.stock <= 5 ? `⚠ Only ${v.stock} left` : `Stock: ${v.stock}`}
+</span>
     </button>
   );
 })}
