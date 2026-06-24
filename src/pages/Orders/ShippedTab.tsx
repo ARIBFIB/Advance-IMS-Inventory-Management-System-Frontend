@@ -1,6 +1,6 @@
 // ShippedTab.tsx — dynamic
 import React, { useState, useEffect, useCallback } from "react";
-import { ordersAPI } from "../../services/api";
+import { ordersAPI, ridersAPI } from "../../services/api";
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface ApiOrder {
@@ -242,23 +242,68 @@ const styles = `
 `;
 
 /* ─── Side Panel ─────────────────────────────────────────── */
+/* ─── Types for Rider ────────────────────────────────────── */
+interface ApiRiderBasic {
+  _id: string;
+  fullName: string;
+  status: string;
+  isAvailable: boolean;
+  assignedZone?: string;
+  activeDeliveries?: number;
+  vehicle?: { type?: string };
+}
+
+/* ─── Side Panel ─────────────────────────────────────────── */
 const OrderSidePanel: React.FC<{
   order: ApiOrder | null;
   onClose: () => void;
   onMarkDelivered: (id: string) => Promise<void>;
   onMarkReturned: (id: string) => Promise<void>;
-}> = ({ order, onClose, onMarkDelivered, onMarkReturned }) => {
-  const [loadingDeliver, setLoadingDeliver] = useState(false);
-  const [loadingReturn, setLoadingReturn] = useState(false);
+  showToast: (msg: string, type: "success" | "error") => void;
+}> = ({ order, onClose, onMarkDelivered, onMarkReturned, showToast }) => {
   const isOpen = !!order;
 
-  // Reset loading states when panel closes
+  // Action states
+  const [loadingDeliver, setLoadingDeliver] = useState(false);
+  const [loadingReturn, setLoadingReturn] = useState(false);
+
+  // Rider assignment states
+  const [deliveryMode, setDeliveryMode] = useState<"courier" | "rider">("courier");
+  const [riders, setRiders] = useState<ApiRiderBasic[]>([]);
+  const [ridersLoading, setRidersLoading] = useState(false);
+  const [selectedRiderId, setSelectedRiderId] = useState("");
+  const [assigningRider, setAssigningRider] = useState(false);
+
+  // Reset when panel opens/closes
   useEffect(() => {
     if (!isOpen) {
       setLoadingDeliver(false);
       setLoadingReturn(false);
+      setDeliveryMode("courier");
+      setSelectedRiderId("");
+      setRiders([]);
+    } else {
+      // Fetch available riders when panel opens
+      fetchAvailableRiders();
     }
   }, [isOpen]);
+
+  const fetchAvailableRiders = async () => {
+    setRidersLoading(true);
+    try {
+      const res = await ridersAPI.getAll({ limit: 100 });
+      const all: ApiRiderBasic[] = res.data?.data?.riders ?? [];
+      // Sirf Active ya OnDelivery riders show karo, OnLeave/Inactive nahi
+      const available = all.filter(
+        (r) => r.status === "Active" || r.status === "OnDelivery"
+      );
+      setRiders(available);
+    } catch {
+      // silent fail — rider list optional
+    } finally {
+      setRidersLoading(false);
+    }
+  };
 
   const handleDeliver = async () => {
     if (!order) return;
@@ -283,6 +328,49 @@ const OrderSidePanel: React.FC<{
     }
   };
 
+  const handleAssignRider = async () => {
+    if (!order || !selectedRiderId) return;
+    setAssigningRider(true);
+    try {
+      // Rider ko delivery assign karo — status "out_for_delivery"
+      await ridersAPI.updateDeliveryStatus(
+        selectedRiderId,
+        order._id,
+        {
+          status: "out_for_delivery",
+          notes: `Assigned from Shipped tab for order ${order.orderId}`,
+        }
+      );
+      // Order ko bhi Shipped status confirm karo (already shipped hai)
+      showToast(
+        `Rider assigned for ${order.orderId} — Out for delivery!`,
+        "success"
+      );
+      onClose();
+    } catch (e: any) {
+      // Agar rider delivery endpoint fail ho tu direct deliver karo
+      showToast(
+        e?.response?.data?.message ?? "Failed to assign rider.",
+        "error"
+      );
+    } finally {
+      setAssigningRider(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    if (status === "Active") return "#16a34a";
+    if (status === "OnDelivery") return "#d97706";
+    return "#64748b";
+  };
+
+  const getStatusLabel = (r: ApiRiderBasic) => {
+    if (r.status === "OnDelivery")
+      return `On Delivery (${r.activeDeliveries ?? 0} active)`;
+    if (r.isAvailable) return "Available";
+    return r.status;
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -303,9 +391,7 @@ const OrderSidePanel: React.FC<{
               />
               Shipment Detail
             </div>
-            <div className="st-panel-sub">
-              {order?.orderId ?? "—"}
-            </div>
+            <div className="st-panel-sub">{order?.orderId ?? "—"}</div>
           </div>
           <button className="st-panel-close" onClick={onClose}>
             <i className="fa-solid fa-xmark" />
@@ -371,7 +457,7 @@ const OrderSidePanel: React.FC<{
               </div>
 
               {/* Shipment */}
-              <div className="st-section">Shipment</div>
+              <div className="st-section">Shipment Info</div>
               <div className="st-info-card">
                 <div className="st-drow" style={{ paddingTop: 0 }}>
                   <span className="st-drow-label">Courier</span>
@@ -442,6 +528,7 @@ const OrderSidePanel: React.FC<{
                     display: "flex",
                     alignItems: "center",
                     gap: 7,
+                    marginBottom: 14,
                   }}
                 >
                   <i className="fa-solid fa-coins" />
@@ -449,11 +536,268 @@ const OrderSidePanel: React.FC<{
                   <strong>{fmt(order.totalAmount)}</strong> on delivery.
                 </div>
               )}
+
+              {/* ── Delivery Mode Toggle ── */}
+              <div className="st-section">Delivery Method</div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  marginBottom: 14,
+                }}
+              >
+                <button
+                  onClick={() => setDeliveryMode("courier")}
+                  style={{
+                    flex: 1,
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    border: `2px solid ${deliveryMode === "courier" ? "#6366f1" : "var(--border)"}`,
+                    background: deliveryMode === "courier" ? "#eef2ff" : "var(--bg-2)",
+                    color: deliveryMode === "courier" ? "#6366f1" : "var(--text-muted)",
+                    fontWeight: 700,
+                    fontSize: 11,
+                    cursor: "pointer",
+                    transition: "all .15s",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                  }}
+                >
+                  <i className="fa-solid fa-truck" />
+                  Via Courier
+                </button>
+                <button
+                  onClick={() => setDeliveryMode("rider")}
+                  style={{
+                    flex: 1,
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    border: `2px solid ${deliveryMode === "rider" ? "#16a34a" : "var(--border)"}`,
+                    background: deliveryMode === "rider" ? "#f0fdf4" : "var(--bg-2)",
+                    color: deliveryMode === "rider" ? "#16a34a" : "var(--text-muted)",
+                    fontWeight: 700,
+                    fontSize: 11,
+                    cursor: "pointer",
+                    transition: "all .15s",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                  }}
+                >
+                  <i className="fa-solid fa-person-biking" />
+                  Via Rider
+                </button>
+              </div>
+
+              {/* ── Courier Mode ── */}
+              {deliveryMode === "courier" && (
+                <div
+                  style={{
+                    background: "#eef2ff",
+                    border: "1px solid #c7d2fe",
+                    borderRadius: 9,
+                    padding: "12px 14px",
+                    fontSize: 12,
+                    color: "#4338ca",
+                  }}
+                >
+                  <i className="fa-solid fa-circle-info" style={{ marginRight: 6 }} />
+                  Courier{" "}
+                  <strong>{order.courier?.name ?? "assigned"}</strong> is
+                  handling this delivery. Use{" "}
+                  <strong>Mark Delivered</strong> below to confirm delivery.
+                </div>
+              )}
+
+              {/* ── Rider Mode ── */}
+              {deliveryMode === "rider" && (
+                <div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "var(--text-muted)",
+                      fontWeight: 600,
+                      marginBottom: 6,
+                    }}
+                  >
+                    Select Rider *
+                  </div>
+
+                  {ridersLoading ? (
+                    <div
+                      style={{
+                        padding: "14px",
+                        textAlign: "center",
+                        color: "var(--text-muted)",
+                        fontSize: 12,
+                        background: "var(--bg-2)",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                      }}
+                    >
+                      <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: 6 }} />
+                      Loading riders…
+                    </div>
+                  ) : riders.length === 0 ? (
+                    <div
+                      style={{
+                        padding: "14px",
+                        textAlign: "center",
+                        color: "var(--text-muted)",
+                        fontSize: 12,
+                        background: "#fef2f2",
+                        borderRadius: 8,
+                        border: "1px solid #fca5a5",
+                      }}
+                    >
+                      <i className="fa-solid fa-circle-exclamation" style={{ marginRight: 6, color: "#dc2626" }} />
+                      No active riders available right now.
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 7,
+                        maxHeight: 220,
+                        overflowY: "auto",
+                        paddingRight: 2,
+                      }}
+                    >
+                      {riders.map((r) => {
+                        const isSelected = selectedRiderId === r._id;
+                        const statusColor = getStatusColor(r.status);
+                        return (
+                          <div
+                            key={r._id}
+                            onClick={() => setSelectedRiderId(r._id)}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              padding: "9px 12px",
+                              borderRadius: 9,
+                              border: `2px solid ${isSelected ? "#16a34a" : "var(--border)"}`,
+                              background: isSelected ? "#f0fdf4" : "var(--bg-2)",
+                              cursor: "pointer",
+                              transition: "all .15s",
+                            }}
+                          >
+                            {/* Avatar */}
+                            <div
+                              style={{
+                                width: 34,
+                                height: 34,
+                                borderRadius: "50%",
+                                background: isSelected ? "#16a34a" : "#6366f1",
+                                color: "#fff",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontWeight: 800,
+                                fontSize: 12,
+                                flexShrink: 0,
+                              }}
+                            >
+                              {r.fullName
+                                .split(" ")
+                                .map((w) => w[0])
+                                .join("")
+                                .slice(0, 2)
+                                .toUpperCase()}
+                            </div>
+
+                            {/* Info */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontWeight: 700,
+                                  fontSize: 12,
+                                  color: "var(--text)",
+                                }}
+                              >
+                                {r.fullName}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 10,
+                                  color: "var(--text-muted)",
+                                  marginTop: 2,
+                                }}
+                              >
+                                <i
+                                  className="fa-solid fa-motorcycle"
+                                  style={{ marginRight: 3, fontSize: 9 }}
+                                />
+                                {r.vehicle?.type ?? "—"} ·{" "}
+                                {r.assignedZone ?? "No zone"}
+                              </div>
+                            </div>
+
+                            {/* Status */}
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  color: statusColor,
+                                }}
+                              >
+                                {getStatusLabel(r)}
+                              </div>
+                              {isSelected && (
+                                <i
+                                  className="fa-solid fa-circle-check"
+                                  style={{
+                                    color: "#16a34a",
+                                    fontSize: 14,
+                                    marginTop: 3,
+                                    display: "block",
+                                  }}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Assign button */}
+                  {selectedRiderId && (
+                    <button
+                      className="st-btn st-btn-green"
+                      style={{
+                        width: "100%",
+                        justifyContent: "center",
+                        marginTop: 10,
+                      }}
+                      onClick={handleAssignRider}
+                      disabled={assigningRider}
+                    >
+                      {assigningRider ? (
+                        <>
+                          <i className="fa-solid fa-spinner fa-spin" />{" "}
+                          Assigning…
+                        </>
+                      ) : (
+                        <>
+                          <i className="fa-solid fa-person-biking" /> Assign
+                          Rider &amp; Dispatch
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              )}
             </>
           ) : null}
         </div>
 
-        {/* Footer — Action Buttons */}
+        {/* Footer */}
         <div className="st-panel-footer">
           <button
             className="st-btn st-btn-red"
@@ -779,6 +1123,7 @@ const ShippedTab: React.FC = () => {
         onClose={() => setSelectedOrder(null)}
         onMarkDelivered={handleMarkDelivered}
         onMarkReturned={handleMarkReturned}
+        showToast={showToast}
       />
 
       {/* Toast */}
