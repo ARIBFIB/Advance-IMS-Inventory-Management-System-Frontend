@@ -1444,8 +1444,12 @@ const VariantsTab: React.FC = () => {
   // flatten all variants
   const allVariants: FlatVariant[] = products.flatMap((p) =>
     (p.variants ?? []).map((v) => {
-      const firstAttrKey = Object.keys(v.attributes)[0] ?? "attr";
-      const firstAttrVal = Object.values(v.attributes)[0] ?? v.variantId;
+      const allAttrs = Object.entries(v.attributes)
+        .map(([k, val]) => `${k}: ${val}`)
+        .join(", ");
+      const firstAttrKey = Object.keys(v.attributes).join(", ") || "—";
+      const firstAttrVal =
+        Object.values(v.attributes).join(" / ") || v.variantId;
       return {
         vsku: v.variantId,
         parent: p.name,
@@ -1473,7 +1477,11 @@ const VariantsTab: React.FC = () => {
 
   const handleSaveVariant = async () => {
     const parentId = parentRef.current?.value;
-    if (!parentId || !valueRef.current?.value) return;
+    if (
+      !parentId ||
+      attributes.filter((a) => a.key.trim() && a.value.trim()).length === 0
+    )
+      return;
     setSaving(true);
     const attrObj = Object.fromEntries(
       attributes
