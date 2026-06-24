@@ -700,30 +700,85 @@ const addVariantItem = (
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {variantPickerProduct.variants?.map((v) => {
-                const attrLabel = Object.values(v.attributes ?? {}).join(" / ");
-                const isOutOfStock = v.stock === 0;
-                return (
-                  <button key={v.variantId} disabled={isOutOfStock}
-                    onClick={() => addVariantItem(variantPickerProduct, v as any)}
-                    style={{
-                      padding: "6px 12px", borderRadius: 20,
-                      border: "1px solid var(--border)",
-                      background: isOutOfStock ? "var(--bg)" : "var(--card)",
-                      color: isOutOfStock ? "var(--text-muted)" : "var(--text)",
-                      cursor: isOutOfStock ? "not-allowed" : "pointer",
-                      fontSize: 11, fontWeight: 600, opacity: isOutOfStock ? 0.5 : 1,
-                      display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-                    }}>
-                    <span>{attrLabel || v.variantId}</span>
-                    <span style={{ fontSize: 10, color: "var(--accent)", fontWeight: 700 }}>
-                      ₨{v.price.toLocaleString()}
-                    </span>
-                    <span style={{ fontSize: 9, color: isOutOfStock ? "#EF4444" : "var(--text-muted)" }}>
-                      {isOutOfStock ? "Out of Stock" : `Stock: ${v.stock}`}
-                    </span>
-                  </button>
-                );
-              })}
+  const attrs = v.attributes ?? {};
+  const attrEntries = Object.entries(attrs);
+  const isOutOfStock = v.stock === 0;
+
+  // Color detect karo
+  const colorEntry = attrEntries.find(([k]) =>
+    ["color", "colour"].includes(k.toLowerCase())
+  );
+  const colorVal = colorEntry?.[1] ?? null;
+  const isHex = colorVal ? /^#([0-9a-f]{3}){1,2}$/i.test(colorVal) : false;
+
+  // Non-color attrs label
+  const nonColorAttrs = attrEntries
+    .filter(([k]) => !["color", "colour"].includes(k.toLowerCase()))
+    .map(([, val]) => val)
+    .join(" / ");
+
+  return (
+    <button
+      key={v.variantId}
+      disabled={isOutOfStock}
+      onClick={() => addVariantItem(variantPickerProduct, v as any)}
+      style={{
+        padding: "10px 12px",
+        borderRadius: 10,
+        border: `1.5px solid ${isOutOfStock ? "var(--border)" : "var(--border)"}`,
+        background: isOutOfStock ? "var(--bg)" : "var(--card)",
+        cursor: isOutOfStock ? "not-allowed" : "pointer",
+        opacity: isOutOfStock ? 0.45 : 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 5,
+        minWidth: 80,
+        transition: "border-color 0.15s, box-shadow 0.15s",
+      }}
+      onMouseEnter={(e) => {
+        if (!isOutOfStock) {
+          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--accent)";
+          (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
+        }
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
+        (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
+      }}
+    >
+      {/* Color swatch */}
+      {colorVal && (
+        <div style={{
+          width: 28, height: 28, borderRadius: "50%",
+          background: isHex ? colorVal : colorVal.toLowerCase(),
+          border: "2px solid rgba(0,0,0,0.12)",
+          flexShrink: 0,
+        }} />
+      )}
+
+      {/* Non-color label */}
+      {nonColorAttrs && (
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text)" }}>
+          {nonColorAttrs}
+        </span>
+      )}
+
+      {/* Price */}
+      <span style={{ fontSize: 11, color: "var(--accent)", fontWeight: 800 }}>
+        ₨{v.price.toLocaleString()}
+      </span>
+
+      {/* Stock */}
+      <span style={{
+        fontSize: 9, fontWeight: 600,
+        color: isOutOfStock ? "#EF4444" : "var(--text-muted)",
+      }}>
+        {isOutOfStock ? "Out of Stock" : `Stock: ${v.stock}`}
+      </span>
+    </button>
+  );
+})}
             </div>
           </div>
         )}
