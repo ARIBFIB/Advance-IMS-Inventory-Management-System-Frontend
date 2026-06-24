@@ -1387,6 +1387,7 @@ interface FlatVariant {
   parentId: string;
   type: string;
   value: string;
+  attributes: string;
   stock: number;
   price: number;
 }
@@ -1450,18 +1451,22 @@ const VariantsTab: React.FC = () => {
       const allAttrs = Object.entries(v.attributes)
         .map(([k, val]) => `${k}: ${val}`)
         .join(", ");
-      const firstAttrKey = Object.keys(v.attributes).join(", ") || "—";
-      const firstAttrVal =
-        Object.values(v.attributes).join(" / ") || v.variantId;
-      return {
-        vsku: v.variantId,
-        parent: p.name,
-        parentId: p._id,
-        type: firstAttrKey,
-        value: firstAttrVal,
-        stock: v.stock,
-        price: v.price,
-      };
+      const attrEntries = Object.entries(v.attributes);
+const firstAttrKey = attrEntries.map(([k]) => k).join(", ") || "—";
+const firstAttrVal = attrEntries.map(([, val]) => val).join(" / ") || v.variantId;
+const attrDisplay = attrEntries.length > 0
+  ? attrEntries.map(([k, val]) => `${k}: ${val}`).join(" · ")
+  : "—";
+return {
+  vsku: v.variantId,
+  parent: p.name,
+  parentId: p._id,
+  type: firstAttrKey,
+  value: firstAttrVal,
+  attributes: attrDisplay,   // ← new field
+  stock: v.stock,
+  price: v.price,
+};
     }),
   );
 
