@@ -492,6 +492,7 @@ const StepItems: React.FC<StepItemsProps> = ({ items, setItems }) => {
   }, [prodSearch]);
 
   const addItem = (p: (typeof apiProducts)[0]) => {
+  console.log("Product variants:", JSON.stringify(p.variants, null, 2));
   setProdSearch("");
   setShowProdList(false);
   if (p.variants && p.variants.length > 1) {
