@@ -790,73 +790,243 @@ const ProductPanel: React.FC<ProductPanelProps> = ({
   );
 
   const renderVariants = () => {
-    const variants = product?.variants ?? [];
-    return (
-      <>
-        <div className="stock-log-section-label">
-          Product Variants ({variants.length})
+  const variants = product?.variants ?? [];
+
+  // Helper: variant ID se clean label banao
+  const getVariantLabel = (variantId: string): string => {
+    // Pattern: <mongoId>-ATTR1-ATTR2 → sirf ATTR1-ATTR2 rakhna
+    const parts = variantId.split("-");
+    // MongoDB ObjectId = 24 hex chars
+    const filtered = parts.filter((p) => !/^[a-f0-9]{24}$/i.test(p));
+    return filtered.length > 0 ? filtered.join("-") : variantId;
+  };
+
+  // Helper: attributes object → readable string
+  const getAttrDisplay = (
+    attributes: Record<string, string>,
+    variantId: string,
+  ): { label: string; pairs: { key: string; val: string }[] } => {
+    const entries = Object.entries(attributes ?? {});
+    if (entries.length === 0) {
+      const clean = getVariantLabel(variantId);
+      return { label: clean, pairs: [] };
+    }
+    const pairs = entries.map(([k, v]) => ({ key: k, val: v }));
+    const label = pairs.map((p) => p.val).join(" / ");
+    return { label, pairs };
+  };
+
+  // Helper: color value detect karo (hex ya CSS color)
+  const isHexColor = (val: string): boolean =>
+    /^#([0-9a-f]{3}){1,2}$/i.test(val);
+
+  // Helper: avatar text — attribute values se, ID se nahi
+  const getAvatarText = (
+    attributes: Record<string, string>,
+    variantId: string,
+  ): string => {
+    const entries = Object.entries(attributes ?? {});
+    if (entries.length > 0) {
+      // color attribute ho tu skip karo avatar ke liye, size/other use karo
+      const nonColor = entries.filter(
+        ([k]) => !["color", "colour"].includes(k.toLowerCase()),
+      );
+      const use = nonColor.length > 0 ? nonColor : entries;
+      return use[0][1].slice(0, 3).toUpperCase();
+    }
+    return getVariantLabel(variantId).slice(0, 3).toUpperCase();
+  };
+
+  return (
+    <>
+      <div className="stock-log-section-label">
+        Product Variants ({variants.length})
+      </div>
+
+      {variants.length === 0 ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: 20,
+            color: "var(--text-muted)",
+          }}
+        >
+          No variants. Add one below.
         </div>
-        {variants.length === 0 ? (
-          <div
-            style={{
-              textAlign: "center",
-              padding: 20,
-              color: "var(--text-muted)",
-            }}
-          >
-            No variants. Add one below.
-          </div>
-        ) : (
-          variants.map((v, i) => {
-            const attrStr =
-              Object.entries(v.attributes)
-                .map(([k, val]) => `${val}`)
-                .join(" / ") || v.variantId;
-            const threshold = v.lowStockThreshold ?? 10;
-            const st =
-              v.stock === 0
-                ? "Out of Stock"
-                : v.stock < threshold
-                  ? "Low Stock"
-                  : "In Stock";
-            return (
+      ) : (
+        variants.map((v) => {
+          const threshold = v.lowStockThreshold ?? 10;
+          const st =
+            v.stock === 0
+              ? "Out of Stock"
+              : v.stock < threshold
+                ? "Low Stock"
+                : "In Stock";
+
+          const { label: attrLabel, pairs } = getAttrDisplay(
+            v.attributes,
+            v.variantId,
+          );
+          const avatarText = getAvatarText(v.attributes, v.variantId);
+          const cleanId = getVariantLabel(v.variantId);
+
+          // Color attribute dhundo display ke liye
+          const colorEntry = Object.entries(v.attributes ?? {}).find(([k]) =>
+            ["color", "colour"].includes(k.toLowerCase()),
+          );
+          const colorVal = colorEntry?.[1];
+          const hasHexColor = colorVal && isHexColor(colorVal);
+
+          return (
+            <div
+              key={v.variantId}
+              className="list-item"
+              style={{
+                padding: "10px 0",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
+              {/* Avatar */}
               <div
-                key={v.variantId}
-                className="list-item"
-                style={{ padding: "5px 0" }}
+                className="variant-size-icon"
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  background: hasHexColor ? colorVal : "var(--accent-bg)",
+                  color: hasHexColor ? "#fff" : "var(--accent)",
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  border: "1px solid var(--border)",
+                }}
               >
-                <div className="variant-size-icon" style={{ fontSize: 9 }}>
-                  {attrStr.slice(0, 3).toUpperCase()}
+                {avatarText}
+              </div>
+
+              <div className="list-content" style={{ flex: 1, minWidth: 0 }}>
+                {/* Clean Variant ID */}
+                <div
+                  className="list-title"
+                  style={{ fontSize: 12, fontWeight: 700 }}
+                >
+                  {cleanId || v.variantId}
                 </div>
-                <div className="list-content">
-                  <div className="list-title">{v.variantId}</div>
-                  <div className="list-meta">
-                    {attrStr} · {fmt(v.price)}
-                  </div>
-                </div>
-                <div className="list-right">
-                  <div style={{ fontSize: 12, fontWeight: 600 }}>
-                    {v.stock} in stock
-                  </div>
-                  <Badge label={st} />
+
+                {/* Attribute pills */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 4,
+                    marginTop: 4,
+                  }}
+                >
+                  {pairs.length > 0 ? (
+                    pairs.map(({ key, val }) => (
+                      <span
+                        key={key}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: 10,
+                          padding: "2px 7px",
+                          borderRadius: 20,
+                          background: "var(--bg-soft, #F3F4F6)",
+                          color: "var(--text-secondary)",
+                          border: "1px solid var(--border)",
+                        }}
+                      >
+                        <span style={{ color: "var(--text-muted)", textTransform: "capitalize" }}>
+                          {key}:
+                        </span>{" "}
+                        {isHexColor(val) ? (
+                          <>
+                            <span
+                              style={{
+                                display: "inline-block",
+                                width: 10,
+                                height: 10,
+                                borderRadius: "50%",
+                                background: val,
+                                border: "1px solid var(--border)",
+                              }}
+                            />
+                            {val}
+                          </>
+                        ) : (
+                          <strong>{val}</strong>
+                        )}
+                      </span>
+                    ))
+                  ) : (
+                    <span
+                      style={{ fontSize: 10, color: "var(--text-muted)" }}
+                    >
+                      {attrLabel}
+                    </span>
+                  )}
+
+                  {/* Price pill */}
+                  <span
+                    style={{
+                      fontSize: 10,
+                      padding: "2px 7px",
+                      borderRadius: 20,
+                      background: "var(--green-bg)",
+                      color: "var(--green)",
+                      border: "1px solid var(--green-bg)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {fmt(v.price)}
+                  </span>
                 </div>
               </div>
-            );
-          })
-        )}
-        <hr />
-        <button
-  className="header-btn primary"
-  onClick={() => {
-    onClose();
-    if (onSwitchToVariants) onSwitchToVariants();
-  }}
->
-  <i className="fa-solid fa-layer-group" /> Manage Variants
-</button>
-      </>
-    );
-  };
+
+              {/* Right side: stock + badge */}
+              <div
+                className="list-right"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-end",
+                  gap: 4,
+                  flexShrink: 0,
+                }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 700 }}>
+                  {v.stock}{" "}
+                  <span
+                    style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 400 }}
+                  >
+                    units
+                  </span>
+                </div>
+                <Badge label={st} />
+              </div>
+            </div>
+          );
+        })
+      )}
+
+      <hr />
+      <button
+        className="header-btn primary"
+        onClick={() => {
+          onClose();
+          if (onSwitchToVariants) onSwitchToVariants();
+        }}
+      >
+        <i className="fa-solid fa-layer-group" /> Manage Variants
+      </button>
+    </>
+  );
+};
 
   return (
     <>
