@@ -370,16 +370,12 @@ interface ProductPanelProps {
   onClose: () => void;
   onModeChange: (m: PanelMode) => void;
   onSaved: () => void;
+  onSwitchToVariants?: () => void;
 }
 
 const ProductPanel: React.FC<ProductPanelProps> = ({
-  product,
-  mode,
-  categories,
-  suppliers,
-  onClose,
-  onModeChange,
-  onSaved,
+  product, mode, categories, suppliers,
+  onClose, onModeChange, onSaved, onSwitchToVariants,
 }) => {
   const [panelTab, setPanelTab] = useState<"overview" | "stock" | "variants">(
     "overview",
@@ -850,11 +846,14 @@ const ProductPanel: React.FC<ProductPanelProps> = ({
         )}
         <hr />
         <button
-          className="header-btn primary"
-          onClick={() => onModeChange("edit")}
-        >
-          <i className="fa-solid fa-plus" /> Manage Variants
-        </button>
+  className="header-btn primary"
+  onClick={() => {
+    onClose();
+    if (onSwitchToVariants) onSwitchToVariants();
+  }}
+>
+  <i className="fa-solid fa-layer-group" /> Manage Variants
+</button>
       </>
     );
   };
@@ -913,7 +912,7 @@ type SortDir = "asc" | "desc";
 
 const PROD_PER_PAGE = 15;
 
-const AllProductsTab: React.FC = () => {
+const AllProductsTab: React.FC<{ onSwitchToVariants: () => void }> = ({ onSwitchToVariants }) => {
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     currentPage: 1,
@@ -1372,6 +1371,7 @@ const AllProductsTab: React.FC = () => {
         onClose={closePanel}
         onModeChange={(m) => setPanelMode(m)}
         onSaved={fetchProducts}
+        onSwitchToVariants={onSwitchToVariants}
       />
     </>
   );
@@ -3660,7 +3660,7 @@ const ProductPage: React.FC = () => {
         ))}
       </div>
 
-      {activeTab === "all" && <AllProductsTab />}
+      {activeTab === "all" && <AllProductsTab onSwitchToVariants={() => switchTab("variants")} />}
       {activeTab === "variants" && <VariantsTab />}
       {activeTab === "cats" && <CategoriesTab />}
       {activeTab === "suppliers" && <SuppliersTab />}
