@@ -79,6 +79,7 @@ const ExpensesPanel: React.FC<Props> = ({ onNav, onOpenOverlay }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [analytics, setAnalytics] = useState<any>(null);
+const [refreshKey, setRefreshKey] = useState(0);
 
   const load = useCallback(async (pg: number, category: string) => {
     setLoading(true);
@@ -109,7 +110,7 @@ const ExpensesPanel: React.FC<Props> = ({ onNav, onOpenOverlay }) => {
 
   useEffect(() => {
     load(page, chip);
-  }, [page, chip, load]);
+  }, [page, chip, load, refreshKey]);
 
   const filtered = search
     ? expenses.filter(
@@ -214,6 +215,9 @@ const ExpensesPanel: React.FC<Props> = ({ onNav, onOpenOverlay }) => {
             </button>
           </div>
           <div className="f-toolbar-right">
+            <button className="f-btn" onClick={() => setRefreshKey(k => k + 1)}>
+              <i className="fa-solid fa-rotate-right" /> Refresh
+            </button>
             <button className="f-btn">
               <i className="fa-solid fa-file-export" /> Export
             </button>
