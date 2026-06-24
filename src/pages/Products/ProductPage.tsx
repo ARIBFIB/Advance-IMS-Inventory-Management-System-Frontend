@@ -1452,21 +1452,23 @@ const VariantsTab: React.FC = () => {
         .map(([k, val]) => `${k}: ${val}`)
         .join(", ");
       const attrEntries = Object.entries(v.attributes);
-const firstAttrKey = attrEntries.map(([k]) => k).join(", ") || "—";
-const firstAttrVal = attrEntries.map(([, val]) => val).join(" / ") || v.variantId;
-const attrDisplay = attrEntries.length > 0
-  ? attrEntries.map(([k, val]) => `${k}: ${val}`).join(" · ")
-  : "—";
-return {
-  vsku: v.variantId,
-  parent: p.name,
-  parentId: p._id,
-  type: firstAttrKey,
-  value: firstAttrVal,
-  attributes: attrDisplay,   // ← new field
-  stock: v.stock,
-  price: v.price,
-};
+      const firstAttrKey = attrEntries.map(([k]) => k).join(", ") || "—";
+      const firstAttrVal =
+        attrEntries.map(([, val]) => val).join(" / ") || v.variantId;
+      const attrDisplay =
+        attrEntries.length > 0
+          ? attrEntries.map(([k, val]) => `${k}: ${val}`).join(" · ")
+          : "—";
+      return {
+        vsku: v.variantId,
+        parent: p.name,
+        parentId: p._id,
+        type: firstAttrKey,
+        value: firstAttrVal,
+        attributes: attrDisplay, // ← new field
+        stock: v.stock,
+        price: v.price,
+      };
     }),
   );
 
@@ -1536,8 +1538,12 @@ return {
 
   const handleDeleteVariant = async (prod: ApiProduct, variantId: string) => {
     if (!window.confirm("Remove this variant?")) return;
-    await productsAPI.deleteVariant(prod._id, variantId).catch(() => {});
-    fetchProducts();
+    try {
+      await productsAPI.deleteVariant(prod._id, variantId);
+      fetchProducts();
+    } catch (e: any) {
+      alert(e?.response?.data?.message ?? "Failed to delete variant.");
+    }
   };
 
   // size / color distribution from loaded data
@@ -1737,17 +1743,28 @@ return {
                         <span className="tag">{v.type}</span>
                       </td>
                       <td>
-  <span className={`badge ${v.type === "color" ? "blue" : "gray"}`}>
-    {v.value}
-  </span>
-</td>
-<td>
-  <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-    {v.attributes}
-  </span>
-</td>
-<td>{v.stock}</td>
-<td>{fmt(v.price)}</td>
+                        <span
+                          className={`badge ${v.type === "color" ? "blue" : "gray"}`}
+                        >
+                          {v.value}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: "var(--text-secondary)",
+                          }}
+                        >
+                          {v.attributes !== "—" ? (
+                            v.attributes
+                          ) : (
+                            <em style={{ color: "var(--text-muted)" }}>—</em>
+                          )}
+                        </span>
+                      </td>
+                      <td>{v.stock}</td>
+                      <td>{fmt(v.price)}</td>
                       <td>
                         <Badge label={st} />
                       </td>
@@ -1778,9 +1795,12 @@ return {
                               label: "Delete",
                               icon: "fa-trash",
                               danger: true,
-                              onClick: () => {
-                                if (prodObj)
-                                  handleDeleteVariant(prodObj, v.vsku);
+                              onClick: async () => {
+                                if (prodObj && varObj)
+                                  await handleDeleteVariant(
+                                    prodObj,
+                                    varObj.variantId,
+                                  );
                               },
                             },
                           ]}
@@ -3336,17 +3356,17 @@ const BulkImportTab: React.FC = () => {
                 <tbody>
                   {csvCols.map((c) => (
                     <tr key={c.col}>
-  <td>
-    <code>{c.col}</code>
-  </td>
-  <td>
-    <span className={`badge ${c.req ? "red" : "yellow"}`}>
-      {c.req ? "Required" : "Optional"}
-    </span>
-  </td>
-  <td>{c.example}</td>
-  <td>{c.note}</td>
-</tr>
+                      <td>
+                        <code>{c.col}</code>
+                      </td>
+                      <td>
+                        <span className={`badge ${c.req ? "red" : "yellow"}`}>
+                          {c.req ? "Required" : "Optional"}
+                        </span>
+                      </td>
+                      <td>{c.example}</td>
+                      <td>{c.note}</td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
