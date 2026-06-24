@@ -1425,6 +1425,9 @@ const VariantsTab: React.FC = () => {
       prev.map((a, i) => (i === idx ? { ...a, [field]: val } : a)),
     );
 
+  const isColorKey = (key: string) =>
+    key.toLowerCase() === "color" || key.toLowerCase() === "colour";
+
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
@@ -1930,16 +1933,59 @@ const VariantsTab: React.FC = () => {
                     style={{ flex: 1 }}
                     list="attr-key-suggestions"
                   />
-                  <input
-                    className="form-input"
-                    placeholder="Value (e.g. M)"
-                    value={attr.value}
-                    onChange={(e) =>
-                      updateAttribute(idx, "value", e.target.value)
-                    }
-                    style={{ flex: 1 }}
-                    list={`attr-val-${attr.key}`}
-                  />
+
+                  {/* ✅ Color key detect karo */}
+                  {isColorKey(attr.key) ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        flex: 1,
+                      }}
+                    >
+                      <input
+                        type="color"
+                        value={
+                          attr.value.startsWith("#") ? attr.value : "#000000"
+                        }
+                        onChange={(e) =>
+                          updateAttribute(idx, "value", e.target.value)
+                        }
+                        style={{
+                          width: 36,
+                          height: 32,
+                          padding: 2,
+                          border: "1px solid var(--border)",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          background: "none",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <input
+                        className="form-input"
+                        placeholder="e.g. Red or #FF0000"
+                        value={attr.value}
+                        onChange={(e) =>
+                          updateAttribute(idx, "value", e.target.value)
+                        }
+                        style={{ flex: 1 }}
+                      />
+                    </div>
+                  ) : (
+                    <input
+                      className="form-input"
+                      placeholder="Value (e.g. M)"
+                      value={attr.value}
+                      onChange={(e) =>
+                        updateAttribute(idx, "value", e.target.value)
+                      }
+                      style={{ flex: 1 }}
+                      list={`attr-val-${attr.key}`}
+                    />
+                  )}
+
                   {attributes.length > 1 && (
                     <button
                       className="header-btn"
