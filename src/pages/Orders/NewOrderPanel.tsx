@@ -443,11 +443,32 @@ interface StepItemsProps {
 const StepItems: React.FC<StepItemsProps> = ({ items, setItems }) => {
   const [prodSearch, setProdSearch] = useState("");
   const [showProdList, setShowProdList] = useState(false);
-  type ApiProduct = { _id: string; name: string; sku: string; basePrice: number; totalStock: number; variants?: Array<{ variantId: string; price: number; stock: number; attributes: Record<string, string> }> };
+  type ApiProduct = {
+    _id: string;
+    name: string;
+    sku: string;
+    basePrice: number;
+    totalStock: number;
+    variants?: Array<{
+      variantId: string;
+      price: number;
+      stock: number;
+      attributes: Record<string, string>;
+    }>;
+  };
   const [apiProducts, setApiProducts] = useState<ApiProduct[]>([]);
   const [searching, setSearching] = useState(false);
-  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
-  const [variantPickerProduct, setVariantPickerProduct] = useState<ApiProduct | null>(null);
+  const [searchTimeout, setSearchTimeout] = useState<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const [variantPickerProduct, setVariantPickerProduct] =
+    useState<ApiProduct | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "warn" | "error" } | null>(null);
+
+  const showToast = (msg: string, type: "success" | "warn" | "error" = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 2500);
+  };
 
   // Search products from API
   // Search products from API
@@ -491,71 +512,103 @@ const StepItems: React.FC<StepItemsProps> = ({ items, setItems }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prodSearch]);
 
+  const parseVariantId = (variantId: string, productId: string): { colors: string[]; others: string[] } => {
+    const cleaned = variantId.replace(productId + "-", "");
+    const parts = cleaned.split("-").filter((p: string) => p.length > 0);
+    const colors: string[] = [];
+    const others: string[] = [];
+    parts.forEach((part: string) => {
+      if (/^#([0-9a-f]{3}){1,2}$/i.test(part)) {
+        colors.push(part);
+      } else {
+        others.push(part);
+      }
+    });
+    return { colors, others };
+  };
+
   const addItem = (p: (typeof apiProducts)[0]) => {
-  console.log("Product variants:", JSON.stringify(p.variants, null, 2));
-  setProdSearch("");
-  setShowProdList(false);
-  if (p.variants && p.variants.length > 1) {
-    setVariantPickerProduct(p);
-    return;
-  }
-  const existing = items.find((i) => i.id === p._id);
-  if (existing) {
-    setItems(items.map((i) => (i.id === p._id ? { ...i, qty: i.qty + 1 } : i)));
-    return;
-  }
-  const firstVariant = p.variants?.[0];
-  setItems([...items, {
-    id: p._id, sku: p.sku, name: p.name, qty: 1,
-    price: firstVariant?.price ?? p.basePrice,
-    productId: p._id, variantId: firstVariant?.variantId,
-  }]);
-};
+    console.log("Product variants:", JSON.stringify(p.variants, null, 2));
+    setProdSearch("");
+    setShowProdList(false);
+    if (p.variants && p.variants.length > 1) {
+      setVariantPickerProduct(p);
+      return;
+    }
+    const existing = items.find((i) => i.id === p._id);
+    if (existing) {
+      setItems(
+        items.map((i) => (i.id === p._id ? { ...i, qty: i.qty + 1 } : i)),
+      );
+      return;
+    }
+    const firstVariant = p.variants?.[0];
+    setItems([
+      ...items,
+      {
+        id: p._id,
+        sku: p.sku,
+        name: p.name,
+        qty: 1,
+        price: firstVariant?.price ?? p.basePrice,
+        productId: p._id,
+        variantId: firstVariant?.variantId,
+      },
+    ]);
+  };
 
-const addVariantItem = (
-  p: (typeof apiProducts)[0],
-  v: { variantId: string; price: number; stock: number; attributes: Record<string, string> }
-) => {
-  const uniqueId = `${p._id}-${v.variantId}`;
-
-  // variantId se readable label nikalo — productId prefix hata do
-  const rawParts = v.variantId.replace(`${p._id}-`, "").split("-");
-  const readableParts = rawParts.filter((part) => part.length > 0);
-  const variantLabel = readableParts.join(" / ");
-
-  const existing = items.find((i) => i.id === uniqueId);
-  if (existing) {
-    // Stock limit check
-    if (existing.qty >= v.stock) return;
-    setItems(items.map((i) =>
-      i.id === uniqueId ? { ...i, qty: i.qty + 1 } : i
-    ));
-  } else {
-    setItems([...items, {
-      id: uniqueId,
-      sku: v.variantId,
-      name: `${p.name} — ${variantLabel}`,
-      qty: 1,
-      price: v.price,
-      productId: p._id,
-      variantId: v.variantId,
-    }]);
-  }
-  setVariantPickerProduct(null);
-};
+  const addVariantItem = (
+    p: (typeof apiProducts)[0],
+    v: {
+      variantId: string;
+      price: number;
+      stock: number;
+      attributes: Record<string, string>;
+    },
+  ) => {
+    const uniqueId = `${p._id}-${v.variantId}`;
+    const rawParts = v.variantId.replace(`${p._id}-`, "").split("-");
+    const readableParts = rawParts.filter((part: string) => part.length > 0);
+    const variantLabel = readableParts.join(" / ");
+    const existing = items.find((i) => i.id === uniqueId);
+    if (existing) {
+      if (existing.qty >= v.stock) {
+        showToast(`Max stock reached — only ${v.stock} available`, "warn");
+        return;
+      }
+      setItems(items.map((i) => (i.id === uniqueId ? { ...i, qty: i.qty + 1 } : i)));
+      showToast(`Qty updated — ${existing.qty + 1} × ${variantLabel}`, "success");
+    } else {
+      setItems([...items, {
+        id: uniqueId,
+        sku: v.variantId,
+        name: `${p.name} — ${variantLabel}`,
+        qty: 1,
+        price: v.price,
+        productId: p._id,
+        variantId: v.variantId,
+      }]);
+      showToast(`Added: ${p.name} — ${variantLabel}`, "success");
+    }
+    setVariantPickerProduct(null);
+  };
 
   const removeItem = (id: string) => setItems(items.filter((i) => i.id !== id));
   const updateQty = (id: string, qty: number) => {
-  if (qty < 1) return;
-  setItems(items.map((i) => {
-    if (i.id !== id) return i;
-    // stock limit find karo — variantId se match karo products mein
-    const prod = apiProducts.find((p) => p._id === i.productId);
-    const variant = prod?.variants?.find((v) => v.variantId === i.variantId);
-    const maxStock = variant?.stock ?? 9999;
-    return { ...i, qty: Math.min(qty, maxStock) };
-  }));
-};
+    if (qty < 1) return;
+    setItems(
+      items.map((i) => {
+        if (i.id !== id) return i;
+        // stock limit find karo — variantId se match karo products mein
+        const prod = apiProducts.find((p) => p._id === i.productId);
+        const variant = prod?.variants?.find(
+          (v) => v.variantId === i.variantId,
+        );
+        const maxStock = variant?.stock ?? 9999;
+        return { ...i, qty: Math.min(qty, maxStock) };
+      }),
+    );
+  };
   const updatePrice = (id: string, price: number) =>
     setItems(items.map((i) => (i.id === id ? { ...i, price } : i)));
 
@@ -705,104 +758,126 @@ const addVariantItem = (
       </div>
 
       {variantPickerProduct && (
-          <div style={{
-            border: "1px solid var(--border)", borderRadius: 8,
-            background: "var(--card)", padding: 12, marginTop: 8,
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700 }}>{variantPickerProduct.name}</div>
-                <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Select a variant to add</div>
+  <div style={{
+    border: "1px solid var(--border)",
+    borderRadius: 10,
+    background: "var(--card)",
+    padding: 14,
+    marginTop: 8,
+    marginBottom: 8,
+  }}>
+    {/* Header */}
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <div>
+        <div style={{ fontSize: 12, fontWeight: 700 }}>{variantPickerProduct.name}</div>
+        <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+          {variantPickerProduct.variants?.length} variants available — select one to add
+        </div>
+      </div>
+      <button
+        onClick={() => setVariantPickerProduct(null)}
+        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: 16 }}
+      >
+        <i className="fa-solid fa-xmark" />
+      </button>
+    </div>
+
+    {/* Variant Cards Grid */}
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      {variantPickerProduct.variants?.map((v) => {
+        const { colors, others } = parseVariantId(v.variantId, variantPickerProduct._id);
+        const isOutOfStock = v.stock === 0;
+        const isLow = v.stock > 0 && v.stock <= 5;
+        const alreadyAdded = items.find(i => i.variantId === v.variantId);
+
+        return (
+          <button
+            key={v.variantId}
+            disabled={isOutOfStock}
+            onClick={() => addVariantItem(variantPickerProduct, v as any)}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 9,
+              border: `1.5px solid ${alreadyAdded ? "var(--accent)" : isOutOfStock ? "var(--border)" : "var(--border)"}`,
+              background: alreadyAdded ? "#FFF5EE" : isOutOfStock ? "var(--bg)" : "var(--card)",
+              cursor: isOutOfStock ? "not-allowed" : "pointer",
+              opacity: isOutOfStock ? 0.4 : 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: 6,
+              textAlign: "left",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              if (!isOutOfStock) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--accent)";
+            }}
+            onMouseLeave={(e) => {
+              if (!alreadyAdded) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
+            }}
+          >
+            {/* Color swatches row */}
+            {colors.length > 0 && (
+              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                {colors.map((c: string, i: number) => (
+                  <div key={i} style={{
+                    width: 20, height: 20, borderRadius: "50%",
+                    background: c,
+                    border: "1.5px solid rgba(0,0,0,0.15)",
+                    flexShrink: 0,
+                  }} />
+                ))}
+                <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 2 }}>{colors[0]}</span>
               </div>
-              <button onClick={() => setVariantPickerProduct(null)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: 14 }}>
-                <i className="fa-solid fa-xmark" />
-              </button>
+            )}
+
+            {/* Size / other attrs */}
+            {others.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {others.map((o: string, i: number) => (
+                  <span key={i} style={{
+                    fontSize: 11, fontWeight: 700,
+                    background: "var(--bg)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 6,
+                    padding: "2px 7px",
+                    color: "var(--text)",
+                  }}>{o}</span>
+                ))}
+              </div>
+            )}
+
+            {/* Price */}
+            <div style={{ fontSize: 13, fontWeight: 800, color: "var(--accent)" }}>
+              ₨{v.price.toLocaleString()}
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {variantPickerProduct.variants?.map((v) => {
-  const attrs = v.attributes ?? {};
-  const attrEntries = Object.entries(attrs);
-  const isOutOfStock = v.stock === 0;
 
-  // Color detect karo
-  const colorEntry = attrEntries.find(([k]) =>
-    ["color", "colour"].includes(k.toLowerCase())
-  );
-  const colorVal = colorEntry?.[1] ?? null;
-  const isHex = colorVal ? /^#([0-9a-f]{3}){1,2}$/i.test(colorVal) : false;
-
-  // Non-color attrs label
-  const nonColorAttrs = attrEntries
-    .filter(([k]) => !["color", "colour"].includes(k.toLowerCase()))
-    .map(([, val]) => val)
-    .join(" / ");
-
-  return (
-    <button
-      key={v.variantId}
-      disabled={isOutOfStock}
-      onClick={() => addVariantItem(variantPickerProduct, v as any)}
-      style={{
-        padding: "10px 12px",
-        borderRadius: 10,
-        border: `1.5px solid ${isOutOfStock ? "var(--border)" : "var(--border)"}`,
-        background: isOutOfStock ? "var(--bg)" : "var(--card)",
-        cursor: isOutOfStock ? "not-allowed" : "pointer",
-        opacity: isOutOfStock ? 0.45 : 1,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 5,
-        minWidth: 80,
-        transition: "border-color 0.15s, box-shadow 0.15s",
-      }}
-      onMouseEnter={(e) => {
-        if (!isOutOfStock) {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--accent)";
-          (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
-        (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
-      }}
-    >
-      {/* Color swatch */}
-      {colorVal && (
-        <div style={{
-          width: 28, height: 28, borderRadius: "50%",
-          background: isHex ? colorVal : colorVal.toLowerCase(),
-          border: "2px solid rgba(0,0,0,0.12)",
-          flexShrink: 0,
-        }} />
-      )}
-
-      {/* Non-color label */}
-      {nonColorAttrs && (
-        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text)" }}>
-          {nonColorAttrs}
-        </span>
-      )}
-
-      {/* Price */}
-      <span style={{ fontSize: 11, color: "var(--accent)", fontWeight: 800 }}>
-        ₨{v.price.toLocaleString()}
-      </span>
-
-      {/* Stock */}
-      <span style={{
-  fontSize: 9, fontWeight: 600,
-  color: isOutOfStock ? "#EF4444" : v.stock <= 5 ? "#D97706" : "var(--text-muted)",
-}}>
-  {isOutOfStock ? "Out of Stock" : v.stock <= 5 ? `⚠ Only ${v.stock} left` : `Stock: ${v.stock}`}
-</span>
-    </button>
-  );
-})}
+            {/* Stock status */}
+            <div style={{
+              fontSize: 9, fontWeight: 600,
+              color: isOutOfStock ? "#EF4444" : isLow ? "#D97706" : "#16A34A",
+              display: "flex", alignItems: "center", gap: 3,
+            }}>
+              <i className={`fa-solid ${isOutOfStock ? "fa-circle-xmark" : isLow ? "fa-triangle-exclamation" : "fa-circle-check"}`} style={{ fontSize: 8 }} />
+              {isOutOfStock ? "Out of Stock" : isLow ? `Only ${v.stock} left` : `${v.stock} in stock`}
             </div>
-          </div>
-        )}
+
+            {/* Already added badge */}
+            {alreadyAdded && (
+              <div style={{
+                fontSize: 9, fontWeight: 700, color: "var(--accent)",
+                display: "flex", alignItems: "center", gap: 3,
+              }}>
+                <i className="fa-solid fa-check" style={{ fontSize: 8 }} />
+                Added (qty: {alreadyAdded.qty})
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+)}
 
       {/* Items list */}
       {items.length === 0 ? (
