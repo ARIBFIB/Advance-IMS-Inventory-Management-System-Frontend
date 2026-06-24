@@ -1486,55 +1486,58 @@ const VariantsTab: React.FC = () => {
   });
 
   const handleSaveVariant = async () => {
-    const parentId = parentRef.current?.value;
-    if (
-      !parentId ||
-      attributes.filter((a) => a.key.trim() && a.value.trim()).length === 0
-    )
-      return;
-    setSaving(true);
-    const attrObj = Object.fromEntries(
-      attributes
-        .filter((a) => a.key.trim() && a.value.trim())
-        .map((a) => [a.key.trim().toLowerCase(), a.value.trim()]),
-    );
+  const parentId = parentRef.current?.value;
+  if (
+    !parentId ||
+    attributes.filter((a) => a.key.trim() && a.value.trim()).length === 0
+  ) {
+    alert("Parent product aur kam az kam ek attribute required hai.");
+    return;
+  }
+  setSaving(true);
 
-    const autoId = `${parentId}-${Object.values(attrObj).join("-").toUpperCase()}`;
+  const attrObj = Object.fromEntries(
+    attributes
+      .filter((a) => a.key.trim() && a.value.trim())
+      .map((a) => [a.key.trim().toLowerCase(), a.value.trim()]),
+  );
 
-    const payload = {
-      variant: {
-        variantId: varSkuRef.current?.value || autoId,
-        attributes: attrObj,
-        price: parseFloat(priceRef.current?.value ?? "0"),
-        stock: parseInt(stockRef.current?.value ?? "0", 10),
-        lowStockThreshold: 10,
-      },
-    };
-    try {
-      if (editingVariant) {
-        await productsAPI.updateVariant(
-          editingVariant.product._id,
-          editingVariant.variant.variantId,
-          payload.variant,
-        );
-      } else {
-        await productsAPI.addVariant(parentId, payload);
-      }
-      fetchProducts();
-      setShowPanel(false);
-      setAttributes(
-        editingVariant
-          ? Object.entries(editingVariant.variant.attributes).map(
-              ([key, value]) => ({ key, value }),
-            )
-          : [{ key: "", value: "" }],
-      );
-    } catch {
-      /* ignore */
-    } finally {
-      setSaving(false);
-    }
+  const autoId = `${parentId}-${Object.values(attrObj).join("-").toUpperCase()}`;
+  const finalVariantId = varSkuRef.current?.value?.trim() || autoId;
+
+  const payload = {
+    variant: {
+      variantId: finalVariantId,
+      attributes: attrObj,
+      price: parseFloat(priceRef.current?.value ?? "0"),
+      stock: parseInt(stockRef.current?.value ?? "0", 10),
+      lowStockThreshold: 10,
+    },
   };
+
+  // Debug — remove karo baad mein
+  console.log("Saving variant payload:", JSON.stringify(payload, null, 2));
+
+  try {
+    if (editingVariant) {
+      await productsAPI.updateVariant(
+        editingVariant.product._id,
+        editingVariant.variant.variantId,
+        payload.variant,
+      );
+    } else {
+      await productsAPI.addVariant(parentId, payload);
+    }
+    await fetchProducts();
+    setShowPanel(false);
+    setAttributes([{ key: "", value: "" }]);
+  } catch (e: any) {
+    alert(e?.response?.data?.message ?? "Failed to save variant.");
+    console.error("Variant save error:", e?.response?.data);
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handleDeleteVariant = async (prod: ApiProduct, variantId: string) => {
     if (!window.confirm("Remove this variant?")) return;
