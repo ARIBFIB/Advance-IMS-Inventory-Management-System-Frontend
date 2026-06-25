@@ -107,6 +107,7 @@ export interface StaffMember {
 
 export interface ApiUser {
   _id: string;
+  id: string;
   username: string;
   firstName?: string;
   lastName?: string;
