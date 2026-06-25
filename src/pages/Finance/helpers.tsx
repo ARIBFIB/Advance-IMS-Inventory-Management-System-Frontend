@@ -130,26 +130,47 @@ export const ToggleSwitch: React.FC<{
   defaultChecked?: boolean;
   onChange?: (v: boolean) => void;
   disabled?: boolean;
-}> = ({ defaultChecked = false, onChange, disabled = false }) => {
+  loading?: boolean;
+}> = ({ defaultChecked = false, onChange, disabled = false, loading = false }) => {
   const [on, setOn] = useState(defaultChecked);
+  const isLocked = disabled || loading;
+
   return (
     <label
       className="toggle-switch"
       style={{
-        opacity: disabled ? 0.5 : 1,
-        pointerEvents: disabled ? "none" : "auto",
+        opacity: isLocked && !loading ? 0.5 : 1,
+        pointerEvents: isLocked ? "none" : "auto",
+        position: "relative",
       }}
     >
       <input
         type="checkbox"
         checked={on}
-        disabled={disabled}
+        disabled={isLocked}
         onChange={(e) => {
           setOn(e.target.checked);
           onChange?.(e.target.checked);
         }}
       />
-      <span className="toggle-track" />
+      <span
+        className="toggle-track"
+        style={loading ? { opacity: 0.6 } : undefined}
+      />
+      {loading && (
+        <span
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            fontSize: 9,
+            color: "var(--text-muted)",
+          }}
+        >
+          <i className="fa-solid fa-spinner fa-spin" />
+        </span>
+      )}
     </label>
   );
 };

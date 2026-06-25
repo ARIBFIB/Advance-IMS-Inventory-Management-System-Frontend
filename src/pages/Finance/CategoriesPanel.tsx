@@ -441,11 +441,12 @@ const CategoriesPanel: React.FC = () => {
                         <div className="td-flex">
                           <div
                             style={{
-                              width: 10,
-                              height: 10,
+                              width: 12,
+                              height: 12,
                               borderRadius: "50%",
                               background: c.color,
                               flexShrink: 0,
+                              boxShadow: `0 0 0 2px ${c.color}33, 0 0 6px ${c.color}66`,
                             }}
                           />
                           <strong>{c.name}</strong>
@@ -457,8 +458,10 @@ const CategoriesPanel: React.FC = () => {
                       </td>
                       <td>
                         <ToggleSwitch
+                          key={`${c._id}-${c.isActive}`}
                           defaultChecked={c.isActive}
-                          disabled={togglingId === c._id}
+                          disabled={togglingId !== null && togglingId !== c._id}
+                          loading={togglingId === c._id}
                           onChange={() => handleToggle(c)}
                         />
                       </td>
