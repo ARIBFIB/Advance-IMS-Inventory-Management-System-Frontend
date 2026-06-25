@@ -138,22 +138,13 @@ const NewTaskPanel: React.FC<NewTaskPanelProps> = ({
           <div className="form-row single">
             <div className="form-group">
               <div className="form-label">Assign To *</div>
-              // NAYA
               <select
                 className="form-select"
-                value={assignedTo}
-                onChange={(e) => {
-                  console.log("Selected value:", e.target.value);
-                  console.log(
-                    "Selected user:",
-                    users.find((u) => u._id === e.target.value),
-                  );
-                  setAssignedTo(e.target.value);
-                }}
+                onChange={(e) => setAssignedTo(e.target.value)}
               >
                 <option value="">— Select staff member —</option>
                 {users.map((u) => (
-                  <option key={u._id || u.username} value={u._id || ""}>
+                  <option key={u._id} value={u._id}>
                     {u.firstName
                       ? `${u.firstName} ${u.lastName || ""}`.trim()
                       : u.username}{" "}
