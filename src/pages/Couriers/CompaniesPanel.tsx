@@ -80,6 +80,161 @@ interface CityInputProps {
   placeholder?: string;
 }
 
+// ── Courier Name Search Hook ──────────────────────────────
+function useCourierSearch() {
+  const [allCouriers, setAllCouriers] = useState<string[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    import("../../assets/data/all_couriers/allCourierslist.json")
+      .then((mod: any) => {
+        const raw: string[] = mod.default ?? mod;
+        setAllCouriers(raw);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  const search = useCallback(
+    (query: string): string[] => {
+      if (!query.trim() || query.length < 1) return [];
+      const q = query.toLowerCase();
+      const starts: string[] = [];
+      const contains: string[] = [];
+      for (const name of allCouriers) {
+        const n = name.toLowerCase();
+        if (n.startsWith(q)) starts.push(name);
+        else if (n.includes(q)) contains.push(name);
+        if (starts.length >= 40) break;
+      }
+      return [...starts, ...contains].slice(0, 40);
+    },
+    [allCouriers],
+  );
+
+  return { search, loaded };
+}
+
+// ── CourierNameInput Component ────────────────────────────
+interface CourierNameInputProps {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+}
+
+const CourierNameInput: React.FC<CourierNameInputProps> = ({
+  value,
+  onChange,
+  placeholder = "e.g. TCS Express",
+}) => {
+  const { search, loaded } = useCourierSearch();
+  const [query, setQuery] = useState(value);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [open, setOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState(0);
+  const listRef = useRef<HTMLUListElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setQuery(value); }, [value]);
+
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const q = e.target.value;
+    setQuery(q);
+    onChange(q);
+    if (q.length >= 1) {
+      setSuggestions(search(q));
+      setOpen(true);
+      setHighlighted(0);
+    } else {
+      setSuggestions([]);
+      setOpen(false);
+    }
+  };
+
+  const pick = (name: string) => {
+    setQuery(name);
+    onChange(name);
+    setSuggestions([]);
+    setOpen(false);
+  };
+
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (!open) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setHighlighted((h) => Math.min(h + 1, suggestions.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setHighlighted((h) => Math.max(h - 1, 0)); }
+    else if (e.key === "Enter") { e.preventDefault(); if (suggestions[highlighted]) pick(suggestions[highlighted]); }
+    else if (e.key === "Escape") setOpen(false);
+  };
+
+  useEffect(() => {
+    if (!listRef.current) return;
+    const el = listRef.current.children[highlighted] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: "nearest" });
+  }, [highlighted]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative" }}>
+      <input
+        className="c-form-input"
+        placeholder={loaded ? placeholder : "Loading couriers..."}
+        disabled={!loaded}
+        value={query}
+        onChange={handleInput}
+        onKeyDown={handleKey}
+        onFocus={() => { if (query.length >= 1 && suggestions.length) setOpen(true); }}
+        autoComplete="off"
+      />
+      {open && suggestions.length > 0 && (
+        <ul
+          ref={listRef}
+          style={{
+            position: "absolute",
+            top: "calc(100% + 3px)",
+            left: 0,
+            right: 0,
+            maxHeight: 220,
+            overflowY: "auto",
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: 6,
+            zIndex: 999,
+            margin: 0,
+            padding: 0,
+            listStyle: "none",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+          }}
+        >
+          {suggestions.map((name, i) => (
+            <li
+              key={`${name}-${i}`}
+              onMouseDown={() => pick(name)}
+              onMouseEnter={() => setHighlighted(i)}
+              style={{
+                padding: "6px 11px",
+                fontSize: 11,
+                cursor: "pointer",
+                background: i === highlighted ? "var(--accent)" : "transparent",
+                color: i === highlighted ? "#fff" : "var(--text-primary)",
+                fontWeight: i === highlighted ? 600 : 400,
+              }}
+            >
+              {name}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
 const CityInput: React.FC<CityInputProps> = ({
   value,
   onChange,
@@ -739,13 +894,10 @@ const CompaniesPanel: React.FC<Props> = ({
             <div className="c-form-row">
               <div className="c-form-group">
                 <div className="c-form-label">Company Name *</div>
-                <input
-                  className="c-form-input"
-                  placeholder="e.g. TCS Express"
+                <CourierNameInput
                   value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, name: e.target.value }))
-                  }
+                  onChange={(val) => setForm((f) => ({ ...f, name: val }))}
+                  placeholder="e.g. TCS Express"
                 />
               </div>
               <div className="c-form-group">
