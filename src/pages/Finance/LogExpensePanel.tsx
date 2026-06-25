@@ -1,29 +1,23 @@
 import React, { useState, useEffect } from "react";
 import type { NavPanel, ExpenseCategoryName, ApiExpense } from "./types";
 import { fmt, fmtDate, ErrorBanner } from "./helpers";
-import { expensesAPI } from "../../services/api";
+import api, { expensesAPI } from "../../services/api";
 
 interface Props {
   onNav: (p: NavPanel) => void;
   editData?: ApiExpense | null;
 }
 
-const CATEGORIES: ExpenseCategoryName[] = [
-  "Shipping",
-  "Marketing",
-  "Utilities",
-  "Salaries",
-  "Supplies",
-  "Software",
-  "Other",
-];
+interface ApiCategory {
+  _id: string;
+  name: string;
+  isActive: boolean;
+}
 
 const LogExpensePanel: React.FC<Props> = ({ onNav, editData }) => {
   const isEdit = !!editData;
   const [description, setDescription] = useState(editData?.description || "");
-  const [category, setCategory] = useState<ExpenseCategoryName>(
-    editData?.category || "Supplies",
-  );
+  const [category, setCategory] = useState<string>(editData?.category || "");
   const [amount, setAmount] = useState(editData?.amount?.toString() || "");
   const [date, setDate] = useState(
     editData?.date
@@ -35,6 +29,7 @@ const LogExpensePanel: React.FC<Props> = ({ onNav, editData }) => {
   const [success, setSuccess] = useState(false);
   const [recent, setRecent] = useState<ApiExpense[]>([]);
   const [summary, setSummary] = useState<any>(null);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
 
   useEffect(() => {
     expensesAPI
@@ -44,6 +39,13 @@ const LogExpensePanel: React.FC<Props> = ({ onNav, editData }) => {
     expensesAPI
       .getAnalytics({ groupBy: "category" })
       .then((r) => setSummary(r.data.data))
+      .catch(() => null);
+    api
+      .get("/expense-categories")
+      .then((r) => {
+        const all: ApiCategory[] = r.data.data?.categories || [];
+        setCategories(all.filter((c) => c.isActive));
+      })
       .catch(() => null);
   }, [success]);
 
@@ -56,14 +58,14 @@ const LogExpensePanel: React.FC<Props> = ({ onNav, editData }) => {
       if (isEdit && editData) {
         await expensesAPI.update(editData._id, {
           description,
-          category,
+          category: category as ExpenseCategoryName,
           amount: Number(amount),
           date,
         });
       } else {
         await expensesAPI.create({
           description,
-          category,
+          category: category as ExpenseCategoryName,
           amount: Number(amount),
           date,
         });
@@ -144,12 +146,13 @@ const LogExpensePanel: React.FC<Props> = ({ onNav, editData }) => {
                 <select
                   className="f-form-select"
                   value={category}
-                  onChange={(e) =>
-                    setCategory(e.target.value as ExpenseCategoryName)
-                  }
+                  onChange={(e) => setCategory(e.target.value)}
                 >
-                  {CATEGORIES.map((c) => (
-                    <option key={c}>{c}</option>
+                  <option value="">-- Select Category --</option>
+                  {categories.map((c) => (
+                    <option key={c._id} value={c.name}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
               </div>
