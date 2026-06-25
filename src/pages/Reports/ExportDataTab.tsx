@@ -2,8 +2,6 @@
 // ExportDataTab.tsx  —  Live API export history
 // ═══════════════════════════════════════════════════════════
 import React, { useState, useEffect } from "react";
-import { EXPORT_CARDS, statusBadgeClass } from "./ReportsShared";
-import { analyticsAPI } from "../../services/api";
 
 // ── Export Card ──────────────────────────────────────────────
 interface ExportCardProps {
@@ -17,6 +15,18 @@ interface ExportCardProps {
   filterOptions: string[];
 }
 
+import {
+  EXPORT_CARDS,
+  statusBadgeClass,
+  REPORT_KEY_MAP,
+  resolveDateRange,
+  downloadCSV,
+  downloadExcel,
+  downloadPDF,
+  viewReportOnline,
+} from "./ReportsShared";
+import { analyticsAPI } from "../../services/api";
+
 const ExportCard: React.FC<ExportCardProps> = ({
   type,
   icon,
@@ -27,23 +37,64 @@ const ExportCard: React.FC<ExportCardProps> = ({
   filterLabel,
   filterOptions,
 }) => {
-  const [state, setState] = useState<"idle" | "loading" | "done">("idle");
+  const [state, setState] = useState<"idle" | "loading" | "done" | "error">(
+    "idle",
+  );
+  const [viewing, setViewing] = useState(false);
   const [selFilter, setSelFilter] = useState(filterOptions[0]);
-  const [selFormat, setSelFormat] = useState("CSV");
+  const [selFormat, setSelFormat] = useState<"CSV" | "Excel (.xlsx)" | "PDF">(
+    "CSV",
+  );
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // shared helper — fetches report data with date range resolved from filter
+  const fetchRows = async () => {
+    const reportKey =
+      REPORT_KEY_MAP[type] ?? type.toLowerCase().replace(/\s+/g, "-");
+    const dateRange = resolveDateRange(selFilter);
+    const res = await analyticsAPI.getReportData(reportKey, dateRange);
+    const rows = res.data?.data ?? [];
+    return Array.isArray(rows) ? rows : [];
+  };
 
   const handleExport = async () => {
     setState("loading");
+    setErrorMsg(null);
     try {
-      await analyticsAPI.exportReport(type.toLowerCase().replace(/\s+/g, "-"), {
-        filter: selFilter,
-        format: selFormat,
-      });
+      const rows = await fetchRows();
+      if (!rows.length) {
+        setErrorMsg("No records found for this selection.");
+        setState("idle");
+        return;
+      }
+      const filenameBase = `${type.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}`;
+
+      if (selFormat === "CSV") downloadCSV(`${filenameBase}.csv`, rows);
+      else if (selFormat === "Excel (.xlsx)")
+        await downloadExcel(`${filenameBase}.xlsx`, rows, type);
+      else if (selFormat === "PDF")
+        await downloadPDF(`${filenameBase}.pdf`, type, rows);
+
       setState("done");
       setTimeout(() => setState("idle"), 3000);
-    } catch {
-      // fallback: still show done after delay
-      setState("done");
-      setTimeout(() => setState("idle"), 3000);
+    } catch (e: any) {
+      setErrorMsg(e?.response?.data?.message || "Export failed. Try again.");
+      setState("idle");
+    }
+  };
+
+  const handleViewOnline = async () => {
+    setViewing(true);
+    setErrorMsg(null);
+    try {
+      const rows = await fetchRows();
+      viewReportOnline(type, rows);
+    } catch (e: any) {
+      setErrorMsg(
+        e?.response?.data?.message || "Could not load report preview.",
+      );
+    } finally {
+      setViewing(false);
     }
   };
 
@@ -71,6 +122,7 @@ const ExportCard: React.FC<ExportCardProps> = ({
             </div>
           </div>
         </div>
+
         <div
           style={{
             fontSize: 11.5,
@@ -80,6 +132,7 @@ const ExportCard: React.FC<ExportCardProps> = ({
         >
           {description}
         </div>
+
         <div className="form-group" style={{ marginBottom: 8 }}>
           <div className="form-label">{filterLabel}</div>
           <select
@@ -93,46 +146,75 @@ const ExportCard: React.FC<ExportCardProps> = ({
             ))}
           </select>
         </div>
+
         <div className="form-group" style={{ marginBottom: 10 }}>
           <div className="form-label">Format</div>
           <select
             className="form-select"
             style={{ width: "100%" }}
             value={selFormat}
-            onChange={(e) => setSelFormat(e.target.value)}
+            onChange={(e) => setSelFormat(e.target.value as typeof selFormat)}
           >
             <option>CSV</option>
             <option>Excel (.xlsx)</option>
+            <option>PDF</option>
           </select>
         </div>
-        <button
-          className="header-btn primary"
-          style={{
-            width: "100%",
-            justifyContent: "center",
-            ...(state === "done"
-              ? { background: "var(--green)", borderColor: "var(--green)" }
-              : {}),
-          }}
-          onClick={handleExport}
-          disabled={state === "loading"}
-        >
-          {state === "loading" && (
-            <>
-              <i className="fa-solid fa-spinner fa-spin" /> Preparing...
-            </>
-          )}
-          {state === "done" && (
-            <>
-              <i className="fa-solid fa-circle-check" /> Ready — Download
-            </>
-          )}
-          {state === "idle" && (
-            <>
-              <i className="fa-solid fa-download" /> Export {type}
-            </>
-          )}
-        </button>
+
+        {errorMsg && (
+          <div style={{ fontSize: 10.5, color: "var(--red)", marginBottom: 8 }}>
+            <i className="fa-solid fa-circle-exclamation" /> {errorMsg}
+          </div>
+        )}
+
+        {/* ── Action buttons ───────────────────────────── */}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            className="header-btn"
+            style={{ flex: 1, justifyContent: "center" }}
+            onClick={handleViewOnline}
+            disabled={viewing}
+          >
+            {viewing ? (
+              <>
+                <i className="fa-solid fa-spinner fa-spin" /> Loading...
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-eye" /> View Online
+              </>
+            )}
+          </button>
+
+          <button
+            className="header-btn primary"
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              ...(state === "done"
+                ? { background: "var(--green)", borderColor: "var(--green)" }
+                : {}),
+            }}
+            onClick={handleExport}
+            disabled={state === "loading"}
+          >
+            {state === "loading" && (
+              <>
+                <i className="fa-solid fa-spinner fa-spin" /> Preparing...
+              </>
+            )}
+            {state === "done" && (
+              <>
+                <i className="fa-solid fa-circle-check" /> Downloaded
+              </>
+            )}
+            {state === "idle" && (
+              <>
+                <i className="fa-solid fa-download" /> Export
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

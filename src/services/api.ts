@@ -598,6 +598,8 @@ export const analyticsAPI = {
       params: { report, ...params },
       responseType: "blob",
     }),
+  getReportData: (report: string, params?: object) =>
+    api.get("/analytics/export", { params: { report, ...params } }),
 };
 
 // ─────────────────────────────────────────────────────────
