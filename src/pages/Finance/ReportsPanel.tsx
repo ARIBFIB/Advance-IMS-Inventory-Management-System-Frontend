@@ -22,7 +22,6 @@ const ReportsPanel: React.FC = () => {
   const [format, setFormat] = useState("Excel (.xlsx)");
   const [generating, setGenerating] = useState(false);
 
-
   const handleGenerate = async () => {
     setGenerating(true);
     setError("");
@@ -90,7 +89,7 @@ const ReportsPanel: React.FC = () => {
     }
     const headers = Object.keys(data[0]);
     const rows = data.map((row) =>
-      headers.map((h) => JSON.stringify(row[h] ?? "")).join(",")
+      headers.map((h) => JSON.stringify(row[h] ?? "")).join(","),
     );
     const csv = [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -141,7 +140,11 @@ const ReportsPanel: React.FC = () => {
         Monthly: "month",
       };
       const gb = groupByMap[groupBy] || "day";
-      const params = { from: dateFrom || undefined, to: dateTo || undefined, groupBy: gb };
+      const params = {
+        from: dateFrom || undefined,
+        to: dateTo || undefined,
+        groupBy: gb,
+      };
 
       let data: any[] = [];
 
@@ -161,7 +164,9 @@ const ReportsPanel: React.FC = () => {
         data = res.data?.data || [];
       } else if (reportType === "Prepaid Orders Report") {
         const res = await analyticsAPI.exportReport("orders", params);
-        data = (res.data?.data || []).filter((o: any) => o.paymentMethod === "Prepaid");
+        data = (res.data?.data || []).filter(
+          (o: any) => o.paymentMethod === "Prepaid",
+        );
       } else if (reportType === "Supplier Payment History") {
         const res = await analyticsAPI.exportReport("financial", params);
         data = res.data?.data || [];
@@ -339,9 +344,14 @@ const ReportsPanel: React.FC = () => {
                 disabled={generating}
               >
                 {generating ? (
-                  <><i className="fa-solid fa-spinner fa-spin" /> Generating…</>
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin" /> Generating…
+                  </>
                 ) : (
-                  <><i className="fa-solid fa-file-export" /> Generate &amp; Download</>
+                  <>
+                    <i className="fa-solid fa-file-export" /> Generate &amp;
+                    Download
+                  </>
                 )}
               </button>
               <button

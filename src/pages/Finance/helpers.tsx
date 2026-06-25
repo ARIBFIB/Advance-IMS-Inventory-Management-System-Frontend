@@ -131,7 +131,12 @@ export const ToggleSwitch: React.FC<{
   onChange?: (v: boolean) => void;
   disabled?: boolean;
   loading?: boolean;
-}> = ({ defaultChecked = false, onChange, disabled = false, loading = false }) => {
+}> = ({
+  defaultChecked = false,
+  onChange,
+  disabled = false,
+  loading = false,
+}) => {
   const [on, setOn] = useState(defaultChecked);
   const isLocked = disabled || loading;
 

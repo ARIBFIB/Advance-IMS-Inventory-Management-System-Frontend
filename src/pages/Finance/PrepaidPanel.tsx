@@ -67,7 +67,7 @@ const PrepaidPanel: React.FC = () => {
       /* silent */
     }
   };
- 
+
   return (
     <>
       <div className="panel-heading">Prepaid Orders</div>

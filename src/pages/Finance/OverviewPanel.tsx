@@ -119,7 +119,7 @@ const OverviewPanel: React.FC<Props> = ({ onNav, onOpenOverlay }) => {
 
   const last7 = timeline.slice(-7);
 
-  return ( 
+  return (
     <>
       <div className="panel-heading">Financial Overview</div>
       <div className="panel-desc">

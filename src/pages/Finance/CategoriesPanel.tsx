@@ -363,7 +363,7 @@ const CategoriesPanel: React.FC = () => {
           })
           .join(",")
       : "var(--divider) 0% 100%";
- 
+
   return (
     <>
       <div className="panel-heading">Expense Categories</div>
