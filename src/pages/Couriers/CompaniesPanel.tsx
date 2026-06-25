@@ -81,6 +81,7 @@ interface CityInputProps {
 }
 
 // ── Courier Name Search Hook ──────────────────────────────
+// ── Courier Name Search Hook ──────────────────────────────
 function useCourierSearch() {
   const [allCouriers, setAllCouriers] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -88,11 +89,24 @@ function useCourierSearch() {
   useEffect(() => {
     import("../../assets/data/all_couriers/allCourierslist.json")
       .then((mod: any) => {
-        const raw: string[] = mod.default ?? mod;
-        setAllCouriers(raw);
+        const raw = mod.default ?? mod;
+        // Handle both: flat array OR { couriers: [...] } object
+        let list: string[] = [];
+        if (Array.isArray(raw)) {
+          list = raw;
+        } else if (Array.isArray(raw.couriers)) {
+          list = raw.couriers;
+        } else {
+          // Fallback: flatten any array values from the object
+          list = Object.values(raw).flat() as string[];
+        }
+        setAllCouriers(list.filter((x) => typeof x === "string"));
         setLoaded(true);
       })
-      .catch(() => setLoaded(true));
+      .catch((err) => {
+        console.error("Failed to load couriers JSON:", err);
+        setLoaded(true);
+      });
   }, []);
 
   const search = useCallback(
