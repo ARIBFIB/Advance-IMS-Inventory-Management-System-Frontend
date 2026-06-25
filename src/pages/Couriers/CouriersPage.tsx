@@ -285,48 +285,48 @@ const CouriersPage: React.FC = () => {
         },
       ],
     },
-    {
-      heading: "Shipments",
-      items: [
-        {
-          panel: "shipments",
-          icon: "fa-boxes-stacked",
-          label: "All Shipments",
-          // badge: 142,
-        },
-        {
-          panel: "pending",
-          icon: "fa-clock",
-          label: "Pending Dispatch",
-          // badge: 18,
-        },
-        {
-          panel: "intransit",
-          icon: "fa-truck-moving",
-          label: "In Transit",
-          // badge: 54,
-        },
-        {
-          panel: "delivered",
-          icon: "fa-circle-check",
-          label: "Delivered",
-          // badge: 68,
-          badgeGray: true,
-        },
-        {
-          panel: "returns",
-          icon: "fa-rotate-left",
-          label: "Returns / RTO",
-          // badge: 6,
-        },
-        {
-          panel: "failed",
-          icon: "fa-circle-xmark",
-          label: "Failed Delivery",
-          // badge: 4,
-        },
-      ],
-    },
+    // {
+    //   heading: "Shipments",
+    //   items: [
+    //     {
+    //       panel: "shipments",
+    //       icon: "fa-boxes-stacked",
+    //       label: "All Shipments",
+    //       // badge: 142,
+    //     },
+    //     {
+    //       panel: "pending",
+    //       icon: "fa-clock",
+    //       label: "Pending Dispatch",
+    //       // badge: 18,
+    //     },
+    //     {
+    //       panel: "intransit",
+    //       icon: "fa-truck-moving",
+    //       label: "In Transit",
+    //       // badge: 54,
+    //     },
+    //     {
+    //       panel: "delivered",
+    //       icon: "fa-circle-check",
+    //       label: "Delivered",
+    //       // badge: 68,
+    //       badgeGray: true,
+    //     },
+    //     {
+    //       panel: "returns",
+    //       icon: "fa-rotate-left",
+    //       label: "Returns / RTO",
+    //       // badge: 6,
+    //     },
+    //     {
+    //       panel: "failed",
+    //       icon: "fa-circle-xmark",
+    //       label: "Failed Delivery",
+    //       // badge: 4,
+    //     },
+    //   ],
+    // },
     // {
     //   heading: 'Tracking',
     //   items: [
