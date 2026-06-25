@@ -155,7 +155,12 @@ export const ToggleSwitch: React.FC<{
       />
       <span
         className="toggle-track"
-        style={loading ? { opacity: 0.6 } : undefined}
+        style={{
+          background: on ? "#ff6a00" : "#94a3b8",
+          border: `1px solid ${on ? "#e65c00" : "#7c8fa3"}`,
+          opacity: loading ? 0.6 : 1,
+          transition: "background 0.2s, border-color 0.2s",
+        }}
       />
       {loading && (
         <span
