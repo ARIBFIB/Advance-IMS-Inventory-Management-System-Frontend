@@ -92,6 +92,18 @@ const AdvancedMarkerWrapper: React.FC<AdvancedMarkerWrapperProps> = ({
   useEffect(() => {
     if (!map) return;
 
+    // FIX 6: agar AdvancedMarkerElement kisi wajah se available nahi hai
+    // (key restricted / library attach hone mein delay), sirf yeh marker
+    // skip ho — pura map/tab crash nahi hona chahiye.
+    const markerLib = (window as any).google?.maps?.marker;
+    if (!markerLib?.AdvancedMarkerElement) {
+      console.warn(
+        `Skipping marker for ${rider.fullName} — AdvancedMarkerElement unavailable`,
+      );
+      return;
+    }
+    const { AdvancedMarkerElement } = markerLib;
+
     const pinEl = document.createElement("div");
     pinEl.style.cssText = `
       width: 36px;
@@ -109,8 +121,6 @@ const AdvancedMarkerWrapper: React.FC<AdvancedMarkerWrapperProps> = ({
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     `;
     pinEl.textContent = rider.fullName.charAt(0).toUpperCase();
-
-    const { AdvancedMarkerElement } = (window as any).google.maps.marker;
 
     const marker = new AdvancedMarkerElement({
       map,
@@ -170,6 +180,13 @@ const AdvancedMarkerWrapper: React.FC<AdvancedMarkerWrapperProps> = ({
 };
 
 // ── LiveMapView ────────────────────────────────────────────
+// ── LiveMapView ────────────────────────────────────────────
+// FIX 4: hoisted outside component — naya array/object literal har render
+// pe pass karna useJsApiLoader ko reload trigger karta hai aur kabhi
+// window.google.maps.marker undefined reh jata hai.
+const MAP_LIBRARIES: "marker"[] = ["marker"];
+const MAP_IDS = ["DEMO_MAP_ID"];
+
 interface LiveMapViewProps {
   riders: ApiRider[];
   deliveries: LiveDelivery[];
@@ -177,12 +194,27 @@ interface LiveMapViewProps {
 
 const LiveMapView: React.FC<LiveMapViewProps> = ({ riders, deliveries }) => {
   const [selectedRider, setSelectedRider] = useState<ApiRider | null>(null);
-  const mapRef = useRef<google.maps.Map | null>(null); // FIX 1: added mapRef
+  const mapRef = useRef<google.maps.Map | null>(null);
 
-  const { isLoaded } = useJsApiLoader({
+  // FIX 5: "marker" library load karna zaroori hai AdvancedMarkerElement ke liye.
+  // loadError se ApiTargetBlockedMapError jaisi key-restriction issues
+  // pehle hi pakdi ja sakti hain, crash hone se pehle.
+  const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    mapIds: ["DEMO_MAP_ID"],
+    mapIds: MAP_IDS,
+    libraries: MAP_LIBRARIES,
   });
+
+  if (loadError) {
+    return (
+      <div className="map-placeholder">
+        <div className="map-badge" style={{ color: "var(--red)" }}>
+          Maps load nahi hua. Google Cloud Console mein API key ki
+          restrictions (referrer / billing / enabled APIs) check karein.
+        </div>
+      </div>
+    );
+  }
 
   if (!isLoaded) {
     return (
