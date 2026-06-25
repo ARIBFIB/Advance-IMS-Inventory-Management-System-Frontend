@@ -59,7 +59,7 @@ const CODLogPanel: React.FC = () => {
   const start = (page - 1) * PER_PAGE + 1;
   const end = Math.min(page * PER_PAGE, totalItems);
 
-  return (
+  return ( 
     <>
       <div className="panel-heading">COD Collection Log</div>
       <div className="panel-desc">

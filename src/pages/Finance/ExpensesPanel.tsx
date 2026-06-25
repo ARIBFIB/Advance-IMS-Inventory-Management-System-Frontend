@@ -141,7 +141,7 @@ const ExpensesPanel: React.FC<Props> = ({ onNav, onOpenOverlay, onEdit }) => {
 
   const kpis = analytics?.kpis;
   const byCategory: any[] = analytics?.categoryBreakdown || [];
-
+ 
   const getCatAmount = (name: string) => {
     const found = byCategory.find((c: any) => c.category === name);
     return found ? Number(found.total) : 0;

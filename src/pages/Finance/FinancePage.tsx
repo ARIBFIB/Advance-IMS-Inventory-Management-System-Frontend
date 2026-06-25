@@ -63,7 +63,7 @@ const FinancePage: React.FC = () => {
           panel: "cod",
           icon: "fa-money-bills",
           label: "COD Tracking",
-          badge: 14,
+          // badge: 14,
         },
         { panel: "cod-log", icon: "fa-clipboard-check", label: "COD Log" },
         { panel: "prepaid", icon: "fa-credit-card", label: "Prepaid Orders" },

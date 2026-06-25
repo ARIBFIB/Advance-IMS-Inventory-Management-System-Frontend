@@ -169,7 +169,7 @@ const CODPanel: React.FC<Props> = ({ onOpenOverlay }) => {
         >
           <i className="fa-solid fa-triangle-exclamation" />
           {toast}
-        </div>
+        </div> 
       )}
       <div className="panel-heading">COD Tracking</div>
       <div className="panel-desc">

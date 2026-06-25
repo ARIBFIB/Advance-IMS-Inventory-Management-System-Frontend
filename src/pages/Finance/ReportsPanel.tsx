@@ -25,40 +25,56 @@ const ReportsPanel: React.FC = () => {
 
   const handleGenerate = async () => {
     setGenerating(true);
+    setError("");
     try {
-      // Report type to API mapping
-      const reportMap: Record<string, string> = {
-        "Daily Financial Summary": "financial",
-        "Weekly COD Report": "orders",
-        "Monthly Expense Report": "financial",
-        "Revenue vs Expenses": "financial",
-        "Profit & Loss Statement": "financial",
-        "COD Reconciliation Report": "orders",
-        "Prepaid Orders Report": "orders",
-        "Supplier Payment History": "financial",
-      };
-
-      const reportKey = reportMap[reportType] || "financial";
-      const groupByMap: Record<string, string> = {
+      const groupByMap: Record<string, "day" | "month"> = {
         Daily: "day",
-        Weekly: "week",
+        Weekly: "day",
         Monthly: "month",
       };
-
-      const res = await financialAnalyticsAPI.getFinancial({
+      const gb = groupByMap[groupBy] || "day";
+      const params = {
         from: dateFrom || undefined,
         to: dateTo || undefined,
-        groupBy: groupByMap[groupBy] as "day" | "month",
-      });
+        groupBy: gb,
+      };
 
-      const data = res.data?.data?.timeline || [];
+      let data: any[] = [];
 
-      if (format === "CSV (.csv)") {
-        downloadCSV(data, reportType);
-      } else if (format === "Excel (.xlsx)") {
-        downloadCSV(data, reportType, ".xlsx");
+      if (
+        reportType === "Daily Financial Summary" ||
+        reportType === "Revenue vs Expenses" ||
+        reportType === "Profit & Loss Statement" ||
+        reportType === "Monthly Expense Report"
+      ) {
+        const res = await financialAnalyticsAPI.getFinancial(params);
+        data = res.data?.data?.timeline || [];
+      } else if (
+        reportType === "Weekly COD Report" ||
+        reportType === "COD Reconciliation Report"
+      ) {
+        const res = await analyticsAPI.exportReport("orders", params);
+        data = res.data?.data || [];
+      } else if (reportType === "Prepaid Orders Report") {
+        const res = await analyticsAPI.exportReport("orders", params);
+        data = (res.data?.data || []).filter(
+          (o: any) => o.paymentMethod === "Prepaid",
+        );
+      } else if (reportType === "Supplier Payment History") {
+        const res = await analyticsAPI.exportReport("financial", params);
+        data = res.data?.data || [];
+      }
+
+      if (!data.length) {
+        setError("No data available for the selected period.");
+        return;
+      }
+
+      if (format === "PDF") {
+        downloadPDF(data, reportType);
       } else {
-        downloadCSV(data, reportType);
+        const ext = format === "Excel (.xlsx)" ? ".xlsx" : ".csv";
+        downloadCSV(data, reportType, ext);
       }
     } catch (e: any) {
       setError(e?.response?.data?.message || "Failed to generate report.");
@@ -84,6 +100,126 @@ const ReportsPanel: React.FC = () => {
     a.download = `${name.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}${ext}`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const downloadPDF = (data: any[], name: string) => {
+    const headers = Object.keys(data[0]);
+    const rows = data.map((row) => headers.map((h) => row[h] ?? ""));
+
+    const tableRows = rows
+      .map(
+        (row) =>
+          `<tr>${row.map((cell) => `<td style="padding:4px 8px;border:1px solid #e5e7eb;font-size:11px">${cell}</td>`).join("")}</tr>`,
+      )
+      .join("");
+
+    const html = `
+      <html><head><title>${name}</title>
+      <style>body{font-family:sans-serif;padding:20px}h2{font-size:16px;margin-bottom:12px}table{border-collapse:collapse;width:100%}th{background:#f9fafb;padding:6px 8px;border:1px solid #e5e7eb;font-size:11px;text-align:left}</style>
+      </head><body>
+      <h2>${name}</h2>
+      <p style="font-size:11px;color:#6b7280;margin-bottom:12px">Generated: ${new Date().toLocaleString()}</p>
+      <table><thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead>
+      <tbody>${tableRows}</tbody></table>
+      </body></html>`;
+
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      win.print();
+    }
+  };
+
+  const handlePreview = async () => {
+    setGenerating(true);
+    setError("");
+    try {
+      const groupByMap: Record<string, "day" | "month"> = {
+        Daily: "day",
+        Weekly: "day",
+        Monthly: "month",
+      };
+      const gb = groupByMap[groupBy] || "day";
+      const params = { from: dateFrom || undefined, to: dateTo || undefined, groupBy: gb };
+
+      let data: any[] = [];
+
+      if (
+        reportType === "Daily Financial Summary" ||
+        reportType === "Revenue vs Expenses" ||
+        reportType === "Profit & Loss Statement" ||
+        reportType === "Monthly Expense Report"
+      ) {
+        const res = await financialAnalyticsAPI.getFinancial(params);
+        data = res.data?.data?.timeline || [];
+      } else if (
+        reportType === "Weekly COD Report" ||
+        reportType === "COD Reconciliation Report"
+      ) {
+        const res = await analyticsAPI.exportReport("orders", params);
+        data = res.data?.data || [];
+      } else if (reportType === "Prepaid Orders Report") {
+        const res = await analyticsAPI.exportReport("orders", params);
+        data = (res.data?.data || []).filter((o: any) => o.paymentMethod === "Prepaid");
+      } else if (reportType === "Supplier Payment History") {
+        const res = await analyticsAPI.exportReport("financial", params);
+        data = res.data?.data || [];
+      }
+
+      if (!data.length) {
+        setError("No data available for the selected period.");
+        return;
+      }
+
+      const headers = Object.keys(data[0]);
+      const rows = data.map((row) => headers.map((h) => row[h] ?? ""));
+
+      const tableRows = rows
+        .map(
+          (row) =>
+            `<tr>${row.map((cell) => `<td style="padding:5px 10px;border:1px solid #e5e7eb;font-size:11px">${cell}</td>`).join("")}</tr>`,
+        )
+        .join("");
+
+      const html = `
+        <html><head><title>${reportType}</title>
+        <style>
+          body{font-family:sans-serif;padding:28px;background:#f7f8fa}
+          h2{font-size:18px;font-weight:800;margin-bottom:4px}
+          .meta{font-size:11px;color:#6b7280;margin-bottom:16px}
+          table{border-collapse:collapse;width:100%;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+          th{background:#fafafa;padding:8px 10px;border:1px solid #e5e7eb;font-size:10.5px;text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:#6b7280}
+          tr:hover td{background:#fafbfc}
+          @media print{body{padding:0}button{display:none}}
+        </style>
+        </head><body>
+        <h2>${reportType}</h2>
+        <div class="meta">
+          Period: ${dateFrom || "All time"} → ${dateTo || "Today"} &nbsp;|&nbsp;
+          Group By: ${groupBy} &nbsp;|&nbsp;
+          Generated: ${new Date().toLocaleString()}
+        </div>
+        <table>
+          <thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+        <br>
+        <button onclick="window.print()" style="padding:8px 16px;background:#ff6a00;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">
+          🖨️ Print / Save as PDF
+        </button>
+        </body></html>`;
+
+      const win = window.open("", "_blank");
+      if (win) {
+        win.document.write(html);
+        win.document.close();
+      }
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Failed to preview report.");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   useEffect(() => {
@@ -195,18 +331,28 @@ const ReportsPanel: React.FC = () => {
               </div>
             </div>
             <hr />
-            <button
-              className="f-btn primary"
-              style={{ width: "100%", justifyContent: "center" }}
-              onClick={handleGenerate}
-              disabled={generating}
-            >
-              {generating ? (
-                <><i className="fa-solid fa-spinner fa-spin" /> Generating…</>
-              ) : (
-                <><i className="fa-solid fa-file-export" /> Generate &amp; Download</>
-              )}
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                className="f-btn primary"
+                style={{ flex: 1, justifyContent: "center" }}
+                onClick={handleGenerate}
+                disabled={generating}
+              >
+                {generating ? (
+                  <><i className="fa-solid fa-spinner fa-spin" /> Generating…</>
+                ) : (
+                  <><i className="fa-solid fa-file-export" /> Generate &amp; Download</>
+                )}
+              </button>
+              <button
+                className="f-btn"
+                style={{ justifyContent: "center" }}
+                onClick={handlePreview}
+                disabled={generating}
+              >
+                <i className="fa-solid fa-arrow-up-right-from-square" /> Preview
+              </button>
+            </div>
           </div>
         </div>
 
