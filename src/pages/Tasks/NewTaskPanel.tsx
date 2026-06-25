@@ -140,11 +140,12 @@ const NewTaskPanel: React.FC<NewTaskPanelProps> = ({
               <div className="form-label">Assign To *</div>
               <select
   className="form-select"
+  value={assignedTo}
   onChange={(e) => setAssignedTo(e.target.value)}
 >
   <option value="">— Select staff member —</option>
   {users.length === 0 ? (
-    <option disabled>No staff found</option>
+    <option disabled>Loading staff...</option>
   ) : (
     users.map((u) => (
       <option key={u._id} value={u._id}>

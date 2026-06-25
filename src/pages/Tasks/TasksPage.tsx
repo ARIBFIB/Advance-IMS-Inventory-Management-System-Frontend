@@ -48,7 +48,7 @@ const TasksPage: React.FC = () => {
       const [tasksRes, statsRes, usersRes] = await Promise.allSettled([
         tasksAPI.getAll({ limit: 100 }),
         tasksAPI.getStats(),
-        usersAPI.getAll({ limit: 100, status: "Active" }),
+        usersAPI.getAll({ limit: 100 }),
       ]);
 
       if (tasksRes.status === "fulfilled") {
@@ -64,7 +64,7 @@ const TasksPage: React.FC = () => {
       }
 
       if (usersRes.status === "fulfilled") {
-        const rawUsers: ApiUser[] = usersRes.value.data.data?.users || [];
+        const rawUsers: ApiUser[] = usersRes.value.data?.data?.users || usersRes.value.data?.users || [];
         setUsers(rawUsers);
       }
     } catch (e: any) {
