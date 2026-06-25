@@ -1,5 +1,5 @@
 // ActiveDeliveriesPanel.tsx — dynamic
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   ApiRider,
   ApiDelivery,
@@ -15,7 +15,7 @@ import {
   ApiRiderAvatar,
 } from "./shared";
 import { ridersAPI } from "../../services/api";
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader, InfoWindow } from "@react-google-maps/api";
 
 // ── Types ──────────────────────────────────────────────────
 interface LiveDelivery {
@@ -54,19 +54,122 @@ const fmtStatus = (s: string) =>
 const GOOGLE_MAPS_API_KEY = "AIzaSyCwt2k3uCNQi-ww4Cj84q6BiljGx4sdm6A";
 
 const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
-  "Lahore":      { lat: 31.5204, lng: 74.3587 },
-  "Karachi":     { lat: 24.8607, lng: 67.0011 },
-  "Islamabad":   { lat: 33.6844, lng: 73.0479 },
-  "Rawalpindi":  { lat: 33.5651, lng: 73.0169 },
-  "Faisalabad":  { lat: 31.4504, lng: 73.1350 },
-  "Multan":      { lat: 30.1575, lng: 71.5249 },
-  "Peshawar":    { lat: 34.0151, lng: 71.5249 },
-  "Quetta":      { lat: 30.1798, lng: 66.9750 },
-  "DHA Lahore":  { lat: 31.4697, lng: 74.4082 },
+  Lahore:     { lat: 31.5204, lng: 74.3587 },
+  Karachi:    { lat: 24.8607, lng: 67.0011 },
+  Islamabad:  { lat: 33.6844, lng: 73.0479 },
+  Rawalpindi: { lat: 33.5651, lng: 73.0169 },
+  Faisalabad: { lat: 31.4504, lng: 73.135 },
+  Multan:     { lat: 30.1575, lng: 71.5249 },
+  Peshawar:   { lat: 34.0151, lng: 71.5249 },
+  Quetta:     { lat: 30.1798, lng: 66.975 },
+  "DHA Lahore": { lat: 31.4697, lng: 74.4082 },
 };
 
-const DEFAULT_CENTER = { lat: 31.5204, lng: 74.3587 }; // Lahore
+const DEFAULT_CENTER = { lat: 31.5204, lng: 74.3587 };
 
+// ── AdvancedMarkerWrapper ──────────────────────────────────
+interface AdvancedMarkerWrapperProps {
+  map: google.maps.Map | null;
+  position: { lat: number; lng: number };
+  rider: ApiRider;
+  riderDeliveries: LiveDelivery[];
+  isSelected: boolean;
+  onSelect: () => void;
+  onClose: () => void;
+}
+
+const AdvancedMarkerWrapper: React.FC<AdvancedMarkerWrapperProps> = ({
+  map,
+  position,
+  rider,
+  riderDeliveries,
+  isSelected,
+  onSelect,
+  onClose,
+}) => {
+  const markerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!map) return;
+
+    const pinEl = document.createElement("div");
+    pinEl.style.cssText = `
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: ${rider.status === "OnDelivery" ? "#FF6A00" : "#16A34A"};
+      border: 2px solid white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    `;
+    pinEl.textContent = rider.fullName.charAt(0).toUpperCase();
+
+    const { AdvancedMarkerElement } = (window as any).google.maps.marker;
+
+    const marker = new AdvancedMarkerElement({
+      map,
+      position,
+      content: pinEl,
+      title: rider.fullName,
+    });
+
+    marker.addListener("click", onSelect);
+    markerRef.current = marker;
+
+    return () => {
+      marker.map = null;
+    };
+  }, [map, position, rider, onSelect]);
+
+  if (!isSelected) return null;
+
+  return (
+    <InfoWindow position={position} onCloseClick={onClose}>
+      <div style={{ minWidth: 160, fontSize: 12 }}>
+        <strong style={{ fontSize: 13 }}>{rider.fullName}</strong>
+        <div style={{ color: "#666", marginTop: 2 }}>
+          📍 {rider.assignedZone ?? "Unknown Zone"}
+        </div>
+        <div style={{ marginTop: 4 }}>
+          Status:{" "}
+          <span
+            style={{
+              color: rider.status === "OnDelivery" ? "#FF6A00" : "#16A34A",
+              fontWeight: 600,
+            }}
+          >
+            {rider.status}
+          </span>
+        </div>
+        <div style={{ marginTop: 4 }}>
+          Active Deliveries: <strong>{riderDeliveries.length}</strong>
+        </div>
+        {riderDeliveries.slice(0, 2).map((d) => (
+          <div
+            key={d._id}
+            style={{
+              marginTop: 4,
+              padding: "3px 6px",
+              background: "#f5f5f5",
+              borderRadius: 4,
+              fontSize: 11,
+            }}
+          >
+            {d.orderReference ?? d.trackingNumber ?? d._id}
+          </div>
+        ))}
+      </div>
+    </InfoWindow>
+  );
+};
+
+// ── LiveMapView ────────────────────────────────────────────
 interface LiveMapViewProps {
   riders: ApiRider[];
   deliveries: LiveDelivery[];
@@ -74,9 +177,11 @@ interface LiveMapViewProps {
 
 const LiveMapView: React.FC<LiveMapViewProps> = ({ riders, deliveries }) => {
   const [selectedRider, setSelectedRider] = useState<ApiRider | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null); // FIX 1: added mapRef
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    mapIds: ["DEMO_MAP_ID"],
   });
 
   if (!isLoaded) {
@@ -89,11 +194,9 @@ const LiveMapView: React.FC<LiveMapViewProps> = ({ riders, deliveries }) => {
 
   const getRiderCoords = (rider: ApiRider) => {
     const zone = rider.assignedZone ?? "";
-    // Check exact match first
     if (CITY_COORDS[zone]) return CITY_COORDS[zone];
-    // Check partial match
     const key = Object.keys(CITY_COORDS).find((c) =>
-      zone.toLowerCase().includes(c.toLowerCase())
+      zone.toLowerCase().includes(c.toLowerCase()),
     );
     return key ? CITY_COORDS[key] : DEFAULT_CENTER;
   };
@@ -102,15 +205,23 @@ const LiveMapView: React.FC<LiveMapViewProps> = ({ riders, deliveries }) => {
     deliveries.filter((d) => d.rider?.id === riderId);
 
   return (
-    <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)" }}>
+    <div
+      style={{
+        borderRadius: 10,
+        overflow: "hidden",
+        border: "1px solid var(--border)",
+      }}
+    >
       <GoogleMap
         mapContainerStyle={{ width: "100%", height: "420px" }}
         center={DEFAULT_CENTER}
         zoom={11}
+        onLoad={(map) => { mapRef.current = map; }} // FIX 2: onLoad added
         options={{
           streetViewControl: false,
           mapTypeControl: false,
           fullscreenControl: true,
+          mapId: "DEMO_MAP_ID",
         }}
       >
         {riders.map((rider) => {
@@ -118,81 +229,44 @@ const LiveMapView: React.FC<LiveMapViewProps> = ({ riders, deliveries }) => {
           const riderDeliveries = getRiderDeliveries(rider._id);
 
           return (
-            <Marker
+            <AdvancedMarkerWrapper
               key={rider._id}
+              map={mapRef.current}
               position={coords}
-              title={rider.fullName}
-              icon={{
-                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-                    <circle cx="16" cy="16" r="14" fill="${
-                      rider.status === "OnDelivery" ? "#FF6A00" : "#16A34A"
-                    }" stroke="white" stroke-width="2"/>
-                    <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-family="Arial">
-                      ${rider.fullName.charAt(0)}
-                    </text>
-                  </svg>
-                `)}`,
-                scaledSize: new window.google.maps.Size(36, 36),
-              }}
-              onClick={() => setSelectedRider(rider)}
-            >
-              {selectedRider?._id === rider._id && (
-                <InfoWindow onCloseClick={() => setSelectedRider(null)}>
-                  <div style={{ minWidth: 160, fontSize: 12 }}>
-                    <strong style={{ fontSize: 13 }}>{rider.fullName}</strong>
-                    <div style={{ color: "#666", marginTop: 2 }}>📍 {rider.assignedZone ?? "Unknown Zone"}</div>
-                    <div style={{ marginTop: 4 }}>
-                      Status:{" "}
-                      <span style={{
-                        color: rider.status === "OnDelivery" ? "#FF6A00" : "#16A34A",
-                        fontWeight: 600,
-                      }}>
-                        {rider.status}
-                      </span>
-                    </div>
-                    <div style={{ marginTop: 4 }}>
-                      Active Deliveries:{" "}
-                      <strong>{riderDeliveries.length}</strong>
-                    </div>
-                    {riderDeliveries.slice(0, 2).map((d) => (
-                      <div
-                        key={d._id}
-                        style={{
-                          marginTop: 4,
-                          padding: "3px 6px",
-                          background: "#f5f5f5",
-                          borderRadius: 4,
-                          fontSize: 11,
-                        }}
-                      >
-                        {d.orderReference ?? d.trackingNumber ?? d._id}
-                      </div>
-                    ))}
-                  </div>
-                </InfoWindow>
-              )}
-            </Marker>
+              rider={rider}
+              riderDeliveries={riderDeliveries}
+              isSelected={selectedRider?._id === rider._id}
+              onSelect={() => setSelectedRider(rider)}
+              onClose={() => setSelectedRider(null)}
+            />
           );
         })}
       </GoogleMap>
 
       {/* Legend */}
-      <div style={{
-        padding: "8px 14px",
-        background: "var(--card-bg)",
-        borderTop: "1px solid var(--border)",
-        display: "flex",
-        gap: 16,
-        fontSize: 11,
-        color: "var(--text-muted)",
-      }}>
+      <div
+        style={{
+          padding: "8px 14px",
+          background: "var(--card-bg)",
+          borderTop: "1px solid var(--border)",
+          display: "flex",
+          gap: 16,
+          fontSize: 11,
+          color: "var(--text-muted)",
+        }}
+      >
         <span>
-          <i className="fa-solid fa-circle" style={{ color: "#FF6A00", fontSize: 8, marginRight: 4 }} />
+          <i
+            className="fa-solid fa-circle"
+            style={{ color: "#FF6A00", fontSize: 8, marginRight: 4 }}
+          />
           On Delivery
         </span>
         <span>
-          <i className="fa-solid fa-circle" style={{ color: "#16A34A", fontSize: 8, marginRight: 4 }} />
+          <i
+            className="fa-solid fa-circle"
+            style={{ color: "#16A34A", fontSize: 8, marginRight: 4 }}
+          />
           Active / Available
         </span>
         <span style={{ marginLeft: "auto" }}>
@@ -203,6 +277,7 @@ const LiveMapView: React.FC<LiveMapViewProps> = ({ riders, deliveries }) => {
   );
 };
 
+// ── ActiveDeliveriesPanel ──────────────────────────────────
 const ActiveDeliveriesPanel: React.FC = () => {
   const [innerTab, setInnerTab] = useState("all");
   const [riders, setRiders] = useState<ApiRider[]>([]);
@@ -218,29 +293,35 @@ const ActiveDeliveriesPanel: React.FC = () => {
     setLoading(true);
     setError("");
     try {
-      // Get riders who are active / on-delivery
       const rRes = await ridersAPI.getAll({ limit: 50, status: "Active" });
       const rList: ApiRider[] = rRes.data?.data?.riders ?? [];
       setRiders(rList);
 
-      // For each rider, fetch deliveries with active statuses
+      // FIX 3: removed status param (was causing 400), filter client-side instead
+      const activeStatuses = [
+        "in_transit",
+        "out_for_delivery",
+        "assigned",
+        "picked_up",
+      ];
+
       const deliveryPromises = rList.map((r) =>
         ridersAPI
-          .getDeliveries(r._id, {
-            limit: 20,
-            status: "in_transit,out_for_delivery,assigned,picked_up",
-          })
+          .getDeliveries(r._id, { limit: 20 })
           .then((res) => {
             const deliveries: LiveDelivery[] = (
               res.data?.data?.deliveries ?? []
-            ).map((d: any) => ({
-              ...d,
-              rider: { id: r._id, name: r.fullName, phone: r.phone },
-            }));
+            )
+              .filter((d: any) => activeStatuses.includes(d.currentStatus))
+              .map((d: any) => ({
+                ...d,
+                rider: { id: r._id, name: r.fullName, phone: r.phone },
+              }));
             return deliveries;
           })
           .catch(() => [] as LiveDelivery[]),
       );
+
       const results = await Promise.all(deliveryPromises);
       setAllDeliveries(results.flat());
     } catch (e: any) {
@@ -303,9 +384,7 @@ const ActiveDeliveriesPanel: React.FC = () => {
           <button
             className="c-btn"
             style={{ marginLeft: "auto" }}
-            onClick={() => {
-              setInnerTab("delayed");
-            }}
+            onClick={() => setInnerTab("delayed")}
           >
             View Delayed
           </button>
@@ -423,7 +502,9 @@ const ActiveDeliveriesPanel: React.FC = () => {
                           <strong>{d.orderReference ?? "—"}</strong>
                         </td>
                         <td>
-                          <code className="sku">{d.trackingNumber ?? "—"}</code>
+                          <code className="sku">
+                            {d.trackingNumber ?? "—"}
+                          </code>
                         </td>
                         <td>
                           <div className="td-flex">
