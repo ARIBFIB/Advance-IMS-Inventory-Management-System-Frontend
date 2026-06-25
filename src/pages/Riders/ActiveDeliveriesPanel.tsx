@@ -15,6 +15,7 @@ import {
   ApiRiderAvatar,
 } from "./shared";
 import { ridersAPI } from "../../services/api";
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
 
 // ── Types ──────────────────────────────────────────────────
 interface LiveDelivery {
@@ -49,6 +50,158 @@ const STATUS_COLOR: Record<string, string> = {
 
 const fmtStatus = (s: string) =>
   s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+const GOOGLE_MAPS_API_KEY = "AIzaSyCwt2k3uCNQi-ww4Cj84q6BiljGx4sdm6A";
+
+const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
+  "Lahore":      { lat: 31.5204, lng: 74.3587 },
+  "Karachi":     { lat: 24.8607, lng: 67.0011 },
+  "Islamabad":   { lat: 33.6844, lng: 73.0479 },
+  "Rawalpindi":  { lat: 33.5651, lng: 73.0169 },
+  "Faisalabad":  { lat: 31.4504, lng: 73.1350 },
+  "Multan":      { lat: 30.1575, lng: 71.5249 },
+  "Peshawar":    { lat: 34.0151, lng: 71.5249 },
+  "Quetta":      { lat: 30.1798, lng: 66.9750 },
+  "DHA Lahore":  { lat: 31.4697, lng: 74.4082 },
+};
+
+const DEFAULT_CENTER = { lat: 31.5204, lng: 74.3587 }; // Lahore
+
+interface LiveMapViewProps {
+  riders: ApiRider[];
+  deliveries: LiveDelivery[];
+}
+
+const LiveMapView: React.FC<LiveMapViewProps> = ({ riders, deliveries }) => {
+  const [selectedRider, setSelectedRider] = useState<ApiRider | null>(null);
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+  });
+
+  if (!isLoaded) {
+    return (
+      <div className="map-placeholder">
+        <div className="map-badge">Loading Google Maps...</div>
+      </div>
+    );
+  }
+
+  const getRiderCoords = (rider: ApiRider) => {
+    const zone = rider.assignedZone ?? "";
+    // Check exact match first
+    if (CITY_COORDS[zone]) return CITY_COORDS[zone];
+    // Check partial match
+    const key = Object.keys(CITY_COORDS).find((c) =>
+      zone.toLowerCase().includes(c.toLowerCase())
+    );
+    return key ? CITY_COORDS[key] : DEFAULT_CENTER;
+  };
+
+  const getRiderDeliveries = (riderId: string) =>
+    deliveries.filter((d) => d.rider?.id === riderId);
+
+  return (
+    <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)" }}>
+      <GoogleMap
+        mapContainerStyle={{ width: "100%", height: "420px" }}
+        center={DEFAULT_CENTER}
+        zoom={11}
+        options={{
+          streetViewControl: false,
+          mapTypeControl: false,
+          fullscreenControl: true,
+        }}
+      >
+        {riders.map((rider) => {
+          const coords = getRiderCoords(rider);
+          const riderDeliveries = getRiderDeliveries(rider._id);
+
+          return (
+            <Marker
+              key={rider._id}
+              position={coords}
+              title={rider.fullName}
+              icon={{
+                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+                    <circle cx="16" cy="16" r="14" fill="${
+                      rider.status === "OnDelivery" ? "#FF6A00" : "#16A34A"
+                    }" stroke="white" stroke-width="2"/>
+                    <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-family="Arial">
+                      ${rider.fullName.charAt(0)}
+                    </text>
+                  </svg>
+                `)}`,
+                scaledSize: new window.google.maps.Size(36, 36),
+              }}
+              onClick={() => setSelectedRider(rider)}
+            >
+              {selectedRider?._id === rider._id && (
+                <InfoWindow onCloseClick={() => setSelectedRider(null)}>
+                  <div style={{ minWidth: 160, fontSize: 12 }}>
+                    <strong style={{ fontSize: 13 }}>{rider.fullName}</strong>
+                    <div style={{ color: "#666", marginTop: 2 }}>📍 {rider.assignedZone ?? "Unknown Zone"}</div>
+                    <div style={{ marginTop: 4 }}>
+                      Status:{" "}
+                      <span style={{
+                        color: rider.status === "OnDelivery" ? "#FF6A00" : "#16A34A",
+                        fontWeight: 600,
+                      }}>
+                        {rider.status}
+                      </span>
+                    </div>
+                    <div style={{ marginTop: 4 }}>
+                      Active Deliveries:{" "}
+                      <strong>{riderDeliveries.length}</strong>
+                    </div>
+                    {riderDeliveries.slice(0, 2).map((d) => (
+                      <div
+                        key={d._id}
+                        style={{
+                          marginTop: 4,
+                          padding: "3px 6px",
+                          background: "#f5f5f5",
+                          borderRadius: 4,
+                          fontSize: 11,
+                        }}
+                      >
+                        {d.orderReference ?? d.trackingNumber ?? d._id}
+                      </div>
+                    ))}
+                  </div>
+                </InfoWindow>
+              )}
+            </Marker>
+          );
+        })}
+      </GoogleMap>
+
+      {/* Legend */}
+      <div style={{
+        padding: "8px 14px",
+        background: "var(--card-bg)",
+        borderTop: "1px solid var(--border)",
+        display: "flex",
+        gap: 16,
+        fontSize: 11,
+        color: "var(--text-muted)",
+      }}>
+        <span>
+          <i className="fa-solid fa-circle" style={{ color: "#FF6A00", fontSize: 8, marginRight: 4 }} />
+          On Delivery
+        </span>
+        <span>
+          <i className="fa-solid fa-circle" style={{ color: "#16A34A", fontSize: 8, marginRight: 4 }} />
+          Active / Available
+        </span>
+        <span style={{ marginLeft: "auto" }}>
+          {riders.length} riders on map · {deliveries.length} active deliveries
+        </span>
+      </div>
+    </div>
+  );
+};
 
 const ActiveDeliveriesPanel: React.FC = () => {
   const [innerTab, setInnerTab] = useState("all");
@@ -475,52 +628,7 @@ const ActiveDeliveriesPanel: React.FC = () => {
 
       {/* ── MAP ── */}
       {innerTab === "map" && (
-        <div className="map-placeholder">
-          {riders.slice(0, 6).map((r, i) => {
-            const positions = [
-              { top: "35%", left: "42%" },
-              { top: "55%", left: "60%" },
-              { top: "25%", left: "70%" },
-              { top: "65%", left: "30%" },
-              { top: "45%", left: "50%" },
-              { top: "70%", left: "55%" },
-            ];
-            const colors = [
-              "#FF6A00",
-              "#16A34A",
-              "#2563EB",
-              "#FF6A00",
-              "#16A34A",
-              "#7C3AED",
-            ];
-            const pos = positions[i] ?? { top: "50%", left: "50%" };
-            return (
-              <div
-                key={r._id}
-                className="map-rider-dot"
-                style={{
-                  background: colors[i % colors.length],
-                  top: pos.top,
-                  left: pos.left,
-                }}
-                title={r.fullName}
-              />
-            );
-          })}
-          <div className="map-badge">
-            <i
-              className="fa-solid fa-circle"
-              style={{ color: "var(--accent)", fontSize: 8 }}
-            />{" "}
-            {riders.length} riders loaded
-          </div>
-          <div
-            style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}
-          >
-            Live GPS tracking requires app integration. See{" "}
-            <strong>App Integrations</strong> tab.
-          </div>
-        </div>
+        <LiveMapView riders={riders} deliveries={allDeliveries} />
       )}
     </>
   );

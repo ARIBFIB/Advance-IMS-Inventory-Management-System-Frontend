@@ -5,6 +5,7 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.2.0",
     "@paper-design/shaders": "^0.0.76",
+    "@react-google-maps/api": "^2.20.8",
     "@splinetool/react-spline": "^4.1.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
