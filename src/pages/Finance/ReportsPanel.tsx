@@ -45,13 +45,13 @@ const ReportsPanel: React.FC = () => {
         Monthly: "month",
       };
 
-      const res = await analyticsAPI.exportReport(reportKey, {
+      const res = await financialAnalyticsAPI.getFinancial({
         from: dateFrom || undefined,
         to: dateTo || undefined,
-        groupBy: groupByMap[groupBy] || "day",
+        groupBy: groupByMap[groupBy] as "day" | "month",
       });
 
-      const data = res.data?.data || [];
+      const data = res.data?.data?.timeline || [];
 
       if (format === "CSV (.csv)") {
         downloadCSV(data, reportType);
@@ -85,7 +85,7 @@ const ReportsPanel: React.FC = () => {
     a.click();
     URL.revokeObjectURL(url);
   };
-  
+
   useEffect(() => {
     setLoading(true);
     financialAnalyticsAPI
