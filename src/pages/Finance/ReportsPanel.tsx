@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { fmt, fmtDate, SkeletonRows, ErrorBanner } from "./helpers";
-import { financialAnalyticsAPI } from "../../services/api";
+import { financialAnalyticsAPI, analyticsAPI } from "../../services/api";
 
 interface MonthlyRow {
   month: string;
@@ -20,7 +20,72 @@ const ReportsPanel: React.FC = () => {
   const [dateTo, setDateTo] = useState("");
   const [groupBy, setGroupBy] = useState("Monthly");
   const [format, setFormat] = useState("Excel (.xlsx)");
+  const [generating, setGenerating] = useState(false);
 
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      // Report type to API mapping
+      const reportMap: Record<string, string> = {
+        "Daily Financial Summary": "financial",
+        "Weekly COD Report": "orders",
+        "Monthly Expense Report": "financial",
+        "Revenue vs Expenses": "financial",
+        "Profit & Loss Statement": "financial",
+        "COD Reconciliation Report": "orders",
+        "Prepaid Orders Report": "orders",
+        "Supplier Payment History": "financial",
+      };
+
+      const reportKey = reportMap[reportType] || "financial";
+      const groupByMap: Record<string, string> = {
+        Daily: "day",
+        Weekly: "week",
+        Monthly: "month",
+      };
+
+      const res = await analyticsAPI.exportReport(reportKey, {
+        from: dateFrom || undefined,
+        to: dateTo || undefined,
+        groupBy: groupByMap[groupBy] || "day",
+      });
+
+      const data = res.data?.data || [];
+
+      if (format === "CSV (.csv)") {
+        downloadCSV(data, reportType);
+      } else if (format === "Excel (.xlsx)") {
+        downloadCSV(data, reportType, ".xlsx");
+      } else {
+        downloadCSV(data, reportType);
+      }
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Failed to generate report.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const downloadCSV = (data: any[], name: string, ext = ".csv") => {
+    if (!data.length) {
+      setError("No data available for the selected period.");
+      return;
+    }
+    const headers = Object.keys(data[0]);
+    const rows = data.map((row) =>
+      headers.map((h) => JSON.stringify(row[h] ?? "")).join(",")
+    );
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${name.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  
   useEffect(() => {
     setLoading(true);
     financialAnalyticsAPI
@@ -133,8 +198,14 @@ const ReportsPanel: React.FC = () => {
             <button
               className="f-btn primary"
               style={{ width: "100%", justifyContent: "center" }}
+              onClick={handleGenerate}
+              disabled={generating}
             >
-              <i className="fa-solid fa-file-export" /> Generate &amp; Download
+              {generating ? (
+                <><i className="fa-solid fa-spinner fa-spin" /> Generating…</>
+              ) : (
+                <><i className="fa-solid fa-file-export" /> Generate &amp; Download</>
+              )}
             </button>
           </div>
         </div>
