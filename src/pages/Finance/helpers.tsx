@@ -160,6 +160,13 @@ export const ToggleSwitch: React.FC<{
           border: `1px solid ${on ? "#e65c00" : "#7c8fa3"}`,
           opacity: loading ? 0.6 : 1,
           transition: "background 0.2s, border-color 0.2s",
+          display: "block",
+          width: 32,
+          height: 17,
+          borderRadius: 17,
+          position: "absolute",
+          inset: 0,
+          cursor: "pointer",
         }}
       />
       {loading && (
