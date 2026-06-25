@@ -695,11 +695,11 @@
 .toggle-track {
   position: absolute;
   inset: 0;
-  background: #cbd5e1;
+  background: #135cc2;
   border-radius: 17px;
   cursor: pointer;
   transition: background 0.2s;
-  border: 1px solid #b0bec5;
+  border: 1px solid #17d509;
 }
 .toggle-track::after {
   content: "";
