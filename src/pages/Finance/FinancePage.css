@@ -695,10 +695,11 @@
 .toggle-track {
   position: absolute;
   inset: 0;
-  background: var(--divider);
+  background: #cbd5e1;
   border-radius: 17px;
   cursor: pointer;
   transition: background 0.2s;
+  border: 1px solid #b0bec5;
 }
 .toggle-track::after {
   content: "";
@@ -710,7 +711,7 @@
   background: #fff;
   border-radius: 50%;
   transition: left 0.2s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 .toggle-switch input:checked + .toggle-track {
   background: var(--accent);
