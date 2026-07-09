@@ -36,26 +36,11 @@
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
-  "extends": [
-    "react-app",
-    "react-app/jest"
-  ],
-  "plugins": [
-    "unused-imports"
-  ],
-  "rules": {
-    "unused-imports/no-unused-imports": "warn",
-    "unused-imports/no-unused-vars": [
-      "warn",
-      {
-        "vars": "all",
-        "varsIgnorePattern": "^_",
-        "args": "after-used",
-        "argsIgnorePattern": "^_"
-      }
+    "extends": [
+      "react-app",
+      "react-app/jest"
     ]
-  }
-},
+  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -71,7 +56,6 @@
   "devDependencies": {
     "@types/three": "0.150.0",
     "autoprefixer": "^10.4.27",
-    "eslint-plugin-unused-imports": "^4.4.1",
     "postcss": "^8.5.8",
     "postcss-cli": "^11.0.1",
     "prettier": "^3.8.4",
