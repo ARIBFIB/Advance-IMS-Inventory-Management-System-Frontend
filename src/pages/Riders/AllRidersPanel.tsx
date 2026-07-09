@@ -6,10 +6,13 @@ import {
   ApiPagination,
   SCHEDULE_DATA,
   rColor,
+  initials,
+  avatarColorFromName,
   isRiderOnline,
   riderStatusLabel,
   Badge,
   PerfBar,
+  StarRating,
   ApiRiderAvatar,
   DayBadge,
   InnerTabs,
@@ -660,6 +663,7 @@ const AllRidersPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
           ) : (
             <div className="rider-grid">
               {riders.map((r) => {
+                const rate = parseFloat(r.completionRate ?? "0");
                 return (
                   <div
                     className="rider-card"

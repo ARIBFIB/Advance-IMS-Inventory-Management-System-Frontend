@@ -10,7 +10,7 @@ import SessionsPanel from "./SessionsPanel";
 import IPWhitelistPanel from "./IPWhitelistPanel";
 import BackupPanel from "./BackupPanel";
 import ExportPanel from "./ExportPanel";
-import DangerPanel, { DangerAction } from "./DangerPanel";
+import DangerPanel, { DANGER_ACTIONS, DangerAction } from "./DangerPanel";
 
 // ═══════════════════════════════════════════════════════════
 // TYPES

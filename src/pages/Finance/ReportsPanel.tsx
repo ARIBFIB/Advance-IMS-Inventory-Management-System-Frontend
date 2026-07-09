@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { fmt, SkeletonRows, ErrorBanner } from "./helpers";
+import { fmt, fmtDate, SkeletonRows, ErrorBanner } from "./helpers";
 import { financialAnalyticsAPI, analyticsAPI } from "../../services/api";
 
 interface MonthlyRow {

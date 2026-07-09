@@ -11,6 +11,7 @@ import {
   Severity,
   StaffMember,
   Role,
+  ActivityEntry,
   MatrixModule,
   IntegrationConfig,
   TaskPerfEntry,

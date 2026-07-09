@@ -1,4 +1,4 @@
-import React, {} from "react";
+import React, { useMemo } from "react";
 import Lottie from "lottie-react";
 import LoadingAnimation from "../../assets/loading/lottie_loading.json";
 import "./TopLoadingBar.css";

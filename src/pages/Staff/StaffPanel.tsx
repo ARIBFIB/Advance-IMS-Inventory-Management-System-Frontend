@@ -27,6 +27,7 @@ import {
 } from "./staffData";
 import { usersAPI, authAPI, tasksAPI } from "../../services/api";
 import ProgBar from "./ProgBar";
+import Toggle from "./Toggle";
 import PermissionsPanel from "./PermissionsPanel";
 
 // ── Role options aligned to backend ───────────────────────

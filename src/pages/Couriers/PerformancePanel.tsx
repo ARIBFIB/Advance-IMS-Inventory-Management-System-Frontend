@@ -4,6 +4,7 @@ import {
   PERF_DATA,
   rColor,
   PerfBar,
+  StarRating,
   InnerTabs,
   EmptyState,
   TableSkeleton,

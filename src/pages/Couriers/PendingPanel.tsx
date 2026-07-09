@@ -9,7 +9,7 @@ import {
   CPagination,
   ApiPagination,
 } from "./shared";
-import { shipmentsAPI, couriersAPI } from "../../services/api";
+import { shipmentsAPI, couriersAPI, ordersAPI } from "../../services/api";
 
 /* ─── Bulk Assign Drawer ─────────────────────────────────────────────── */
 const drawerStyles = `

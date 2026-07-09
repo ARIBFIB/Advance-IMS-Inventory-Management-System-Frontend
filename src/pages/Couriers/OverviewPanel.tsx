@@ -14,7 +14,7 @@ import {
   Badge,
   PerfBar,
 } from "./shared";
-import { couriersAPI, shipmentsAPI } from "../../services/api";
+import { couriersAPI, shipmentsAPI, analyticsAPI } from "../../services/api";
 
 interface Props {
   onNav: (p: NavPanel) => void;
@@ -83,6 +83,11 @@ const OverviewPanel: React.FC<Props> = ({ onNav, onOpenOverlay }) => {
       ? couriers
       : COURIERS.map((c) => ({ ...c, _id: String(c.id) }) as any);
   const mergedPerf = perfData.length > 0 ? perfData : PERF_DATA;
+
+  const getPerfRow = (name: string) =>
+    mergedPerf.find(
+      (x: any) => x.name === name || x.name?.includes(name.split(" ")[0]),
+    ) ?? { assigned: 0, delivered: 0, rto: 0, failed: 0, rate: 0, avgDays: 0 };
 
   const displayShipments =
     shipments.length > 0 ? shipments.slice(0, 4) : SHIPMENTS.slice(0, 4);

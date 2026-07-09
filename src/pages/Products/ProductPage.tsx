@@ -221,6 +221,7 @@ const Pagination: React.FC<PaginationProps> = ({
   current,
   total,
   totalItems,
+  perPage,
   start,
   end,
   onChange,
@@ -287,6 +288,25 @@ const Pagination: React.FC<PaginationProps> = ({
   );
 };
 
+const StarRating: React.FC<{ rating: number }> = ({ rating }) => (
+  <div className="stars">
+    {[0, 1, 2, 3, 4].map((i) => (
+      <i
+        key={i}
+        className={`${i < Math.floor(rating) ? "fa-solid fa-star star" : i < rating ? "fa-solid fa-star-half-stroke star" : "fa-regular fa-star star empty"}`}
+      />
+    ))}
+    <span
+      style={{
+        fontSize: "10px",
+        color: "var(--text-muted)",
+        marginLeft: "4px",
+      }}
+    >
+      {rating}/5
+    </span>
+  </div>
+);
 
 // ── Loading skeleton row ──
 const SkeletonRow: React.FC<{ cols: number }> = ({ cols }) => (
@@ -400,7 +420,6 @@ const ProductPanel: React.FC<ProductPanelProps> = ({
   const isNew = mode === "new";
   const isEdit = mode === "edit";
   const isView = mode === "view";
-  void isView; // TODO: wire into read-only UI or remove
   const title = isNew
     ? "Add New Product"
     : isEdit
@@ -729,7 +748,7 @@ const ProductPanel: React.FC<ProductPanelProps> = ({
           No stock movements found.
         </div>
       ) : (
-        stockLogs.map((m) => {
+        stockLogs.map((m, i) => {
           const isIn = m.changeType === "Inbound" || m.changeType === "Return";
           const isAdj =
             m.changeType === "Adjustment" || m.changeType === "Audit";
@@ -964,6 +983,15 @@ const ProductPanel: React.FC<ProductPanelProps> = ({
               const pairs = getAttrPairs(v.attributes);
               const cleanId = getVariantLabel(v.variantId);
               const avatar = getAvatarInfo(v.attributes, v.variantId);
+
+              // color entry for swatch row
+              const colorEntry = pairs.find(({ key }) =>
+                ["color", "colour"].includes(key.toLowerCase()),
+              );
+              const colorVal = colorEntry
+                ? getColorValue(colorEntry.val)
+                : null;
+
               const stockPct = Math.min(
                 100,
                 (v.stock / Math.max(threshold * 3, 1)) * 100,
@@ -1370,7 +1398,7 @@ const AllProductsTab: React.FC<{ onSwitchToVariants: () => void }> = ({
   // stock analytics for stat cards
   const [stockAnalytics, setStockAnalytics] = useState<any>(null);
 
-  const { startLoading } = usePageLoading();
+  const { isLoading, loadingProgress, startLoading } = usePageLoading();
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -1841,7 +1869,8 @@ const VariantsTab: React.FC = () => {
 
   // form refs
   const parentRef = useRef<HTMLSelectElement>(null);
-
+  const typeRef = useRef<HTMLSelectElement>(null);
+  const valueRef = useRef<HTMLInputElement>(null);
   const varSkuRef = useRef<HTMLInputElement>(null);
   const priceRef = useRef<HTMLInputElement>(null);
   const stockRef = useRef<HTMLInputElement>(null);
@@ -1883,7 +1912,9 @@ const VariantsTab: React.FC = () => {
   // flatten all variants
   const allVariants: FlatVariant[] = products.flatMap((p) =>
     (p.variants ?? []).map((v) => {
-
+      const allAttrs = Object.entries(v.attributes)
+        .map(([k, val]) => `${k}: ${val}`)
+        .join(", ");
       // Mongoose Map JSON mein object banta hai, but kabhi kabhi Map instance hota hai
       const attrEntries =
         v.attributes instanceof Map
@@ -2663,7 +2694,7 @@ const CategoriesTab: React.FC = () => {
   const [catName, setCatName] = useState("");
   const [catDesc, setCatDesc] = useState("");
   const [catParent, setCatParent] = useState("");
-  const [, setCatStatus] = useState("Active");
+  const [catStatus, setCatStatus] = useState("Active");
   const [saving, setSaving] = useState(false);
   const [formLabel, setFormLabel] = useState("New Category");
 

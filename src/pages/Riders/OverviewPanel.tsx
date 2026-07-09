@@ -3,9 +3,13 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   NavPanel,
   ApiRider,
+  ApiDelivery,
   ACTIVE_DELIVERIES,
   UNASSIGNED_ORDERS,
   rColor,
+  fmt,
+  initials,
+  avatarColorFromName,
   isRiderOnline,
   riderStatusLabel,
   Badge,
@@ -29,7 +33,7 @@ interface KPIs {
 const OverviewPanel: React.FC<Props> = ({ onNav, onOpenRider }) => {
   const [riders, setRiders] = useState<ApiRider[]>([]);
   const [kpis, setKpis] = useState<KPIs | null>(null);
-  const [, setPerfData] = useState<any>(null);
+  const [perfData, setPerfData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 

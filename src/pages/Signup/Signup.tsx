@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Signup.css";
 import signUpImage from "../../assets/images/signUp_Image.png";
 import organizationRoleImage from "../../assets/images/organization_role_image.jpg";
 import almostThereImage from "../../assets/images/almost_there.jpg";
-
+import { authAPI, tokenHelper } from "../../services/api";
 import type { UserRole } from "../../services/types/auth";
 
 // ── Types ──────────────────────────────────────────────────
@@ -124,9 +124,9 @@ const ErrorBanner: React.FC<{ message: string }> = ({ message }) => (
 
 // ── Component ──────────────────────────────────────────────
 const Signup: React.FC = () => {
-
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
-  const [isLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   // Step 1 state
@@ -181,6 +181,56 @@ const Signup: React.FC = () => {
   };
 
   // ── Final Submit ──────────────────────────────────────────
+  const handleSubmit = async () => {
+    setError("");
+    if (!step3.agreeTerms)
+      return setError("Please agree to the Terms of Service.");
+    if (!step3.agreeApproval)
+      return setError(
+        "Please acknowledge the administrator approval requirement.",
+      );
+
+    // Map display name → API role
+    const selectedRole = ROLES.find((r) => r.name === step2.role);
+    if (!selectedRole)
+      return setError(
+        "Invalid role selected. Please go back and select a role.",
+      );
+
+    // Build username from email (before @)
+    const username = step1.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_");
+
+    setIsLoading(true);
+    try {
+      const res = await authAPI.register({
+        username,
+        email: step1.email,
+        password: step1.password,
+        firstName: step1.firstName,
+        lastName: step1.lastName,
+        phone: step1.phone,
+        role: selectedRole.apiRole,
+      });
+
+      tokenHelper.save(
+        res.data.data.tokens.accessToken,
+        res.data.data.tokens.refreshToken,
+      );
+      navigate("/dashboard");
+    } catch (err: any) {
+      const apiErrors = err?.response?.data?.errors;
+      if (apiErrors && apiErrors.length > 0) {
+        setError(apiErrors.map((e: any) => e.message).join(", "));
+      } else {
+        setError(
+          err?.response?.data?.message ||
+            "Registration failed. Please try again.",
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const goToStep = (n: StepNumber) => {
     setError("");

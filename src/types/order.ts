@@ -1,5 +1,6 @@
 // CRUD_Project/app/client/src/types/order.ts
 
+import { Customer } from "./customer";
 
 // Add this after the Customer import
 export interface CustomerSummary {

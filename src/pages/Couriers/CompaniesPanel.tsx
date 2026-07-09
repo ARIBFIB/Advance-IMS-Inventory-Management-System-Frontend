@@ -8,10 +8,12 @@ import {
   courierInitials,
   Badge,
   PerfBar,
+  StarRating,
   CPagination,
   InnerTabs,
   EmptyState,
   TableSkeleton,
+  ToggleSwitch,
 } from "./shared";
 import { couriersAPI } from "../../services/api";
 

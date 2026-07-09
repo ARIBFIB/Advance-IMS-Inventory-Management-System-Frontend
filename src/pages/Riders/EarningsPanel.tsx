@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   ApiRider,
+  riderStatusLabel,
+  Badge,
   ApiRiderAvatar,
   InnerTabs,
   EmptyState,

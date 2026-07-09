@@ -5,7 +5,7 @@
 import React from "react";
 import type { Task, TaskStatus } from "./types";
 import { getStaffColor, initials, progressColor } from "./helpers";
-import { Badge, PriorityDot, ProgressBar } from "./MicroComponents";
+import { Badge, PriorityDot, ProgressBar, EmptyState } from "./MicroComponents";
 
 interface KanbanPanelProps {
   tasks: Task[];

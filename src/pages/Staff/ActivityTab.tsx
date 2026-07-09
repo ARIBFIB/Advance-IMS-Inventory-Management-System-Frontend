@@ -5,6 +5,7 @@
 // ═══════════════════════════════════════════════════════════
 
 import React, { useState, useMemo } from "react";
+import { Severity } from "./staff.types";
 import { ACTIVITY_LOG, severityBadgeClass } from "./staffData";
 
 const PAGE_SIZE = 10;

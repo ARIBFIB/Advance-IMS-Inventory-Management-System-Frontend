@@ -409,6 +409,7 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
       0,
       3,
     );
+    const combined = [...recentPages, ...quickActions];
 
     return (
       <>

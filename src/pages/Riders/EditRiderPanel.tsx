@@ -1,5 +1,5 @@
 // EditRiderPanel.tsx — pre-filled edit form for existing rider
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { NavPanel, ZONES_DATA } from "./shared";
 import { ridersAPI } from "../../services/api";
 import { ApiRider } from "./shared";

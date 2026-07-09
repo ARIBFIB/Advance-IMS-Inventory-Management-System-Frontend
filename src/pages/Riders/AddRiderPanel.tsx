@@ -9,6 +9,8 @@ interface Props {
 
 // ── Validation Rules ────────────────────────────────────────────────────────
 const PHONE_REGEX = /^(\+92|0)(3\d{9}|[0-9]{9,10})$/;
+const CNIC_CLEAN_REGEX = /^\d{13}$/; // after stripping dashes
+const CNIC_FORMATTED_REGEX = /^\d{5}-\d{7}-\d{1}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -79,7 +81,7 @@ const validators: Record<string, (v: string, form?: any) => string> = {
     if (!v.trim()) return "Enter at least one service city.";
     return "";
   },
-  bankAccountNumber: (v, _form) => {
+  bankAccountNumber: (v, form) => {
     if (!v.trim()) return ""; // optional
     if (v.trim().length < 6) return "Account number seems too short.";
     return "";

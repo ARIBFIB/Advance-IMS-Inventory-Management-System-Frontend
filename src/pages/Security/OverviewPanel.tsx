@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { usersAPI, notificationsAPI } from "../../services/api";
+import { analyticsAPI, usersAPI, notificationsAPI } from "../../services/api";
 
 // ═══════════════════════════════════════════════════════════
 // TYPES

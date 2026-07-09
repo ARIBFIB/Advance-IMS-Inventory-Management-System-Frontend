@@ -11,6 +11,7 @@ interface FinancialSummaryProps {
 
 const FinancialSummary: React.FC<FinancialSummaryProps> = ({
   onViewDetails,
+  codRings,
   sparkHeights,
 }) => (
   <div className="d-card">
