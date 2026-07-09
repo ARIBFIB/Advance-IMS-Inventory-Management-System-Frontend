@@ -6,15 +6,8 @@ import { useTabLoading } from "../../hooks/useTabLoading";
 
 import {
   NavPanel,
-  Rider,
   ApiRider,
-  RIDERS,
-  fmt,
-  rColor,
-  avatarColor,
-  initials,
   Badge,
-  RiderAvatar,
   ApiRiderAvatar,
   riderStatusLabel,
 } from "./shared";

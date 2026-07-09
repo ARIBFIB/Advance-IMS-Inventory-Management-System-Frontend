@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./CustomersPage.css";
 import TopLoadingBar from "../../components/ui/TopLoadingBar";
 import { useTabLoading } from "../../hooks/useTabLoading";
@@ -93,9 +93,6 @@ function statusBadgeClass(s: string): string {
 // SHARED SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════
 
-const Badge: React.FC<{ label: string; cls?: string }> = ({ label, cls }) => (
-  <span className={`badge ${cls ?? ""}`}>{label}</span>
-);
 
 const ThreeDot: React.FC<{
   id: string;

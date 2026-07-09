@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AuditLog, Severity, AccessResult, ChangeType } from "./types";
+import { AuditLog, Severity } from "./types";
 import { STAFF_COLORS, MODULE_ICONS, ALL_LOGS_DATA, CHIPS } from "./auditData";
 import ComingSoon from "./ComingSoon";
 

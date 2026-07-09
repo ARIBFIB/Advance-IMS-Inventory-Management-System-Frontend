@@ -2,11 +2,8 @@
 import React, { useState, useCallback, useEffect } from "react";
 import {
   ApiRider,
-  ApiDelivery,
   ApiPagination,
-  RIDERS,
   riderStatusLabel,
-  badgeClass,
   Badge,
   InnerTabs,
   CPagination,
@@ -39,7 +36,6 @@ const RouteHistoryPanel: React.FC = () => {
     totalItems: 0,
     itemsPerPage: 10,
   });
-  const [loading, setLoading] = useState(false);
   const [loadingDeliveries, setLoadingDeliveries] = useState(false);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");

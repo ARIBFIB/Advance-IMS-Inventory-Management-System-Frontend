@@ -9,7 +9,6 @@ import {
   fmt,
   Badge,
   StarRating,
-  PerfBar,
 } from "./shared";
 import OverviewPanel from "./OverviewPanel";
 import CompaniesPanel from "./CompaniesPanel";

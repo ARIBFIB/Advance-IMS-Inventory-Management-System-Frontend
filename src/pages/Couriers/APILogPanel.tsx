@@ -1,6 +1,6 @@
 // APILogPanel.tsx — dynamic
 import React, { useState, useEffect, useCallback } from "react";
-import { API_LOGS, Badge, InnerTabs, EmptyState, ToggleSwitch } from "./shared";
+import { API_LOGS, Badge, InnerTabs, ToggleSwitch } from "./shared";
 import { integrationsAPI, trackingAPI } from "../../services/api";
 
 interface IntegrationStatus {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./InventoryPage.css";
 import TopLoadingBar from "../../components/ui/TopLoadingBar";
 import { useTabLoading } from "../../hooks/useTabLoading";
@@ -470,7 +470,7 @@ const StockAdjustPanel: React.FC<StockAdjustPanelProps> = ({
                   {selectedProduct.variants.map((v) => {
                     const label =
                       Object.entries(v.attributes)
-                        .map(([k, val]) => val)
+                        .map(([, val]) => val)
                         .join(" / ") || v.variantId;
                     return (
                       <option key={v.variantId} value={v.variantId}>
@@ -1143,7 +1143,7 @@ const MovementsTab: React.FC = () => {
             ) : history.length === 0 ? (
               <EmptyState message="No stock movements found." cols={8} />
             ) : (
-              history.map((m, i) => (
+              history.map((m, _i) => (
                 <tr key={m._id}>
                   <td>
                     <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
@@ -1772,7 +1772,7 @@ const AdjustmentsTab: React.FC = () => {
                 <i className="fa-solid fa-spinner fa-spin" /> Loading…
               </div>
             ) : (
-              history.slice(0, 8).map((m, i) => {
+              history.slice(0, 8).map((m, _i) => {
                 const isIn = m.quantityChange > 0;
                 const color = isIn ? "var(--green)" : "var(--red)";
                 const bg = isIn

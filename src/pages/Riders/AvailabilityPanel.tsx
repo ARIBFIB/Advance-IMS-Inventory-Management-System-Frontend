@@ -2,11 +2,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   ApiRider,
-  ApiPagination,
   SCHEDULE_DATA,
   riderStatusLabel,
-  avatarColorFromName,
-  initials,
   Badge,
   DayBadge,
   InnerTabs,
@@ -69,12 +66,6 @@ const AvailabilityPanel: React.FC = () => {
     return "Offline";
   };
 
-  const shiftLabel = (r: ApiRider) => {
-    // No shift field in API — derive from status
-    if (r.status === "Active") return "Morning (9AM–5PM)";
-    if (r.status === "OnDelivery") return "Full Day";
-    return "—";
-  };
 
   return (
     <>

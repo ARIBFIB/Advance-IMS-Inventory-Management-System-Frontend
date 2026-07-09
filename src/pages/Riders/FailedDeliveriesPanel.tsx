@@ -2,12 +2,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   ApiRider,
-  Badge,
   EmptyState,
   TableSkeleton,
-  ApiRiderAvatar,
   CPagination,
-  ApiPagination,
 } from "./shared";
 import { ridersAPI } from "../../services/api";
 
@@ -27,7 +24,7 @@ interface FailedDelivery {
 }
 
 const FailedDeliveriesPanel: React.FC = () => {
-  const [riders, setRiders] = useState<ApiRider[]>([]);
+  const [, setRiders] = useState<ApiRider[]>([]);
   const [deliveries, setDeliveries] = useState<FailedDelivery[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

@@ -2,12 +2,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   ApiRider,
-  ApiDelivery,
-  ApiPagination,
-  ACTIVE_DELIVERIES,
-  riderStatusLabel,
-  badgeClass,
-  Badge,
   InnerTabs,
   CPagination,
   EmptyState,
@@ -31,10 +25,6 @@ interface LiveDelivery {
   createdAt?: string;
 }
 
-interface RiderWithDeliveries {
-  rider: ApiRider;
-  deliveries: LiveDelivery[];
-}
 
 const STATUS_COLOR: Record<string, string> = {
   in_transit: "var(--accent)",

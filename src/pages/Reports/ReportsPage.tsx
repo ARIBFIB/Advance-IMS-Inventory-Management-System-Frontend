@@ -4,7 +4,6 @@
 import React, { useState } from "react";
 import "./ReportsPage.css";
 import TopLoadingBar from "../../components/ui/TopLoadingBar";
-import { usePageLoading } from "../../hooks/usePageLoading";
 import { useTabLoading } from "../../hooks/useTabLoading";
 
 import SalesReportsTab from "./SalesReportsTab";

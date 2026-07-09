@@ -3,12 +3,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   ApiRider,
   ApiPagination,
-  Badge,
   InnerTabs,
   EmptyState,
   CPagination,
   TableSkeleton,
-  ApiRiderAvatar,
 } from "./shared";
 import { ridersAPI } from "../../services/api";
 

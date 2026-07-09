@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import { useSort } from "../hooks/useSort";
 import { usePagination } from "../hooks/usePagination";
 

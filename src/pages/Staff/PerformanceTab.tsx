@@ -64,7 +64,7 @@ const PerformanceTab: React.FC = () => {
       setError("");
       try {
         const res = await analyticsAPI.getStaffPerformance();
-        const { taskPerformance, orderProcessing, activeStaff } = res.data.data;
+        const { taskPerformance, orderProcessing } = res.data.data;
 
         // Merge task perf + order proc
         const orderMap = new Map(orderProcessing.map((o: any) => [o._id, o]));

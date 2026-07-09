@@ -463,7 +463,7 @@ const StepItems: React.FC<StepItemsProps> = ({ items, setItems }) => {
   > | null>(null);
   const [variantPickerProduct, setVariantPickerProduct] =
     useState<ApiProduct | null>(null);
-  const [toast, setToast] = useState<{
+  const [, setToast] = useState<{
     msg: string;
     type: "success" | "warn" | "error";
   } | null>(null);

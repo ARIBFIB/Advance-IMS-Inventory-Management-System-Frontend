@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import "./Landing.css";
 import { ShaderAnimation } from "../../components/ui/shader-animation";
 import { LiquidMetalButton } from "../../components/ui/LiquidMetalButton";
@@ -292,7 +292,6 @@ function useScrollReveal() {
 
 // ── Component ──────────────────────────────────────────────
 const Landing: React.FC = () => {
-  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const autoSlideRef = useRef<ReturnType<typeof setInterval> | null>(null);

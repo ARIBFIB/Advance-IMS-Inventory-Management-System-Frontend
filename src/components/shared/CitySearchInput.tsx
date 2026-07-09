@@ -252,7 +252,6 @@ const CitySearchInput: React.FC<CitySearchInputProps> = ({
               <span
                 style={{
                   fontSize: 10,
-                  color: "var(--text-muted)",
                   background:
                     city.countryCode === "PK" ? "#EFF6FF" : "var(--bg)",
                   color:

@@ -4,7 +4,6 @@
 
 import React, { useState } from "react";
 import type { Task } from "./types";
-import { getTasksForDay } from "./helpers";
 import { Badge, EmptyState, ProgressBar } from "./MicroComponents";
 
 interface CalendarPanelProps {

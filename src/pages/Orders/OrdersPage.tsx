@@ -5,7 +5,6 @@ import { usePageLoading } from "../../hooks/usePageLoading";
 import { useOrders } from "../../hooks/useOrders";
 import { useOrderDetail } from "../../hooks/useOrderDetail";
 import {
-  mapApiOrderToRow,
   mapApiOrdersToRows,
   computeOrderStats,
 } from "../../utils/orderMappers";
@@ -1344,21 +1343,6 @@ const AllOrdersTab: React.FC = () => {
 };
 
 // ── Placeholder tab ────────────────────────────────────────
-const PlaceholderTab: React.FC<{
-  icon: string;
-  title: string;
-  desc: string;
-}> = ({ icon, title, desc }) => (
-  <div className="card">
-    <div className="card-body">
-      <div className="empty-state">
-        <i className={`fa-solid ${icon}`} />
-        <h4>{title}</h4>
-        <p>{desc}</p>
-      </div>
-    </div>
-  </div>
-);
 
 // ── Settings Tab ───────────────────────────────────────────
 const SettingsTab: React.FC = () => (

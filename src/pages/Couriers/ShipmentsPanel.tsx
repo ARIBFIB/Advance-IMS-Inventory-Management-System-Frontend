@@ -6,15 +6,12 @@ import {
   ApiPagination,
   fmt,
   statusLabel,
-  badgeClass,
   Badge,
   CPagination,
   EmptyState,
   TableSkeleton,
 } from "./shared";
 import { shipmentsAPI, couriersAPI } from "../../services/api";
-import CitySearchInput from "../../components/shared/CitySearchInput";
-import citiesData from "../../assets/data/all_cities/allCitiesNested.lite.json";
 
 /* ─── Drawer styles ─────────────────────────────────────────────────── */
 const drawerStyles = `
@@ -58,7 +55,7 @@ const CreateShipmentDrawer: React.FC<CreateShipmentDrawerProps> = ({
     notes: "",
   });
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [, setError] = useState("");
 
   // ── Order Search ──
   const [orderSearch, setOrderSearch] = useState("");

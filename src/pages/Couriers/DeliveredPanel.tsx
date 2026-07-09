@@ -73,8 +73,6 @@ const DeliveredPanel: React.FC = () => {
   const start = (currentPage - 1) * PER_PAGE + 1;
   const end = Math.min(currentPage * PER_PAGE, totalItems);
 
-  const codPendingCount = totalItems; // when codFilter === 'pending'
-  const codCollectedCount = totalItems; // when codFilter === 'collected'
 
   return (
     <>
